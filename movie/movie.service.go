@@ -100,10 +100,10 @@ func Populate(language string, idGenre string) {
 			itemFind := GetItemByIdAndLanguage(itemObj.Id, "movie", language, itemObj)
 
 			if itemFind.Id == 0 {
-				log.Println("INSERT")
+				log.Println("INSERT MOVIE: ", itemObj.Id)
 				Insert("movie", language, itemObj)
 			} else {
-				log.Println("UPDATE")
+				log.Println("UPDATE MOVIE: ", itemObj.Id)
 			}
 
 		}

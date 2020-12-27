@@ -29,7 +29,7 @@ func Populate(language string, idGenre string) {
 			log.Println(err)
 		}
 
-		var result ResultMovie
+		var result ResultSerie
 		json.NewDecoder(response.Body).Decode(&result)
 		// log.Println(result.Results)
 		for _, item := range result.Results {
@@ -41,6 +41,19 @@ func Populate(language string, idGenre string) {
 
 			var itemObj Serie
 			json.NewDecoder(reqItem.Body).Decode(&itemObj)
+			var seasonsDetails []Season
+			for _, season := range itemObj.Seasons {
+				// https://api.themoviedb.org/3/tv/82856/season/1?api_key=26fe6f55e55736490dee0811901cccac&language=en-US
+				reqSeasonEpisodes, err := http.Get(apiHost + "/tv/" + strconv.Itoa(itemObj.Id) + "/season/" + strconv.Itoa(season.SeasonNumber) + "?api_key=" + apiKey + "&language=" + language)
+				if err != nil {
+					log.Println(err)
+				}
+
+				var seasonReq Season
+				json.NewDecoder(reqSeasonEpisodes.Body).Decode(&seasonReq)
+				seasonsDetails = append(seasonsDetails, seasonReq)
+			}
+			itemObj.Seasons = seasonsDetails
 
 			t := time.Now()
 			itemObj.UpdatedNew = t.Format("02/01/2006 15:04:05")
@@ -100,10 +113,10 @@ func Populate(language string, idGenre string) {
 			itemFind := GetItemByIdAndLanguage(itemObj.Id, "serie", language, itemObj)
 
 			if itemFind.Id == 0 {
-				log.Println("INSERT")
+				log.Println("INSERT SERIE: ", itemObj.Id)
 				Insert("serie", language, itemObj)
 			} else {
-				log.Println("UPDATE")
+				log.Println("UPDATE SERIE: ", itemObj.Id)
 			}
 		}
 

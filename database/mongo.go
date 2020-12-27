@@ -60,7 +60,7 @@ func GetConnection() (*mongo.Client, context.Context, context.CancelFunc) {
 	// clientOptions := options.Client().ApplyURI("mongodb://localhost:27017/?connect=direct")
 	// client, err := mongo.Connect(context.TODO(), clientOptions)
 
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("MONGO_URI")))
 	if err != nil {
 		log.Printf("Failed to create client: %v", err)
 	}

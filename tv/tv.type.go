@@ -26,7 +26,8 @@ type SpokenLanguages struct {
 	Name string `json:"name" bson:"name"`
 }
 
-type EpisodeToAir struct {
+// type EpisodeToAir struct {
+type Episode struct {
 	AirDate       string `json:"air_date" bson:"air_date"`
 	EpisodeNumber string `json:"episode_number" bson:"episode_number"`
 	Id            int    `json:"id" bson:"id"`
@@ -48,13 +49,14 @@ type Network struct {
 }
 
 type Season struct {
-	AirDate      string `json:"air_date" bson:"air_date"`
-	EpisodeCount int    `json:"episode_count" bson:"episode_count"`
-	Id           int    `json:"id" bson:"id"`
-	Name         string `json:"name" bson:"name"`
-	Overview     string `json:"overview" bson:"overview"`
-	PosterPath   string `json:"poster_path" bson:"poster_path"`
-	SeasonNumber int    `json:"season_number" bson:"season_number"`
+	AirDate      string    `json:"air_date" bson:"air_date"`
+	EpisodeCount int       `json:"episode_count" bson:"episode_count"`
+	Id           int       `json:"id" bson:"id"`
+	Name         string    `json:"name" bson:"name"`
+	Overview     string    `json:"overview" bson:"overview"`
+	PosterPath   string    `json:"poster_path" bson:"poster_path"`
+	SeasonNumber int       `json:"season_number" bson:"season_number"`
+	Episodes     []Episode `json:"episodes" bson:"episodes"`
 }
 
 type CreatedBy struct {
@@ -111,8 +113,8 @@ type Serie struct {
 	VoteAverage         float32               `json:"vote_average" bson:"voteAverage"`
 	FirstAirDate        string                `json:"first_air_date" bson:"firstAirDate"`
 	LastAirDate         string                `json:"last_air_date" bson:"lastAirDate"`
-	LastEpisodeToAir    EpisodeToAir          `json:"last_episode_to_air" bson:"last_episode_to_air"`
-	NextEpisodeToAir    EpisodeToAir          `json:"ne?next_episode_to_air" bson:"next_episode_to_air"`
+	LastEpisodeToAir    Episode               `json:"last_episode_to_air" bson:"last_episode_to_air"`
+	NextEpisodeToAir    Episode               `json:"ne?next_episode_to_air" bson:"next_episode_to_air"`
 	OriginalLanguage    string                `json:"original_language" bson:"original_language"`
 	Title               string                `json:"name" bson:"title"`
 	OriginalTitle       string                `json:"original_name" bson:"original_title"`
@@ -145,7 +147,7 @@ type Serie struct {
 	TvCredits           TvCredits             `json:"credits" bson:"credits"`
 }
 
-type ResultMovie struct {
+type ResultSerie struct {
 	Page         string  `json:"page"`
 	TotalResults int     `json:"total_results"`
 	TotalPages   int     `json:"total_pages"`
