@@ -69,7 +69,7 @@ type Movie struct {
 	Id                  int                   `json:"id" bson:"id"`
 	Video               bool                  `json:"video" bson:"video"`
 	VoteCount           int                   `json:"vote_count" bson:"vote_count"`
-	VoteAverage         float32               `json:"vote_average" bson:"vote_average"`
+	VoteAverage         float64               `json:"vote_average" bson:"vote_average"`
 	Title               string                `json:"title" bson:"title"`
 	ReleaseDate         string                `json:"release_date" bson:"release_date"`
 	OriginalLanguage    string                `json:"original_language" bson:"original_language"`
