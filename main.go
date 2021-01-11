@@ -40,6 +40,7 @@ func init() {
 }
 
 func main() {
+
 	movie.Populate("en", "")
 	movie.Populate("pt-BR", "")
 
@@ -58,7 +59,7 @@ func main() {
 	person.Populate("pt-BR")
 
 	movies := movie.GetAll()
-	log.Println(movies)
+	log.Println(len(movies))
 
 	var (
 		elasticClient *elastic.Client
@@ -157,7 +158,7 @@ func main() {
 
 	// ==========> SÉRIEs
 	series := tv.GetAll()
-	log.Println(series)
+	log.Println(len(series))
 
 	elasticSerieAliasName := "series"
 
@@ -215,7 +216,7 @@ func main() {
 
 	// ==========> PESSOAS
 	persons := person.GetAll()
-	log.Println(persons)
+	log.Println(len(persons))
 
 	elasticPersonAliasName := "persons"
 
@@ -271,6 +272,7 @@ func main() {
 	log.Println("Carga finalizada com sucesso!")
 	log.Println("Séries carregados length: ", len(persons))
 
+	// ===================================================================>
 	// r := gin.Default()
 	// r.GET("/ping", func(c *gin.Context) {
 	// 	c.JSON(200, gin.H{

@@ -13,6 +13,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/olivere/elastic v6.2.35+incompatible
 	github.com/olivere/elastic/v7 v7.0.22 // indirect
+	github.com/sirupsen/logrus v1.7.0
 	github.com/ugorji/go v1.1.9 // indirect
 	go.mongodb.org/mongo-driver v1.4.2
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 // indirect
