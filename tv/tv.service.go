@@ -6,6 +6,7 @@ import (
 	"log"
 	"moviedb/database"
 	"moviedb/person"
+	"moviedb/util"
 	"net/http"
 	"os"
 	"strconv"
@@ -19,11 +20,16 @@ func Populate(language string, idGenre string) {
 
 	apiKey := os.Getenv("TMDB_API_KEY")
 	apiHost := os.Getenv("TMDB_HOST")
+	apiMaxPage := util.StringToInt(os.Getenv("TMDB_MAX_PAGE_LOAD"))
 	// mongoDatabase := os.Getenv("MONGO_DATABASE")
 
-	for i := 0; i < 1; i++ {
-		log.Println(i)
-		page := strconv.Itoa(i + 1)
+	seriesInsert := make([]interface{}, 0)
+	seriesUpdate := make([]Serie, 0)
+	personsInsert := make([]interface{}, 0)
+	personsUpdate := make([]person.Person, 0)
+	for i := 1; i < apiMaxPage+1; i++ {
+		log.Println("PAGE: ", i)
+		page := strconv.Itoa(i)
 		response, err := http.Get(apiHost + "/discover/tv?api_key=" + apiKey + "&language=" + language + "&sort_by=popularity.desc&include_adult=false&include_video=false&page=" + page + "&with_genres=" + idGenre)
 		if err != nil {
 			log.Println(err)
@@ -41,9 +47,10 @@ func Populate(language string, idGenre string) {
 
 			var itemObj Serie
 			json.NewDecoder(reqItem.Body).Decode(&itemObj)
+
+			// Início tratamento para episódios de uma série
 			var seasonsDetails []Season
 			for _, season := range itemObj.Seasons {
-				// https://api.themoviedb.org/3/tv/82856/season/1?api_key=26fe6f55e55736490dee0811901cccac&language=en-US
 				reqSeasonEpisodes, err := http.Get(apiHost + "/tv/" + strconv.Itoa(itemObj.Id) + "/season/" + strconv.Itoa(season.SeasonNumber) + "?api_key=" + apiKey + "&language=" + language)
 				if err != nil {
 					log.Println(err)
@@ -54,6 +61,7 @@ func Populate(language string, idGenre string) {
 				seasonsDetails = append(seasonsDetails, seasonReq)
 			}
 			itemObj.Seasons = seasonsDetails
+			// FINAL tratamento para episódios de uma série
 
 			t := time.Now()
 			itemObj.UpdatedNew = t.Format("02/01/2006 15:04:05")
@@ -82,10 +90,13 @@ func Populate(language string, idGenre string) {
 				personCheck.Slug = slug.Make(personCheck.Name)
 				personCheck.SlugUrl = "person-" + strconv.Itoa(personCheck.Id)
 
-				personFindUpdate := person.GetItemByIdAndLanguage(cast.Id, "person", language, personCheck)
+				personFindUpdate := person.GetItemByIdAndLanguage2(cast.Id, "person", language, personCheck)
 
 				if personFindUpdate.Id == 0 {
-					person.Insert("person", language, personCheck)
+					// person.Insert("person", language, personCheck)
+					personsInsert = append(personsInsert, personCheck)
+				} else {
+					personsUpdate = append(personsUpdate, personCheck)
 				}
 			}
 
@@ -100,27 +111,51 @@ func Populate(language string, idGenre string) {
 				personCheck.Slug = slug.Make(personCheck.Name)
 				personCheck.SlugUrl = "person-" + strconv.Itoa(personCheck.Id)
 
-				personFindUpdate := person.GetItemByIdAndLanguage(crew.Id, "person", language, personCheck)
+				personFindUpdate := person.GetItemByIdAndLanguage2(crew.Id, "person", language, personCheck)
 
 				if personFindUpdate.Id == 0 {
-					person.Insert("person", language, personCheck)
+					// person.Insert("person", language, personCheck)
+					personsInsert = append(personsInsert, personCheck)
+				} else {
+					personsUpdate = append(personsUpdate, personCheck)
 				}
 				crew.OriginalName = ""
 			}
-
 			// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
 
-			itemFind := GetItemByIdAndLanguage(itemObj.Id, "serie", language, itemObj)
+			itemFind := GetItemByIdAndLanguage2(itemObj.Id, "serie", language, itemObj)
 
 			if itemFind.Id == 0 {
 				log.Println("INSERT SERIE: ", itemObj.Id)
-				Insert("serie", language, itemObj)
+				// Insert("serie", language, itemObj)
+				seriesInsert = append(seriesInsert, itemObj)
 			} else {
 				log.Println("UPDATE SERIE: ", itemObj.Id)
+				seriesUpdate = append(seriesUpdate, itemObj)
 			}
 		}
 
-		time.Sleep(1 * time.Second / 2)
+		time.Sleep(1 * time.Second)
+	}
+
+	if len(seriesInsert) > 0 {
+		log.Println("INSERT ALL SERIES")
+		InsertMany(seriesInsert)
+	}
+
+	if len(seriesUpdate) > 0 {
+		log.Println("UPDATE ALL SERIES")
+		UpdateMany(seriesUpdate, language)
+	}
+
+	if len(personsInsert) > 0 {
+		log.Println("INSERT ALL PERSON")
+		person.InsertMany(personsInsert)
+	}
+
+	if len(personsUpdate) > 0 {
+		log.Println("UPDATE ALL PERSON")
+		person.UpdateMany(personsUpdate, language)
 	}
 
 }
@@ -167,6 +202,18 @@ func GetItemByIdAndLanguage(id int, collecionString string, language string, ite
 	return item
 }
 
+func GetItemByIdAndLanguage2(id int, collecionString string, language string, itemSearh Serie) Serie {
+
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	var item Serie
+	client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
+
+	return item
+}
+
 func Insert(collecionString string, language string, itemInsert Serie) interface{} {
 
 	client, ctx, cancel := database.GetConnection()
@@ -180,4 +227,32 @@ func Insert(collecionString string, language string, itemInsert Serie) interface
 	}
 
 	return result.InsertedID
+}
+
+func InsertMany(series []interface{}) interface{} {
+
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").InsertMany(context.TODO(), series)
+	if err != nil {
+		log.Println("EERRORRR")
+		log.Println(err)
+	}
+
+	return result.InsertedIDs
+}
+
+func UpdateMany(persons []Serie, language string) {
+
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	for _, person := range persons {
+		client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").UpdateOne(context.TODO(), bson.M{"id": person.Id, "language": language}, bson.M{
+			"$set": persons,
+		})
+	}
 }

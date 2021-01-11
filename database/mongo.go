@@ -11,7 +11,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 func MongoConnect() (*mongo.Database, error) {
@@ -97,10 +96,10 @@ func CheckCreateCollections() {
 
 	index := []mongo.IndexModel{
 		{
-			Keys: bsonx.Doc{{Key: "id"}},
+			Keys: bson.M{"id": 1},
 		},
 		{
-			Keys: bsonx.Doc{{Key: "language"}},
+			Keys: bson.M{"language": 1},
 		},
 	}
 	opts := options.CreateIndexes().SetMaxTime(10 * time.Second)
