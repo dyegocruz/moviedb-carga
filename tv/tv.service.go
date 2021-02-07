@@ -57,7 +57,26 @@ func Populate(language string, idGenre string) {
 				}
 
 				var seasonReq Season
+
 				json.NewDecoder(reqSeasonEpisodes.Body).Decode(&seasonReq)
+				seasonReq.EpisodeCount = season.EpisodeCount
+				seasonReq.Overview = season.Overview
+				for _, episode := range seasonReq.Episodes {
+					log.Println("DATA: ", episode.AirDate)
+				}
+				// var episodesUpdate []Episode
+				// for _, episode := range seasonReq.Episodes {
+				// 	teste, err := time.Parse("2006-01-02", episode.AirDate)
+				// 	if err != nil {
+				// 		log.Println("ERRO DATA: ", itemObj.Id)
+				// 		log.Println(err)
+				// 	}
+				// 	// t.Format("02/01/2006 15:04:05")
+				// 	log.Println(teste.Format("2006-01-02 15:04:05"))
+				// 	episode.AirDate = teste.Format("2006-01-02 15:04:05")
+				// 	episodesUpdate = append(episodesUpdate, episode)
+				// }
+				// seasonReq.Episodes = episodesUpdate
 				seasonsDetails = append(seasonsDetails, seasonReq)
 			}
 			itemObj.Seasons = seasonsDetails
@@ -122,15 +141,14 @@ func Populate(language string, idGenre string) {
 				crew.OriginalName = ""
 			}
 			// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
-
 			itemFind := GetItemByIdAndLanguage2(itemObj.Id, "serie", language, itemObj)
 
 			if itemFind.Id == 0 {
-				log.Println("INSERT SERIE: ", itemObj.Id)
+				log.Println("ADD INSERT SERIE: ", itemObj.Id)
 				// Insert("serie", language, itemObj)
 				seriesInsert = append(seriesInsert, itemObj)
 			} else {
-				log.Println("UPDATE SERIE: ", itemObj.Id)
+				log.Println("ADD UPDATE SERIE: ", itemObj.Id)
 				seriesUpdate = append(seriesUpdate, itemObj)
 			}
 		}
@@ -209,7 +227,7 @@ func GetItemByIdAndLanguage2(id int, collecionString string, language string, it
 	defer client.Disconnect(ctx)
 
 	var item Serie
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
+	client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
 
 	return item
 }
