@@ -28,17 +28,17 @@ type SpokenLanguages struct {
 
 // type EpisodeToAir struct {
 type Episode struct {
-	AirDate       string `json:"air_date" bson:"air_date"`
-	EpisodeNumber string `json:"episode_number" bson:"episode_number"`
-	Id            int    `json:"id" bson:"id"`
-	Name          string `json:"name" bson:"name"`
-	Overview      string `json:"overview" bson:"overview"`
-	ProdctionCode string `json:"production_code" bson:"production_code"`
-	SeasonNumber  int    `json:"season_number" bson:"season_number"`
-	ShowId        int    `json:"show_id" bson:"show_id"`
-	StillPath     string `json:"still_path" bson:"still_path"`
-	VoteAverage   string `json:"vote_average" bson:"vote_average"`
-	VoteCount     string `json:"vote_count" bson:"vote_count"`
+	AirDate       string  `json:"air_date,omitempty" bson:"air_date"`
+	EpisodeNumber int     `json:"episode_number" bson:"episode_number"`
+	Id            int     `json:"id" bson:"id"`
+	Name          string  `json:"name" bson:"name"`
+	Overview      string  `json:"overview" bson:"overview"`
+	ProdctionCode string  `json:"production_code" bson:"production_code"`
+	SeasonNumber  int     `json:"season_number" bson:"season_number"`
+	ShowId        int     `json:"show_id" bson:"show_id"`
+	StillPath     string  `json:"still_path" bson:"still_path"`
+	VoteAverage   float64 `json:"vote_average" bson:"vote_average"`
+	VoteCount     float64 `json:"vote_count" bson:"vote_count"`
 }
 
 type Network struct {
@@ -49,7 +49,7 @@ type Network struct {
 }
 
 type Season struct {
-	AirDate      string    `json:"air_date" bson:"air_date"`
+	AirDate      string    `json:"air_date,omitempty" bson:"air_date"`
 	EpisodeCount int       `json:"episode_count" bson:"episode_count"`
 	Id           int       `json:"id" bson:"id"`
 	Name         string    `json:"name" bson:"name"`
@@ -110,11 +110,11 @@ type Serie struct {
 	Id                  int                   `json:"id" bson:"id"`
 	Video               bool                  `json:"video" bson:"video"`
 	VoteCount           int                   `json:"vote_count" bson:"voteCount"`
-	VoteAverage         float32               `json:"vote_average" bson:"voteAverage"`
-	FirstAirDate        string                `json:"first_air_date" bson:"firstAirDate"`
-	LastAirDate         string                `json:"last_air_date" bson:"lastAirDate"`
+	VoteAverage         float64               `json:"vote_average" bson:"voteAverage"`
+	FirstAirDate        string                `json:"first_air_date" bson:"first_air_date"`
+	LastAirDate         string                `json:"last_air_date" bson:"last_air_date"`
 	LastEpisodeToAir    Episode               `json:"last_episode_to_air" bson:"last_episode_to_air"`
-	NextEpisodeToAir    Episode               `json:"ne?next_episode_to_air" bson:"next_episode_to_air"`
+	NextEpisodeToAir    Episode               `json:"next_episode_to_air" bson:"next_episode_to_air"`
 	OriginalLanguage    string                `json:"original_language" bson:"original_language"`
 	Title               string                `json:"name" bson:"title"`
 	OriginalTitle       string                `json:"original_name" bson:"original_title"`
