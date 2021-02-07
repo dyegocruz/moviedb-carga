@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log"
 	"moviedb/database"
-	"moviedb/movie"
-	"moviedb/person"
 	"moviedb/tv"
 	"os"
 	"strconv"
@@ -41,25 +39,25 @@ func init() {
 
 func main() {
 
-	movie.Populate("en", "")
-	movie.Populate("pt-BR", "")
+	// movie.Populate("en", "")
+	// movie.Populate("pt-BR", "")
 
-	// FILTRA APENAS ANIMAÇÕES
-	movie.Populate("en", "16")
-	movie.Populate("pt-BR", "16")
+	// // FILTRA APENAS ANIMAÇÕES
+	// movie.Populate("en", "16")
+	// movie.Populate("pt-BR", "16")
 
 	tv.Populate("en", "")
-	tv.Populate("pt-BR", "")
+	// tv.Populate("pt-BR", "")
 
-	// FILTRA APENAS ANIMAÇÕES
-	tv.Populate("en", "16")
-	tv.Populate("pt-BR", "16")
+	// // FILTRA APENAS ANIMAÇÕES
+	// tv.Populate("en", "16")
+	// tv.Populate("pt-BR", "16")
 
-	person.Populate("en")
-	person.Populate("pt-BR")
+	// person.Populate("en")
+	// person.Populate("pt-BR")
 
-	movies := movie.GetAll()
-	log.Println(len(movies))
+	// movies := movie.GetAll()
+	// log.Println(len(movies))
 
 	var (
 		elasticClient *elastic.Client
@@ -102,59 +100,59 @@ func main() {
 	}`
 	ctx := context.TODO()
 
-	elasticMovieAliasName := "movies"
+	// elasticMovieAliasName := "movies"
 
-	currentMovieTime := time.Now()
-	var newMovieIndexName = elasticMovieAliasName + "_" + currentMovieTime.Format("20060102150401")
-	log.Println(newMovieIndexName)
+	// currentMovieTime := time.Now()
+	// var newMovieIndexName = elasticMovieAliasName + "_" + currentMovieTime.Format("20060102150401")
+	// log.Println(newMovieIndexName)
 
-	createMovieIndex, err := elasticClient.CreateIndex(newMovieIndexName).BodyString(mapping).Do(ctx)
-	if err != nil {
-		// Handle error
-		// panic(err)
-		log.Println("Falha ao criar o índice:", newMovieIndexName)
-		panic(err)
-	}
-	if !createMovieIndex.Acknowledged {
-		// Not acknowledged
-	}
+	// createMovieIndex, err := elasticClient.CreateIndex(newMovieIndexName).BodyString(mapping).Do(ctx)
+	// if err != nil {
+	// 	// Handle error
+	// 	// panic(err)
+	// 	log.Println("Falha ao criar o índice:", newMovieIndexName)
+	// 	panic(err)
+	// }
+	// if !createMovieIndex.Acknowledged {
+	// 	// Not acknowledged
+	// }
 
-	for _, movie := range movies {
-		// CONVERTE O STRUCT DO MOVIE PARA UMA STRING JSON
-		movieJSONByte, err := json.Marshal(movie)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+	// for _, movie := range movies {
+	// 	// CONVERTE O STRUCT DO MOVIE PARA UMA STRING JSON
+	// 	movieJSONByte, err := json.Marshal(movie)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 		return
+	// 	}
 
-		// Iterate over the docs and index them one-by-one
-		_, err = elasticClient.Index().
-			Index(newMovieIndexName).
-			Type(elasticIndexType).            // unique doctype now deprecated
-			BodyString(string(movieJSONByte)). // Usando o JSON, pois o método BodyJson estava bagunçando o valor enviado
-			// Omit this if you want dynamically generated _id
-			// Id(strconv.Itoa(id)). // Convert int to string
-			Id(strconv.Itoa(movie.Id) + "-" + movie.Language). // DEFININDO O _ID DO PRESTADRO NO ELASTIC COMO SENDO O COD_PRESTADOR DO SABIUS
-			Do(ctx)
-		if err != nil {
-			log.Println("ERROR", err)
-		}
-	}
+	// 	// Iterate over the docs and index them one-by-one
+	// 	_, err = elasticClient.Index().
+	// 		Index(newMovieIndexName).
+	// 		Type(elasticIndexType).            // unique doctype now deprecated
+	// 		BodyString(string(movieJSONByte)). // Usando o JSON, pois o método BodyJson estava bagunçando o valor enviado
+	// 		// Omit this if you want dynamically generated _id
+	// 		// Id(strconv.Itoa(id)). // Convert int to string
+	// 		Id(strconv.Itoa(movie.Id) + "-" + movie.Language). // DEFININDO O _ID DO PRESTADRO NO ELASTIC COMO SENDO O COD_PRESTADOR DO SABIUS
+	// 		Do(ctx)
+	// 	if err != nil {
+	// 		log.Println("ERROR", err)
+	// 	}
+	// }
 
-	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DO GUIA MÉDICO
-	existentMovieAliases, err := IndexNamesByAlias(elasticMovieAliasName, elasticClient)
-	log.Println(existentMovieAliases)
+	// // BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DO GUIA MÉDICO
+	// existentMovieAliases, err := IndexNamesByAlias(elasticMovieAliasName, elasticClient)
+	// log.Println(existentMovieAliases)
 
-	// ADICIONA
-	elasticClient.Alias().Add(newMovieIndexName, elasticMovieAliasName).Do(context.TODO())
+	// // ADICIONA
+	// elasticClient.Alias().Add(newMovieIndexName, elasticMovieAliasName).Do(context.TODO())
 
-	if len(existentMovieAliases) > 0 {
-		oldIndex := existentMovieAliases[0]
-		elasticClient.Alias().Remove(oldIndex, elasticMovieAliasName).Do(context.TODO())
-		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
-	}
-	log.Println("Carga finalizada com sucesso!")
-	log.Println("Filmes carregados length: ", len(movies))
+	// if len(existentMovieAliases) > 0 {
+	// 	oldIndex := existentMovieAliases[0]
+	// 	elasticClient.Alias().Remove(oldIndex, elasticMovieAliasName).Do(context.TODO())
+	// 	elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
+	// }
+	// log.Println("Carga finalizada com sucesso!")
+	// log.Println("Filmes carregados length: ", len(movies))
 
 	// ==========> SÉRIEs
 	series := tv.GetAll()
@@ -214,63 +212,63 @@ func main() {
 	log.Println("Carga finalizada com sucesso!")
 	log.Println("Séries carregados length: ", len(series))
 
-	// ==========> PESSOAS
-	persons := person.GetAll()
-	log.Println(len(persons))
+	// // ==========> PESSOAS
+	// persons := person.GetAll()
+	// log.Println(len(persons))
 
-	elasticPersonAliasName := "persons"
+	// elasticPersonAliasName := "persons"
 
-	currentPersonTime := time.Now()
-	var newPersonIndexName = elasticPersonAliasName + "_" + currentPersonTime.Format("20060102150401")
-	log.Println(newPersonIndexName)
+	// currentPersonTime := time.Now()
+	// var newPersonIndexName = elasticPersonAliasName + "_" + currentPersonTime.Format("20060102150401")
+	// log.Println(newPersonIndexName)
 
-	createPersonIndex, err := elasticClient.CreateIndex(newPersonIndexName).BodyString(mapping).Do(ctx)
-	if err != nil {
-		// Handle error
-		// panic(err)
-		log.Println("Falha ao criar o índice:", newPersonIndexName)
-		panic(err)
-	}
-	if !createPersonIndex.Acknowledged {
-		// Not acknowledged
-	}
+	// createPersonIndex, err := elasticClient.CreateIndex(newPersonIndexName).BodyString(mapping).Do(ctx)
+	// if err != nil {
+	// 	// Handle error
+	// 	// panic(err)
+	// 	log.Println("Falha ao criar o índice:", newPersonIndexName)
+	// 	panic(err)
+	// }
+	// if !createPersonIndex.Acknowledged {
+	// 	// Not acknowledged
+	// }
 
-	for _, person := range persons {
-		// CONVERTE O STRUCT DO person PARA UMA STRING JSON
-		personJSONByte, err := json.Marshal(person)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+	// for _, person := range persons {
+	// 	// CONVERTE O STRUCT DO person PARA UMA STRING JSON
+	// 	personJSONByte, err := json.Marshal(person)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 		return
+	// 	}
 
-		// Iterate over the docs and index them one-by-one
-		_, err = elasticClient.Index().
-			Index(newPersonIndexName).
-			Type(elasticIndexType).             // unique doctype now deprecated
-			BodyString(string(personJSONByte)). // Usando o JSON, pois o método BodyJson estava bagunçando o valor enviado
-			// Omit this if you want dynamically generated _id
-			// Id(strconv.Itoa(id)). // Convert int to string
-			Id(strconv.Itoa(person.Id) + "-" + person.Language). // DEFININDO O _ID DO PRESTADRO NO ELASTIC COMO SENDO O COD_PRESTADOR DO SABIUS
-			Do(ctx)
-		if err != nil {
-			log.Println("ERROR", err)
-		}
-	}
+	// 	// Iterate over the docs and index them one-by-one
+	// 	_, err = elasticClient.Index().
+	// 		Index(newPersonIndexName).
+	// 		Type(elasticIndexType).             // unique doctype now deprecated
+	// 		BodyString(string(personJSONByte)). // Usando o JSON, pois o método BodyJson estava bagunçando o valor enviado
+	// 		// Omit this if you want dynamically generated _id
+	// 		// Id(strconv.Itoa(id)). // Convert int to string
+	// 		Id(strconv.Itoa(person.Id) + "-" + person.Language). // DEFININDO O _ID DO PRESTADRO NO ELASTIC COMO SENDO O COD_PRESTADOR DO SABIUS
+	// 		Do(ctx)
+	// 	if err != nil {
+	// 		log.Println("ERROR", err)
+	// 	}
+	// }
 
-	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DO GUIA MÉDICO
-	existentPersonAliases, err := IndexNamesByAlias(elasticPersonAliasName, elasticClient)
-	log.Println(existentPersonAliases)
+	// // BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DO GUIA MÉDICO
+	// existentPersonAliases, err := IndexNamesByAlias(elasticPersonAliasName, elasticClient)
+	// log.Println(existentPersonAliases)
 
-	// ADICIONA
-	elasticClient.Alias().Add(newPersonIndexName, elasticPersonAliasName).Do(context.TODO())
+	// // ADICIONA
+	// elasticClient.Alias().Add(newPersonIndexName, elasticPersonAliasName).Do(context.TODO())
 
-	if len(existentPersonAliases) > 0 {
-		oldIndex := existentPersonAliases[0]
-		elasticClient.Alias().Remove(oldIndex, elasticPersonAliasName).Do(context.TODO())
-		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
-	}
-	log.Println("Carga finalizada com sucesso!")
-	log.Println("Séries carregados length: ", len(persons))
+	// if len(existentPersonAliases) > 0 {
+	// 	oldIndex := existentPersonAliases[0]
+	// 	elasticClient.Alias().Remove(oldIndex, elasticPersonAliasName).Do(context.TODO())
+	// 	elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
+	// }
+	// log.Println("Carga finalizada com sucesso!")
+	// log.Println("Séries carregados length: ", len(persons))
 
 	// ===================================================================>
 	// r := gin.Default()

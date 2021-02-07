@@ -1,0 +1,14 @@
+version: "3.1"
+
+services:
+  api:
+    image: moviedb-carga:1.0
+    build:
+      context: .
+      args: 
+        - NODE_ENV=${NODE_ENV}
+    restart: on-failure
+    ports:
+      - "8223:1323"
+    environment:
+      - NODE_ENV=${NODE_ENV}
