@@ -71,7 +71,7 @@ func Populate(language string) {
 			}
 		}
 
-		time.Sleep(1 * time.Second)
+		// time.Sleep(1 * time.Second)
 	}
 
 	if len(personsInsert) > 0 {
