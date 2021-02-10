@@ -3,7 +3,6 @@ package database
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"moviedb/util"
 	"os"
@@ -52,14 +51,14 @@ const (
 
 // GetConnection - Retrieves a client to the DocumentDB
 func GetConnection() (*mongo.Client, context.Context, context.CancelFunc) {
-	username := os.Getenv("MONGODB_USERNAME")
-	password := os.Getenv("MONGODB_PASSWORD")
-	clusterEndpoint := os.Getenv("MONGO_URI")
+	// username := os.Getenv("MONGODB_USERNAME")
+	// password := os.Getenv("MONGODB_PASSWORD")
+	// clusterEndpoint := os.Getenv("MONGO_URI")
 
 	var connectionURI = os.Getenv("MONGO_URI")
-	if os.Getenv("GO_ENV") == "production" {
-		connectionURI = fmt.Sprintf(connectionStringTemplate, username, password, clusterEndpoint)
-	}
+	// if os.Getenv("GO_ENV") == "production" {
+	// 	connectionURI = fmt.Sprintf(connectionStringTemplate, username, password, clusterEndpoint)
+	// }
 
 	// log.Println(connectionURI)
 	// clientOptions := options.Client().ApplyURI("mongodb://localhost:27017/?connect=direct")
