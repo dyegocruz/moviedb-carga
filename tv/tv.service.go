@@ -61,9 +61,9 @@ func Populate(language string, idGenre string) {
 				json.NewDecoder(reqSeasonEpisodes.Body).Decode(&seasonReq)
 				seasonReq.EpisodeCount = season.EpisodeCount
 				seasonReq.Overview = season.Overview
-				for _, episode := range seasonReq.Episodes {
-					log.Println("DATA: ", episode.AirDate)
-				}
+				// for _, episode := range seasonReq.Episodes {
+				// 	log.Println("DATA: ", episode.AirDate)
+				// }
 				// var episodesUpdate []Episode
 				// for _, episode := range seasonReq.Episodes {
 				// 	teste, err := time.Parse("2006-01-02", episode.AirDate)
@@ -153,7 +153,7 @@ func Populate(language string, idGenre string) {
 			}
 		}
 
-		time.Sleep(1 * time.Second)
+		// time.Sleep(1 * time.Second)
 	}
 
 	if len(seriesInsert) > 0 {

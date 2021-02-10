@@ -144,7 +144,7 @@ func Populate(language string, idGenre string) {
 
 		}
 
-		time.Sleep(1 * time.Second)
+		// time.Sleep(1 * time.Second)
 	}
 
 	if len(moviesInsert) > 0 {
