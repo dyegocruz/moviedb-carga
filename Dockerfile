@@ -13,6 +13,9 @@ RUN go build -o moviedb-carga
 ARG NODE_ENV
 ENV GO_ENV $NODE_ENV
 
+ARG GO_ENV
+ENV GO_ENV $GO_ENV
+
 RUN echo "Oh dang look at that: ${GO_ENV}"
 RUN echo "Oh dang look at that: ${NODE_ENV}"
 
