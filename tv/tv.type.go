@@ -111,8 +111,8 @@ type Serie struct {
 	Video               bool                  `json:"video" bson:"video"`
 	VoteCount           int                   `json:"vote_count" bson:"voteCount"`
 	VoteAverage         float64               `json:"vote_average" bson:"voteAverage"`
-	FirstAirDate        string                `json:"first_air_date" bson:"first_air_date"`
-	LastAirDate         string                `json:"last_air_date" bson:"last_air_date"`
+	FirstAirDate        string                `json:"first_air_date,omitempty" bson:"first_air_date"`
+	LastAirDate         string                `json:"last_air_date,omitempty" bson:"last_air_date"`
 	LastEpisodeToAir    Episode               `json:"last_episode_to_air" bson:"last_episode_to_air"`
 	NextEpisodeToAir    Episode               `json:"next_episode_to_air" bson:"next_episode_to_air"`
 	OriginalLanguage    string                `json:"original_language" bson:"original_language"`
