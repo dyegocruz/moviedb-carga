@@ -3,6 +3,7 @@ package movie
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"moviedb/database"
 	"moviedb/person"
 	"moviedb/util"
@@ -12,11 +13,10 @@ import (
 	"time"
 
 	"github.com/gosimple/slug"
-	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-var log = logrus.New()
+// var log = logrus.New()
 
 func Populate(language string, idGenre string) {
 
