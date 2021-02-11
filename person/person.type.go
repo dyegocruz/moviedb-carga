@@ -30,8 +30,8 @@ type Person struct {
 	Name              string    `json:"name" bson:"name"`
 	ProfilepPath      string    `json:"profile_path" bson:"profile_path"`
 	Biography         string    `json:"biography" bson:"biography"`
-	Birthday          string    `json:"birthday" bson:"birthday"`
-	Deathday          string    `json:"deathday" bson:"deathday"`
+	Birthday          string    `json:"birthday,omitempty" bson:"birthday"`
+	Deathday          string    `json:"deathday,omitempty" bson:"deathday"`
 	Language          string    `json:"language" bson:"language"`
 	SlugUrl           string    `json:"slugUrl" bson:"slugUrl"`
 	Slug              string    `json:"slug" bson:"slug"`
