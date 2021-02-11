@@ -22,9 +22,9 @@ func Populate(language string, idGenre string) {
 
 	// logger := logrus.New()
 	// logger.Formatter = &logrus.JSONFormatter{}
-	log.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
-	})
+	// log.SetFormatter(&logrus.TextFormatter{
+	// 	FullTimestamp: true,
+	// })
 
 	apiKey := os.Getenv("TMDB_API_KEY")
 	apiHost := os.Getenv("TMDB_HOST")
