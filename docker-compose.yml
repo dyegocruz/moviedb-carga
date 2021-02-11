@@ -2,6 +2,7 @@ version: "3.1"
 
 services:
   api:
+    container_name: moviedb-carga-container
     image: moviedb-carga:1.0
     build:
       context: .
@@ -12,3 +13,8 @@ services:
       - "8223:1323"
     environment:
       - NODE_ENV=${NODE_ENV}
+      
+networks:
+  default:
+    external:
+      name: modomeu_network
