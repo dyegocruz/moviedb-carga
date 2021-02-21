@@ -23,10 +23,10 @@ func Populate(language string, idGenre string) {
 	apiMaxPage := util.StringToInt(os.Getenv("TMDB_MAX_PAGE_LOAD"))
 	// mongoDatabase := os.Getenv("MONGO_DATABASE")
 
-	seriesInsert := make([]interface{}, 0)
-	seriesUpdate := make([]Serie, 0)
-	personsInsert := make([]interface{}, 0)
-	personsUpdate := make([]person.Person, 0)
+	// seriesInsert := make([]interface{}, 0)
+	// seriesUpdate := make([]Serie, 0)
+	// personsInsert := make([]interface{}, 0)
+	// personsUpdate := make([]person.Person, 0)
 	for i := 1; i < apiMaxPage+1; i++ {
 		log.Println("PAGE: ", i)
 		page := strconv.Itoa(i)
@@ -37,7 +37,11 @@ func Populate(language string, idGenre string) {
 
 		var result ResultSerie
 		json.NewDecoder(response.Body).Decode(&result)
-		// log.Println(result.Results)
+
+		seriesInsert := make([]interface{}, 0)
+		seriesUpdate := make([]Serie, 0)
+		personsInsert := make([]interface{}, 0)
+		personsUpdate := make([]person.Person, 0)
 		for _, item := range result.Results {
 
 			reqItem, err := http.Get(apiHost + "/tv/" + strconv.Itoa(item.Id) + "?api_key=" + apiKey + "&language=" + language)
@@ -153,28 +157,52 @@ func Populate(language string, idGenre string) {
 			}
 		}
 
-		// time.Sleep(1 * time.Second)
+		if len(seriesInsert) > 0 {
+			log.Println("INSERT ALL SERIES")
+			InsertMany(seriesInsert)
+			seriesInsert = make([]interface{}, 0)
+		}
+
+		if len(seriesUpdate) > 0 {
+			log.Println("UPDATE ALL SERIES")
+			UpdateMany(seriesUpdate, language)
+			seriesUpdate = make([]Serie, 0)
+		}
+
+		if len(personsInsert) > 0 {
+			log.Println("INSERT ALL PERSON")
+			person.InsertMany(personsInsert)
+			personsInsert = make([]interface{}, 0)
+		}
+
+		if len(personsUpdate) > 0 {
+			log.Println("UPDATE ALL PERSON")
+			person.UpdateMany(personsUpdate, language)
+			personsUpdate = make([]person.Person, 0)
+		}
+
+		// time.Sleep(1 * time.Second / 2)
 	}
 
-	if len(seriesInsert) > 0 {
-		log.Println("INSERT ALL SERIES")
-		InsertMany(seriesInsert)
-	}
+	// if len(seriesInsert) > 0 {
+	// 	log.Println("INSERT ALL SERIES")
+	// 	InsertMany(seriesInsert)
+	// }
 
-	if len(seriesUpdate) > 0 {
-		log.Println("UPDATE ALL SERIES")
-		UpdateMany(seriesUpdate, language)
-	}
+	// if len(seriesUpdate) > 0 {
+	// 	log.Println("UPDATE ALL SERIES")
+	// 	UpdateMany(seriesUpdate, language)
+	// }
 
-	if len(personsInsert) > 0 {
-		log.Println("INSERT ALL PERSON")
-		person.InsertMany(personsInsert)
-	}
+	// if len(personsInsert) > 0 {
+	// 	log.Println("INSERT ALL PERSON")
+	// 	person.InsertMany(personsInsert)
+	// }
 
-	if len(personsUpdate) > 0 {
-		log.Println("UPDATE ALL PERSON")
-		person.UpdateMany(personsUpdate, language)
-	}
+	// if len(personsUpdate) > 0 {
+	// 	log.Println("UPDATE ALL PERSON")
+	// 	person.UpdateMany(personsUpdate, language)
+	// }
 
 }
 
@@ -198,6 +226,8 @@ func GetAll() []Serie {
 
 		series = append(series, serie)
 	}
+
+	cur.Close(context.TODO())
 
 	return series
 }
