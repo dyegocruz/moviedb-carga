@@ -71,18 +71,32 @@ func Populate(language string) {
 			}
 		}
 
+		if len(personsInsert) > 0 {
+			log.Println("INSERT ALL PERSON")
+			InsertMany(personsInsert)
+			personsInsert = make([]interface{}, 0)
+		}
+
+		if len(personsUpdate) > 0 {
+			log.Println("UPDATE ALL PERSON")
+			UpdateMany(personsUpdate, language)
+			personsUpdate = make([]Person, 0)
+		}
+
+		// time.Sleep(1 * time.Second / 2)
+
 		// time.Sleep(1 * time.Second)
 	}
 
-	if len(personsInsert) > 0 {
-		log.Println("INSERT ALL PERSON")
-		InsertMany(personsInsert)
-	}
+	// if len(personsInsert) > 0 {
+	// 	log.Println("INSERT ALL PERSON")
+	// 	InsertMany(personsInsert)
+	// }
 
-	if len(personsUpdate) > 0 {
-		log.Println("UPDATE ALL PERSON")
-		UpdateMany(personsUpdate, language)
-	}
+	// if len(personsUpdate) > 0 {
+	// 	log.Println("UPDATE ALL PERSON")
+	// 	UpdateMany(personsUpdate, language)
+	// }
 
 }
 
@@ -106,6 +120,8 @@ func GetAll() []Person {
 
 		persons = append(persons, person)
 	}
+
+	cur.Close(context.TODO())
 
 	return persons
 }
@@ -170,7 +186,20 @@ func InsertMany(persons []interface{}) interface{} {
 		log.Println(err)
 	}
 
+	log.Println("Persons Inserted: ", len(persons))
+
 	return result.InsertedIDs
+}
+
+func Update(person Person, language string) {
+
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").UpdateOne(context.TODO(), bson.M{"id": person.Id, "language": language}, bson.M{
+		"$set": person,
+	})
 }
 
 func UpdateMany(persons []Person, language string) {
@@ -184,4 +213,6 @@ func UpdateMany(persons []Person, language string) {
 			"$set": persons,
 		})
 	}
+
+	log.Println("Persons Updated: ", len(persons))
 }

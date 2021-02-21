@@ -32,10 +32,10 @@ func Populate(language string, idGenre string) {
 	// apiMaxPage := 2
 	// mongoDatabase := os.Getenv("MONGO_DATABASE")
 
-	moviesInsert := make([]interface{}, 0)
-	moviesUpdate := make([]Movie, 0)
-	personsInsert := make([]interface{}, 0)
-	personsUpdate := make([]person.Person, 0)
+	// moviesInsert := make([]interface{}, 0)
+	// moviesUpdate := make([]Movie, 0)
+	// personsInsert := make([]interface{}, 0)
+	// personsUpdate := make([]person.Person, 0)
 	for i := 1; i < apiMaxPage+1; i++ {
 		log.Println("PAGE: ", i)
 		page := strconv.Itoa(i)
@@ -49,8 +49,10 @@ func Populate(language string, idGenre string) {
 		var result ResultMovie
 		json.NewDecoder(response.Body).Decode(&result)
 		// log.Println(result.Results)
-		// moviesInsert := make([]interface{}, 0)
-		// moviesUpdate := make([]interface{}, 0)
+		personsInsert := make([]interface{}, 0)
+		personsUpdate := make([]person.Person, 0)
+		moviesInsert := make([]interface{}, 0)
+		moviesUpdate := make([]Movie, 0)
 		for _, item := range result.Results {
 
 			// busca detalhes do filme
@@ -98,6 +100,7 @@ func Populate(language string, idGenre string) {
 					personsInsert = append(personsInsert, personCheck)
 					// person.Insert("person", language, personCheck)
 				} else {
+					// person.Update(personCheck, language)
 					// personsUpdate = append(personsUpdate, bson.M{"$set": personCheck})
 					personsUpdate = append(personsUpdate, personCheck)
 				}
@@ -123,6 +126,7 @@ func Populate(language string, idGenre string) {
 					personsInsert = append(personsInsert, personCheck)
 					// person.Insert("person", language, personCheck)
 				} else {
+					// person.Update(personCheck, language)
 					// personsUpdate = append(personsUpdate, bson.M{"$set": personCheck})
 					personsUpdate = append(personsUpdate, personCheck)
 				}
@@ -139,33 +143,60 @@ func Populate(language string, idGenre string) {
 				moviesInsert = append(moviesInsert, itemObj)
 			} else {
 				log.Println("UPDATE MOVIE: ", itemObj.Id)
+				// Update(itemObj, language)
 				moviesUpdate = append(moviesUpdate, itemObj)
 			}
 
+			// time.Sleep(1 * time.Second / 2)
+
 		}
 
-		// time.Sleep(1 * time.Second)
+		if len(moviesInsert) > 0 {
+			log.Println("INSERT ALL MOVIES")
+			InsertMany(moviesInsert)
+			moviesInsert = make([]interface{}, 0)
+		}
+
+		if len(moviesUpdate) > 0 {
+			log.Println("UPDATE ALL MOVIES")
+			UpdateMany(moviesUpdate, language)
+			moviesUpdate = make([]Movie, 0)
+		}
+
+		if len(personsInsert) > 0 {
+			log.Println("INSERT ALL PERSON")
+			person.InsertMany(personsInsert)
+			personsInsert = make([]interface{}, 0)
+		}
+
+		if len(personsUpdate) > 0 {
+			log.Println("UPDATE ALL PERSON")
+			person.UpdateMany(personsUpdate, language)
+			personsUpdate = make([]person.Person, 0)
+		}
+
+		// time.Sleep(1 * time.Second / 2)
 	}
 
-	if len(moviesInsert) > 0 {
-		log.Println("INSERT ALL MOVIES")
-		InsertMany(moviesInsert)
-	}
+	// if len(moviesInsert) > 0 {
+	// 	log.Println("INSERT ALL MOVIES")
+	// 	InsertMany(moviesInsert)
+	// }
 
-	if len(moviesUpdate) > 0 {
-		log.Println("UPDATE ALL MOVIES")
-		UpdateMany(moviesUpdate, language)
-	}
+	// if len(moviesUpdate) > 0 {
+	// 	log.Println("UPDATE ALL MOVIES")
+	// 	UpdateMany(moviesUpdate, language)
+	// }
 
-	if len(personsInsert) > 0 {
-		log.Println("INSERT ALL PERSON")
-		person.InsertMany(personsInsert)
-	}
+	// if len(personsInsert) > 0 {
+	// 	log.Println("INSERT ALL PERSON")
+	// 	person.InsertMany(personsInsert)
+	// }
 
-	if len(personsUpdate) > 0 {
-		log.Println("UPDATE ALL PERSON")
-		person.UpdateMany(personsUpdate, language)
-	}
+	// if len(personsUpdate) > 0 {
+	// 	log.Println("UPDATE ALL PERSON")
+	// 	person.UpdateMany(personsUpdate, language)
+	// }
 
 }
 
@@ -189,6 +220,8 @@ func GetAll() []Movie {
 
 		movies = append(movies, movie)
 	}
+
+	cur.Close(context.TODO())
 
 	return movies
 }
@@ -249,7 +282,28 @@ func InsertMany(movies []interface{}) interface{} {
 		log.Println(err)
 	}
 
+	log.Println("Movies Inserted: ", len(movies))
+
 	return result.InsertedIDs
+}
+
+func Update(movie Movie, language string) {
+
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	client.Database(os.Getenv("MONGO_DATABASE")).Collection("movie").UpdateOne(context.TODO(), bson.M{"id": movie.Id, "language": language}, bson.M{
+		"$set": movie,
+	})
+
+	// for _, movie := range movies {
+	// 	client.Database(os.Getenv("MONGO_DATABASE")).Collection("movie").UpdateOne(context.TODO(), bson.M{"id": movie.Id, "language": language}, bson.M{
+	// 		"$set": movie,
+	// 	})
+	// }
+
+	// log.Println("Movies Updated: ", len(movies))
 }
 
 func UpdateMany(movies []Movie, language string) {
@@ -263,4 +317,6 @@ func UpdateMany(movies []Movie, language string) {
 			"$set": movie,
 		})
 	}
+
+	log.Println("Movies Updated: ", len(movies))
 }
