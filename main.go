@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"moviedb/database"
@@ -65,7 +64,7 @@ func main() {
 		elasticClient *elastic.Client
 		err           error
 	)
-	elasticIndexType := "_doc"
+	// elasticIndexType := "_doc"
 
 	elasticClient, err = elastic.NewSimpleClient(
 		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
@@ -119,26 +118,38 @@ func main() {
 		// Not acknowledged
 	}
 
+	var bulkRequest = elasticClient.Bulk()
+	var i = 0
 	for _, movie := range movies {
-		// CONVERTE O STRUCT DO MOVIE PARA UMA STRING JSON
-		movieJSONByte, err := json.Marshal(movie)
-		if err != nil {
-			fmt.Println(err)
-			return
+
+		req := elastic.NewBulkIndexRequest().
+			Index(newMovieIndexName).
+			// Type(elasticIndexType).
+			Id(strconv.Itoa(movie.Id) + "-" + movie.Language).
+			Doc(movie)
+
+		bulkRequest = bulkRequest.Add(req)
+
+		if i%1000 == 0 {
+			bulkResponse, err := bulkRequest.Do(ctx)
+			if err != nil {
+				fmt.Println(err)
+			}
+			if bulkResponse != nil {
+
+			}
+			bulkRequest = elasticClient.Bulk()
 		}
 
-		// Iterate over the docs and index them one-by-one
-		_, err = elasticClient.Index().
-			Index(newMovieIndexName).
-			Type(elasticIndexType).            // unique doctype now deprecated
-			BodyString(string(movieJSONByte)). // Usando o JSON, pois o método BodyJson estava bagunçando o valor enviado
-			// Omit this if you want dynamically generated _id
-			// Id(strconv.Itoa(id)). // Convert int to string
-			Id(strconv.Itoa(movie.Id) + "-" + movie.Language). // DEFININDO O _ID DO PRESTADRO NO ELASTIC COMO SENDO O COD_PRESTADOR DO SABIUS
-			Do(ctx)
-		if err != nil {
-			log.Println("ERROR", err)
-		}
+		i++
+	}
+
+	bulkResponse, err := bulkRequest.Do(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if bulkResponse != nil {
+
 	}
 
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DO GUIA MÉDICO
@@ -177,26 +188,39 @@ func main() {
 		// Not acknowledged
 	}
 
+	bulkRequest = elasticClient.Bulk()
+	i = 0
 	for _, serie := range series {
-		// CONVERTE O STRUCT DO serie PARA UMA STRING JSON
-		serieJSONByte, err := json.Marshal(serie)
-		if err != nil {
-			fmt.Println(err)
-			return
+
+		req := elastic.NewBulkIndexRequest().
+			Index(newSerieIndexName).
+			// Type(elasticIndexType).
+			Id(strconv.Itoa(serie.Id) + "-" + serie.Language).
+			Doc(serie)
+
+		bulkRequest = bulkRequest.Add(req)
+
+		if i%200 == 0 {
+			log.Println("SERIE AQUI")
+			bulkResponse, err := bulkRequest.Do(ctx)
+			if err != nil {
+				fmt.Println(err)
+			}
+			if bulkResponse != nil {
+
+			}
+			bulkRequest = elasticClient.Bulk()
 		}
 
-		// Iterate over the docs and index them one-by-one
-		_, err = elasticClient.Index().
-			Index(newSerieIndexName).
-			Type(elasticIndexType).            // unique doctype now deprecated
-			BodyString(string(serieJSONByte)). // Usando o JSON, pois o método BodyJson estava bagunçando o valor enviado
-			// Omit this if you want dynamically generated _id
-			// Id(strconv.Itoa(id)). // Convert int to string
-			Id(strconv.Itoa(serie.Id) + "-" + serie.Language). // DEFININDO O _ID DO PRESTADRO NO ELASTIC COMO SENDO O COD_PRESTADOR DO SABIUS
-			Do(ctx)
-		if err != nil {
-			log.Println("ERROR", err)
-		}
+		i++
+	}
+
+	bulkResponse, err = bulkRequest.Do(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if bulkResponse != nil {
+
 	}
 
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DO GUIA MÉDICO
@@ -212,7 +236,7 @@ func main() {
 		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
 	}
 	log.Println("Carga finalizada com sucesso!")
-	log.Println("Séries carregados length: ", len(series))
+	log.Println("Séries carregados length: ", len(movies))
 
 	// ==========> PESSOAS
 	persons := person.GetAll()
@@ -235,26 +259,38 @@ func main() {
 		// Not acknowledged
 	}
 
+	bulkRequest = elasticClient.Bulk()
+	i = 0
 	for _, person := range persons {
-		// CONVERTE O STRUCT DO person PARA UMA STRING JSON
-		personJSONByte, err := json.Marshal(person)
-		if err != nil {
-			fmt.Println(err)
-			return
+
+		req := elastic.NewBulkIndexRequest().
+			Index(newPersonIndexName).
+			// Type(elasticIndexType).
+			Id(strconv.Itoa(person.Id) + "-" + person.Language).
+			Doc(person)
+
+		bulkRequest = bulkRequest.Add(req)
+
+		if i%1000 == 0 {
+			bulkResponse, err := bulkRequest.Do(ctx)
+			if err != nil {
+				fmt.Println(err)
+			}
+			if bulkResponse != nil {
+
+			}
+			bulkRequest = elasticClient.Bulk()
 		}
 
-		// Iterate over the docs and index them one-by-one
-		_, err = elasticClient.Index().
-			Index(newPersonIndexName).
-			Type(elasticIndexType).             // unique doctype now deprecated
-			BodyString(string(personJSONByte)). // Usando o JSON, pois o método BodyJson estava bagunçando o valor enviado
-			// Omit this if you want dynamically generated _id
-			// Id(strconv.Itoa(id)). // Convert int to string
-			Id(strconv.Itoa(person.Id) + "-" + person.Language). // DEFININDO O _ID DO PRESTADRO NO ELASTIC COMO SENDO O COD_PRESTADOR DO SABIUS
-			Do(ctx)
-		if err != nil {
-			log.Println("ERROR", err)
-		}
+		i++
+	}
+
+	bulkResponse, err = bulkRequest.Do(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if bulkResponse != nil {
+
 	}
 
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DO GUIA MÉDICO
@@ -270,7 +306,7 @@ func main() {
 		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
 	}
 	log.Println("Carga finalizada com sucesso!")
-	log.Println("Séries carregados length: ", len(persons))
+	log.Println("Pessoas carregadas length: ", len(persons))
 
 	// ===================================================================>
 	// r := gin.Default()
