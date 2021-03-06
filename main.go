@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 	"moviedb/database"
-	"moviedb/tv"
+	"moviedb/person"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -42,15 +42,15 @@ func main() {
 	// movie.Populate("en", "16")
 	// movie.Populate("pt-BR", "16")
 
-	tv.Populate("en", "")
-	tv.Populate("pt-BR", "")
+	// tv.Populate("en", "")
+	// tv.Populate("pt-BR", "")
 
-	// FILTRA APENAS ANIMAÇÕES
-	tv.Populate("en", "16")
-	tv.Populate("pt-BR", "16")
+	// // FILTRA APENAS ANIMAÇÕES
+	// tv.Populate("en", "16")
+	// tv.Populate("pt-BR", "16")
 
-	// person.Populate("en")
-	// person.Populate("pt-BR")
+	person.Populate("en")
+	person.Populate("pt-BR")
 
 	// movies := movie.GetAll()
 	// log.Println(len(movies))
