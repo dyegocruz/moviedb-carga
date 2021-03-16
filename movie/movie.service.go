@@ -14,6 +14,7 @@ import (
 
 	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // var log = logrus.New()
@@ -37,7 +38,7 @@ func Populate(language string, idGenre string) {
 	// personsInsert := make([]interface{}, 0)
 	// personsUpdate := make([]person.Person, 0)
 	for i := 1; i < apiMaxPage+1; i++ {
-		log.Println("PAGE: ", i)
+		log.Println("PAGE: ", language, i)
 		page := strconv.Itoa(i)
 
 		// Busca filmes por página
@@ -177,35 +178,15 @@ func Populate(language string, idGenre string) {
 
 		// time.Sleep(1 * time.Second / 2)
 	}
-
-	// if len(moviesInsert) > 0 {
-	// 	log.Println("INSERT ALL MOVIES")
-	// 	InsertMany(moviesInsert)
-	// }
-
-	// if len(moviesUpdate) > 0 {
-	// 	log.Println("UPDATE ALL MOVIES")
-	// 	UpdateMany(moviesUpdate, language)
-	// }
-
-	// if len(personsInsert) > 0 {
-	// 	log.Println("INSERT ALL PERSON")
-	// 	person.InsertMany(personsInsert)
-	// }
-
-	// if len(personsUpdate) > 0 {
-	// 	log.Println("UPDATE ALL PERSON")
-	// 	person.UpdateMany(personsUpdate, language)
-	// }
-
 }
 
-func GetAll() []Movie {
+func GetAll(skip int64, limit int64) []Movie {
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("movie").Find(context.TODO(), bson.M{})
+	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("movie").Find(context.TODO(), bson.M{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -224,6 +205,19 @@ func GetAll() []Movie {
 	cur.Close(context.TODO())
 
 	return movies
+}
+
+func GetCountAll() int64 {
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("movie").CountDocuments(context.TODO(), bson.M{})
+	if err != nil {
+		log.Println(err)
+	}
+
+	return count
 }
 
 func GetItemByIdAndLanguage(id int, collecionString string, language string, itemSearh Movie) Movie {

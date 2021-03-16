@@ -14,6 +14,7 @@ import (
 
 	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func Populate(language string, idGenre string) {
@@ -28,7 +29,7 @@ func Populate(language string, idGenre string) {
 	// personsInsert := make([]interface{}, 0)
 	// personsUpdate := make([]person.Person, 0)
 	for i := 1; i < apiMaxPage+1; i++ {
-		log.Println("PAGE: ", i)
+		log.Println("PAGE: ", language, i)
 		page := strconv.Itoa(i)
 		response, err := http.Get(apiHost + "/discover/tv?api_key=" + apiKey + "&language=" + language + "&sort_by=popularity.desc&include_adult=false&include_video=false&page=" + page + "&with_genres=" + idGenre)
 		if err != nil {
@@ -183,35 +184,15 @@ func Populate(language string, idGenre string) {
 
 		// time.Sleep(1 * time.Second / 2)
 	}
-
-	// if len(seriesInsert) > 0 {
-	// 	log.Println("INSERT ALL SERIES")
-	// 	InsertMany(seriesInsert)
-	// }
-
-	// if len(seriesUpdate) > 0 {
-	// 	log.Println("UPDATE ALL SERIES")
-	// 	UpdateMany(seriesUpdate, language)
-	// }
-
-	// if len(personsInsert) > 0 {
-	// 	log.Println("INSERT ALL PERSON")
-	// 	person.InsertMany(personsInsert)
-	// }
-
-	// if len(personsUpdate) > 0 {
-	// 	log.Println("UPDATE ALL PERSON")
-	// 	person.UpdateMany(personsUpdate, language)
-	// }
-
 }
 
-func GetAll() []Serie {
+func GetAll(skip int64, limit int64) []Serie {
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").Find(context.TODO(), bson.M{})
+	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").Find(context.TODO(), bson.M{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -230,6 +211,19 @@ func GetAll() []Serie {
 	cur.Close(context.TODO())
 
 	return series
+}
+
+func GetCountAll() int64 {
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").CountDocuments(context.TODO(), bson.M{})
+	if err != nil {
+		log.Println(err)
+	}
+
+	return count
 }
 
 func GetItemByIdAndLanguage(id int, collecionString string, language string, itemSearh Serie) Serie {
