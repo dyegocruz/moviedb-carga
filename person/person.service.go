@@ -13,6 +13,7 @@ import (
 
 	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func Populate(language string) {
@@ -25,7 +26,7 @@ func Populate(language string) {
 	personsInsert := make([]interface{}, 0)
 	personsUpdate := make([]Person, 0)
 	for i := 1; i < apiMaxPage+1; i++ {
-		log.Println("PAGE: ", i)
+		log.Println("PAGE: ", language, i)
 		page := strconv.Itoa(i)
 		response, err := http.Get(apiHost + "/person/popular?api_key=" + apiKey + "&language=" + language + "&sort_by=popularity.desc&include_adult=false&include_video=false&page=" + page)
 		if err != nil {
@@ -83,29 +84,17 @@ func Populate(language string) {
 			personsUpdate = make([]Person, 0)
 		}
 
-		// time.Sleep(1 * time.Second / 2)
-
 		// time.Sleep(1 * time.Second)
 	}
-
-	// if len(personsInsert) > 0 {
-	// 	log.Println("INSERT ALL PERSON")
-	// 	InsertMany(personsInsert)
-	// }
-
-	// if len(personsUpdate) > 0 {
-	// 	log.Println("UPDATE ALL PERSON")
-	// 	UpdateMany(personsUpdate, language)
-	// }
-
 }
 
-func GetAll() []Person {
+func GetAll(skip int64, limit int64) []Person {
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").Find(context.TODO(), bson.M{})
+	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").Find(context.TODO(), bson.M{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -124,6 +113,19 @@ func GetAll() []Person {
 	cur.Close(context.TODO())
 
 	return persons
+}
+
+func GetCountAll() int64 {
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").CountDocuments(context.TODO(), bson.M{})
+	if err != nil {
+		log.Println(err)
+	}
+
+	return count
 }
 
 func GetItemByIdAndLanguage(id int, collecionString string, language string, itemSearh Person) Person {
