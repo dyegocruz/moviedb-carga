@@ -137,4 +137,19 @@ func CheckCreateCollections() {
 		collPerson.Indexes().CreateMany(context.TODO(), index, opts)
 	}
 
+	// Parametro
+	if !util.ArrayContainsString(names, "parametro") {
+		log.Println("criar collection parametro")
+		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), "parametro")
+		collParametro := conn.Database(os.Getenv("MONGO_DATABASE")).Collection("parametro")
+
+		index := []mongo.IndexModel{
+			{
+				Keys: bson.M{"tipo": 1},
+			},
+		}
+
+		collParametro.Indexes().CreateMany(context.TODO(), index, opts)
+	}
+
 }
