@@ -36,6 +36,7 @@ func init() {
 func main() {
 
 	// carga.CargaGeral()
+	// parametro.GetByTipo("CARGA_TMDB_CONFIG")
 
 	c := cron.New()
 	// // c.AddFunc("*/1 * * * *", func() {
@@ -52,13 +53,4 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"appName": "Aplicação/Job de carga do Guia Médico", "env": os.Getenv("NODE_ENV")})
 	})
 	g.Run(":1323")
-
-	// ===================================================================>
-	// r := gin.Default()
-	// r.GET("/ping", func(c *gin.Context) {
-	// 	c.JSON(200, gin.H{
-	// 		"message": "pong",
-	// 	})
-	// })
-	// r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }

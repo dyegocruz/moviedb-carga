@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"log"
 	"moviedb/database"
+	"moviedb/parametro"
 	"moviedb/person"
-	"moviedb/util"
 	"net/http"
 	"os"
 	"strconv"
@@ -19,9 +19,15 @@ import (
 
 func Populate(language string, idGenre string) {
 
-	apiKey := os.Getenv("TMDB_API_KEY")
-	apiHost := os.Getenv("TMDB_HOST")
-	apiMaxPage := util.StringToInt(os.Getenv("TMDB_MAX_PAGE_LOAD"))
+	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
+
+	apiKey := parametro.Options.TmdbApiKey
+	apiHost := parametro.Options.TmdbHost
+	apiMaxPage := parametro.Options.TmdbMaxPageLoad
+
+	// apiKey := os.Getenv("TMDB_API_KEY")
+	// apiHost := os.Getenv("TMDB_HOST")
+	// apiMaxPage := util.StringToInt(os.Getenv("TMDB_MAX_PAGE_LOAD"))
 	// mongoDatabase := os.Getenv("MONGO_DATABASE")
 
 	// seriesInsert := make([]interface{}, 0)
