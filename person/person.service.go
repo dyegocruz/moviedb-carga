@@ -16,7 +16,56 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func Populate(language string) {
+func GetPersonDetailsOnApiDb(id int, language string) Person {
+	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
+	apiKey := parametro.Options.TmdbApiKey
+	reqPerson, err := http.Get("https://api.themoviedb.org/3/person/" + strconv.Itoa(id) + "?api_key=" + apiKey + "&language=" + language)
+	if err != nil {
+		log.Println(err)
+	}
+
+	var person Person
+	json.NewDecoder(reqPerson.Body).Decode(&person)
+
+	return person
+}
+
+func PopulatePersonByLanguage(itemObj Person, language string) {
+	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
+	apiKey := parametro.Options.TmdbApiKey
+	t := time.Now()
+	itemObj.UpdatedNew = t.Format("02/01/2006 15:04:05")
+
+	itemObj.Language = language
+	itemObj.Slug = slug.Make(itemObj.Name)
+	itemObj.SlugUrl = "person-" + strconv.Itoa(itemObj.Id)
+
+	reqCredit, err := http.Get("https://api.themoviedb.org/3/person/" + strconv.Itoa(itemObj.Id) + "/combined_credits?api_key=" + apiKey + "&language=" + language)
+	if err != nil {
+		log.Println(err)
+	}
+
+	json.NewDecoder(reqCredit.Body).Decode(&itemObj.Credits)
+
+	itemFind := GetPersonByIdAndLanguage(itemObj.Id, language)
+
+	if itemFind.Id == 0 {
+		log.Println("INSERT PERSON: ", itemObj.Id)
+		InsertPerson(itemObj)
+	} else {
+		log.Println("PERSON ALREADY INSERTED: ", itemObj.Id)
+	}
+
+	// if itemFind.Id == 0 {
+	// 	log.Println("INSERT PERSON: ", itemObj.Id)
+	// 	InsertPerson(itemObj)
+	// } else {
+	// 	log.Println("UPDATE PERSON: ", itemObj.Id)
+	// 	Update(itemObj, language)
+	// }
+}
+
+func PopulatePersons(language string) {
 
 	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
 
@@ -24,15 +73,8 @@ func Populate(language string) {
 	apiHost := parametro.Options.TmdbHost
 	apiMaxPage := parametro.Options.TmdbMaxPageLoad
 
-	// apiKey := os.Getenv("TMDB_API_KEY")
-	// apiHost := os.Getenv("TMDB_HOST")
-	// apiMaxPage := util.StringToInt(os.Getenv("TMDB_MAX_PAGE_LOAD"))
-	// mongoDatabase := os.Getenv("MONGO_DATABASE")
-
-	personsInsert := make([]interface{}, 0)
-	personsUpdate := make([]Person, 0)
 	for i := 1; i < apiMaxPage+1; i++ {
-		log.Println("PAGE: ", language, i)
+		log.Println("======> PERSON PAGE: ", language, i)
 		page := strconv.Itoa(i)
 		response, err := http.Get(apiHost + "/person/popular?api_key=" + apiKey + "&language=" + language + "&sort_by=popularity.desc&include_adult=false&include_video=false&page=" + page)
 		if err != nil {
@@ -41,56 +83,16 @@ func Populate(language string) {
 
 		var result ResultPerson
 		json.NewDecoder(response.Body).Decode(&result)
-		// log.Println(result.Results)
+
 		for _, item := range result.Results {
 
-			reqItem, err := http.Get("https://api.themoviedb.org/3/person/" + strconv.Itoa(item.Id) + "?api_key=" + apiKey + "&language=" + language)
-			if err != nil {
-				log.Println(err)
-			}
+			// personLocalFind := GetPersonByIdAndLanguage(item.Id, language)
 
-			var itemObj Person
-			json.NewDecoder(reqItem.Body).Decode(&itemObj)
-
-			t := time.Now()
-			itemObj.UpdatedNew = t.Format("02/01/2006 15:04:05")
-
-			itemObj.Language = language
-			itemObj.Slug = slug.Make(itemObj.Name)
-			itemObj.SlugUrl = "person-" + strconv.Itoa(itemObj.Id)
-
-			reqCredit, err := http.Get("https://api.themoviedb.org/3/person/" + strconv.Itoa(item.Id) + "/combined_credits?api_key=" + apiKey + "&language=" + language)
-			if err != nil {
-				log.Println(err)
-			}
-
-			json.NewDecoder(reqCredit.Body).Decode(&itemObj.Credits)
-
-			itemFind := GetItemByIdAndLanguage2(itemObj.Id, "person", language, itemObj)
-
-			if itemFind.Id == 0 {
-				log.Println("INSERT PERSON: ", itemObj.Id)
-				// Insert("person", language, itemObj)
-				personsInsert = append(personsInsert, itemObj)
-			} else {
-				log.Println("UPDATE PERSON: ", itemObj.Id)
-				personsUpdate = append(personsUpdate, itemObj)
-			}
+			// if personLocalFind.Id == 0 {
+			itemObj := GetPersonDetailsOnApiDb(item.Id, language)
+			PopulatePersonByLanguage(itemObj, language)
+			// }
 		}
-
-		if len(personsInsert) > 0 {
-			log.Println("INSERT ALL PERSON")
-			InsertMany(personsInsert)
-			personsInsert = make([]interface{}, 0)
-		}
-
-		if len(personsUpdate) > 0 {
-			log.Println("UPDATE ALL PERSON")
-			UpdateMany(personsUpdate, language)
-			personsUpdate = make([]Person, 0)
-		}
-
-		// time.Sleep(1 * time.Second)
 	}
 }
 
@@ -151,23 +153,73 @@ func GetItemByIdAndLanguage(id int, collecionString string, language string, ite
 	return item
 }
 
-func GetItemByIdAndLanguage2(id int, collecionString string, language string, itemSearh Person) Person {
+func GetPersonByIdAndLanguage(id int, language string) Person {
 
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()
 	defer client.Disconnect(ctx)
 
 	var item Person
-	// err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
 	client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
 
 	return item
 }
 
-func Insert(collecionString string, language string, itemInsert Person) interface{} {
+func GetPersonsWithCredits(language string) []Person {
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	optionsFind := options.Find()
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").Find(context.TODO(), bson.M{"credits.cast": bson.M{"$ne": nil}, "language": language}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	persons := make([]Person, 0)
+	for cur.Next(context.TODO()) {
+		var person Person
+		err := cur.Decode(&person)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		persons = append(persons, person)
+	}
+
+	cur.Close(context.TODO())
+
+	return persons
+}
+
+func GetPersonsWithoutCredits(language string) []Person {
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	optionsFind := options.Find()
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").Find(context.TODO(), bson.M{"credits.cast": nil, "language": language}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	persons := make([]Person, 0)
+	for cur.Next(context.TODO()) {
+		var person Person
+		err := cur.Decode(&person)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		persons = append(persons, person)
+	}
+
+	cur.Close(context.TODO())
+
+	return persons
+}
+
+func InsertPerson(itemInsert Person) interface{} {
 
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()
