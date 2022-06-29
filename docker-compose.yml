@@ -8,7 +8,14 @@ services:
       context: .
       args: 
         - NODE_ENV=${NODE_ENV}
-    restart: on-failure
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 100m
+        max-file: "3"
+        labels: "production_status"
+        env: "os"
+    # restart: on-failure
     ports:
       - "8223:1323"
     environment:
