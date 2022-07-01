@@ -38,14 +38,14 @@ func init() {
 func main() {
 	env := os.Getenv("GO_ENV")
 
-	var movieFile = "/home/dyego/dev/moviedb-carga/movie_ids_06_30_2022.json"
-	var tvFile = "/home/dyego/dev/moviedb-carga/movie_ids_06_30_2022.json"
-	var personFile = "/home/dyego/dev/moviedb-carga/movie_ids_06_30_2022.json"
+	var movieFile = "./movie_ids_06_30_2022.json"
+	var tvFile = "./movie_ids_06_30_2022.json"
+	var personFile = "./movie_ids_06_30_2022.json"
 
 	if env == "production" {
-		movieFile = "/root/data_load/movie_ids_06_30_2022.json"
-		tvFile = "/root/data_load/tv_series_ids_06_30_2022.json"
-		personFile = "/root/data_load/person_ids_06_30_2022.json"
+		movieFile = "./movie_ids_06_30_2022.json"
+		tvFile = "./tv_series_ids_06_30_2022.json"
+		personFile = "./person_ids_06_30_2022.json"
 	}
 
 	var languageEn = "en"
