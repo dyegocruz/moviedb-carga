@@ -6,7 +6,6 @@ import (
 	"log"
 	"moviedb/database"
 	"moviedb/parametro"
-	"moviedb/person"
 	"net/http"
 	"os"
 	"strconv"
@@ -70,45 +69,45 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 
 	json.NewDecoder(reqCredits.Body).Decode(&itemObj.TvCredits)
 
-	for _, cast := range itemObj.TvCredits.Cast {
+	// for _, cast := range itemObj.TvCredits.Cast {
 
-		var personCheck person.Person
-		personCheck.Id = cast.Id
-		personCheck.Name = cast.Name
-		personCheck.KnowForDepartment = cast.KnownForDepartment
-		personCheck.Language = language
-		personCheck.Slug = slug.Make(personCheck.Name)
-		personCheck.SlugUrl = "person-" + strconv.Itoa(personCheck.Id)
+	// 	var personCheck person.Person
+	// 	personCheck.Id = cast.Id
+	// 	personCheck.Name = cast.Name
+	// 	personCheck.KnowForDepartment = cast.KnownForDepartment
+	// 	personCheck.Language = language
+	// 	personCheck.Slug = slug.Make(personCheck.Name)
+	// 	personCheck.SlugUrl = "person-" + strconv.Itoa(personCheck.Id)
 
-		person.PopulatePersonByLanguage(personCheck, language)
-		// personFindUpdate := person.GetPersonByIdAndLanguage(cast.Id, language)
+	// 	person.PopulatePersonByLanguage(personCheck, language)
+	// 	// personFindUpdate := person.GetPersonByIdAndLanguage(cast.Id, language)
 
-		// if personFindUpdate.Id == 0 {
-		// 	log.Println("INSERT PERSON CAST: ", personCheck.Id)
-		// 	person.InsertPerson(personCheck)
-		// }
-	}
+	// 	// if personFindUpdate.Id == 0 {
+	// 	// 	log.Println("INSERT PERSON CAST: ", personCheck.Id)
+	// 	// 	person.InsertPerson(personCheck)
+	// 	// }
+	// }
 
-	for _, crew := range itemObj.TvCredits.Crew {
+	// for _, crew := range itemObj.TvCredits.Crew {
 
-		var personCheck person.Person
-		personCheck.Id = crew.Id
-		personCheck.Name = crew.Name
-		personCheck.KnowForDepartment = crew.KnownForDepartment
-		personCheck.Language = language
-		personCheck.Slug = slug.Make(personCheck.Name)
-		personCheck.SlugUrl = "person-" + strconv.Itoa(personCheck.Id)
+	// 	var personCheck person.Person
+	// 	personCheck.Id = crew.Id
+	// 	personCheck.Name = crew.Name
+	// 	personCheck.KnowForDepartment = crew.KnownForDepartment
+	// 	personCheck.Language = language
+	// 	personCheck.Slug = slug.Make(personCheck.Name)
+	// 	personCheck.SlugUrl = "person-" + strconv.Itoa(personCheck.Id)
 
-		person.PopulatePersonByLanguage(personCheck, language)
-		// personFindUpdate := person.GetPersonByIdAndLanguage(crew.Id, language)
+	// 	person.PopulatePersonByLanguage(personCheck, language)
+	// 	// personFindUpdate := person.GetPersonByIdAndLanguage(crew.Id, language)
 
-		// if personFindUpdate.Id == 0 {
-		// 	log.Println("INSERT PERSON CREW: ", personCheck.Id)
-		// 	person.InsertPerson(personCheck)
-		// }
-		crew.OriginalName = ""
-	}
-	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
+	// 	// if personFindUpdate.Id == 0 {
+	// 	// 	log.Println("INSERT PERSON CREW: ", personCheck.Id)
+	// 	// 	person.InsertPerson(personCheck)
+	// 	// }
+	// 	crew.OriginalName = ""
+	// }
+	// // FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
 	itemFind := GetSerieByIdAndLanguage(itemObj.Id, language)
 
 	if itemFind.Id == 0 {
