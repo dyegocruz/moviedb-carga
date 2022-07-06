@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"moviedb/database"
-	"moviedb/movie"
 	"moviedb/person"
-	"moviedb/tv"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -38,78 +36,78 @@ func init() {
 func main() {
 	env := os.Getenv("GO_ENV")
 
-	var movieFile = "./movie_ids_06_30_2022.json"
-	var tvFile = "./movie_ids_06_30_2022.json"
-	var personFile = "./movie_ids_06_30_2022.json"
+	// var movieFile = "./movie_ids_06_30_2022.json"
+	// var tvFile = "./tv_series_ids_06_30_2022.json"
+	var personFile = "./person_ids_06_30_2022.json"
 
 	if env == "production" {
-		movieFile = "./movie_ids_06_30_2022.json"
-		tvFile = "./tv_series_ids_06_30_2022.json"
+		// movieFile = "./movie_ids_06_30_2022.json"
+		// tvFile = "./tv_series_ids_06_30_2022.json"
 		personFile = "./person_ids_06_30_2022.json"
 	}
 
 	var languageEn = "en"
 	var languageBr = "pt-BR"
 
-	log.Println("INIT MOVIES")
-	fileMovie, err := os.Open(movieFile)
+	// log.Println("INIT MOVIES")
+	// fileMovie, err := os.Open(movieFile)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	defer fileMovie.Close()
+	// defer fileMovie.Close()
 
-	scannerMovies := bufio.NewScanner(fileMovie)
+	// scannerMovies := bufio.NewScanner(fileMovie)
 
-	for scannerMovies.Scan() {
+	// for scannerMovies.Scan() {
 
-		var movieRead movie.Movie
-		json.Unmarshal([]byte(scannerMovies.Text()), &movieRead)
+	// 	var movieRead movie.Movie
+	// 	json.Unmarshal([]byte(scannerMovies.Text()), &movieRead)
 
-		movieFindEn := movie.GetMovieByIdAndLanguage(movieRead.Id, languageEn)
-		if movieFindEn.Id == 0 {
-			movieInsert := movie.GetMovieDetailsOnApiDb(movieRead.Id, languageEn)
-			movie.PopulateMovieByLanguage(movieInsert, languageEn)
-		}
+	// 	movieFindEn := movie.GetMovieByIdAndLanguage(movieRead.Id, languageEn)
+	// 	if movieFindEn.Id == 0 {
+	// 		movieInsert := movie.GetMovieDetailsOnApiDb(movieRead.Id, languageEn)
+	// 		movie.PopulateMovieByLanguage(movieInsert, languageEn)
+	// 	}
 
-		movieFindBr := movie.GetMovieByIdAndLanguage(movieRead.Id, languageBr)
-		if movieFindBr.Id == 0 {
-			movieInsert := movie.GetMovieDetailsOnApiDb(movieRead.Id, languageBr)
-			movie.PopulateMovieByLanguage(movieInsert, languageBr)
-		}
-	}
-	log.Println("FINISH MOVIES")
+	// 	movieFindBr := movie.GetMovieByIdAndLanguage(movieRead.Id, languageBr)
+	// 	if movieFindBr.Id == 0 {
+	// 		movieInsert := movie.GetMovieDetailsOnApiDb(movieRead.Id, languageBr)
+	// 		movie.PopulateMovieByLanguage(movieInsert, languageBr)
+	// 	}
+	// }
+	// log.Println("FINISH MOVIES")
 
-	log.Println("INIT SERIES")
-	fileTv, err := os.Open(tvFile)
+	// log.Println("INIT SERIES")
+	// fileTv, err := os.Open(tvFile)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	defer fileTv.Close()
+	// defer fileTv.Close()
 
-	scannerTv := bufio.NewScanner(fileTv)
+	// scannerTv := bufio.NewScanner(fileTv)
 
-	for scannerTv.Scan() {
+	// for scannerTv.Scan() {
 
-		var tvRead tv.Serie
-		json.Unmarshal([]byte(scannerTv.Text()), &tvRead)
+	// 	var tvRead tv.Serie
+	// 	json.Unmarshal([]byte(scannerTv.Text()), &tvRead)
 
-		tvFindEn := tv.GetSerieByIdAndLanguage(tvRead.Id, languageEn)
-		if tvFindEn.Id == 0 {
-			tvInsert := tv.GetSerieDetailsOnApiDb(tvRead.Id, languageEn)
-			tv.PopulateSerieByLanguage(tvInsert, languageEn)
-		}
+	// 	tvFindEn := tv.GetSerieByIdAndLanguage(tvRead.Id, languageEn)
+	// 	if tvFindEn.Id == 0 {
+	// 		tvInsert := tv.GetSerieDetailsOnApiDb(tvRead.Id, languageEn)
+	// 		tv.PopulateSerieByLanguage(tvInsert, languageEn)
+	// 	}
 
-		tvFindBr := tv.GetSerieByIdAndLanguage(tvRead.Id, languageBr)
-		if tvFindBr.Id == 0 {
-			tvInsert := tv.GetSerieDetailsOnApiDb(tvRead.Id, languageBr)
-			tv.PopulateSerieByLanguage(tvInsert, languageBr)
-		}
-	}
-	log.Println("FINISH SERIES")
+	// 	tvFindBr := tv.GetSerieByIdAndLanguage(tvRead.Id, languageBr)
+	// 	if tvFindBr.Id == 0 {
+	// 		tvInsert := tv.GetSerieDetailsOnApiDb(tvRead.Id, languageBr)
+	// 		tv.PopulateSerieByLanguage(tvInsert, languageBr)
+	// 	}
+	// }
+	// log.Println("FINISH SERIES")
 
 	log.Println("INIT PERSONS")
 
@@ -132,12 +130,16 @@ func main() {
 		if personFindEn.Id == 0 {
 			personInsert := person.GetPersonDetailsOnApiDb(personRead.Id, languageEn)
 			person.PopulatePersonByLanguage(personInsert, languageEn)
+		} else {
+			log.Println("PERSON EN ALREADY INSERTED: ", personRead.Id)
 		}
 
 		personFindBr := person.GetPersonByIdAndLanguage(personRead.Id, languageBr)
 		if personFindBr.Id == 0 {
 			personInsert := person.GetPersonDetailsOnApiDb(personRead.Id, languageBr)
 			person.PopulatePersonByLanguage(personInsert, languageBr)
+		} else {
+			log.Println("PERSON PT-BR ALREADY INSERTED: ", personRead.Id)
 		}
 
 	}
