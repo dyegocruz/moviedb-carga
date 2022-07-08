@@ -126,18 +126,18 @@ func main() {
 		var personRead person.Person
 		json.Unmarshal([]byte(scannerPerson.Text()), &personRead)
 
-		personFindEn := person.GetPersonByIdAndLanguage(personRead.Id, languageEn)
-		if personFindEn.Id == 0 {
-			personInsert := person.GetPersonDetailsOnApiDb(personRead.Id, languageEn)
-			person.PopulatePersonByLanguage(personInsert, languageEn)
-		} else {
-			log.Println("PERSON EN ALREADY INSERTED: ", personRead.Id)
-		}
-
 		personFindBr := person.GetPersonByIdAndLanguage(personRead.Id, languageBr)
 		if personFindBr.Id == 0 {
 			personInsert := person.GetPersonDetailsOnApiDb(personRead.Id, languageBr)
 			person.PopulatePersonByLanguage(personInsert, languageBr)
+
+			personFindEn := person.GetPersonByIdAndLanguage(personRead.Id, languageEn)
+			if personFindEn.Id == 0 {
+				personInsert := person.GetPersonDetailsOnApiDb(personRead.Id, languageEn)
+				person.PopulatePersonByLanguage(personInsert, languageEn)
+			} else {
+				log.Println("PERSON EN ALREADY INSERTED: ", personRead.Id)
+			}
 		} else {
 			log.Println("PERSON PT-BR ALREADY INSERTED: ", personRead.Id)
 		}
