@@ -13,35 +13,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func MongoConnect() (*mongo.Database, error) {
-
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017/")
-	client, err := mongo.Connect(context.TODO(), clientOptions)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = client.Ping(context.TODO(), nil)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	// return client.Database(os.Getenv("MONGO_DB_NAME")), err
-	return client.Database("moviedb-dev"), err
-}
-
-func GetMongoCollection(collection string) *mongo.Collection {
-	client, err := MongoConnect()
-
-	// fmt.Println("Connected to MongoDB!")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return client.Collection(collection)
-}
+const (
+	PARAMETRO = "parametro"
+	MOVIE     = "movie"
+	PERSON    = "person"
+	SERIE     = "serie"
+)
 
 const (
 	// Timeout operations after N seconds
@@ -51,21 +28,10 @@ const (
 
 // GetConnection - Retrieves a client to the DocumentDB
 func GetConnection() (*mongo.Client, context.Context, context.CancelFunc) {
-	// username := os.Getenv("MONGODB_USERNAME")
-	// password := os.Getenv("MONGODB_PASSWORD")
-	// clusterEndpoint := os.Getenv("MONGO_URI")
 
 	var connectionURI = os.Getenv("MONGO_URI")
-	// if os.Getenv("GO_ENV") == "production" {
-	// 	connectionURI = fmt.Sprintf(connectionStringTemplate, username, password, clusterEndpoint)
-	// }
-
-	// log.Println(connectionURI)
-	// clientOptions := options.Client().ApplyURI("mongodb://localhost:27017/?connect=direct")
-	// client, err := mongo.Connect(context.TODO(), clientOptions)
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(connectionURI))
-	// client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("MONGO_URI")))
 	if err != nil {
 		log.Printf("Failed to create client: %v", err)
 	}
@@ -111,37 +77,37 @@ func CheckCreateCollections() {
 	opts := options.CreateIndexes().SetMaxTime(10 * time.Second)
 
 	// Movies
-	if !util.ArrayContainsString(names, "movie") {
-		log.Println("criar collection movie")
-		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), "movie")
-		collMovies := conn.Database(os.Getenv("MONGO_DATABASE")).Collection("movie")
+	if !util.ArrayContainsString(names, MOVIE) {
+		log.Println("criar collection " + MOVIE)
+		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), MOVIE)
+		collMovies := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(MOVIE)
 
 		collMovies.Indexes().CreateMany(context.TODO(), index, opts)
 	}
 
 	// Series
-	if !util.ArrayContainsString(names, "serie") {
-		log.Println("criar collection serie")
-		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), "serie")
-		collSeries := conn.Database(os.Getenv("MONGO_DATABASE")).Collection("serie")
+	if !util.ArrayContainsString(names, SERIE) {
+		log.Println("criar collection " + SERIE)
+		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), SERIE)
+		collSeries := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(SERIE)
 
 		collSeries.Indexes().CreateMany(context.TODO(), index, opts)
 	}
 
 	// Persons
-	if !util.ArrayContainsString(names, "person") {
-		log.Println("criar collection person")
-		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), "person")
-		collPerson := conn.Database(os.Getenv("MONGO_DATABASE")).Collection("person")
+	if !util.ArrayContainsString(names, PERSON) {
+		log.Println("criar collection " + PERSON)
+		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), PERSON)
+		collPerson := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(PERSON)
 
 		collPerson.Indexes().CreateMany(context.TODO(), index, opts)
 	}
 
 	// Parametro
-	if !util.ArrayContainsString(names, "parametro") {
-		log.Println("criar collection parametro")
-		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), "parametro")
-		collParametro := conn.Database(os.Getenv("MONGO_DATABASE")).Collection("parametro")
+	if !util.ArrayContainsString(names, PARAMETRO) {
+		log.Println("criar collection " + PARAMETRO)
+		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), PARAMETRO)
+		collParametro := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(PARAMETRO)
 
 		index := []mongo.IndexModel{
 			{

@@ -16,7 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var movieCollection = "movie"
+var movieCollection = database.MOVIE
 
 func GetMovieDetailsOnApiDb(id int, language string) Movie {
 	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
