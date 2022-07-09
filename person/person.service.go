@@ -16,6 +16,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var personCollection = database.PERSON
+
 func GetPersonDetailsOnApiDb(id int, language string) Person {
 	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
 	apiKey := parametro.Options.TmdbApiKey
@@ -102,7 +104,7 @@ func GetAll(skip int64, limit int64) []Person {
 	defer client.Disconnect(ctx)
 
 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").Find(context.TODO(), bson.M{}, optionsFind)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.M{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -128,7 +130,7 @@ func GetCountAll() int64 {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").CountDocuments(context.TODO(), bson.M{})
+	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).CountDocuments(context.TODO(), bson.M{})
 	if err != nil {
 		log.Println(err)
 	}
@@ -143,7 +145,7 @@ func GetItemByIdAndLanguage(id int, collecionString string, language string, ite
 	defer client.Disconnect(ctx)
 
 	var item Person
-	err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").FindOneAndUpdate(context.TODO(), bson.M{"id": id, "language": language}, bson.M{
+	err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).FindOneAndUpdate(context.TODO(), bson.M{"id": id, "language": language}, bson.M{
 		"$set": itemSearh,
 	}).Decode(&item)
 	if err != nil {
@@ -160,7 +162,7 @@ func GetPersonByIdAndLanguage(id int, language string) Person {
 	defer client.Disconnect(ctx)
 
 	var item Person
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
+	client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
 
 	return item
 }
@@ -171,7 +173,7 @@ func GetPersonsWithCredits(language string) []Person {
 	defer client.Disconnect(ctx)
 
 	optionsFind := options.Find()
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").Find(context.TODO(), bson.M{"credits.cast": bson.M{"$ne": nil}, "language": language}, optionsFind)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.M{"credits.cast": bson.M{"$ne": nil}, "language": language}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -198,7 +200,7 @@ func GetPersonsWithoutCredits(language string) []Person {
 	defer client.Disconnect(ctx)
 
 	optionsFind := options.Find()
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").Find(context.TODO(), bson.M{"credits.cast": nil, "language": language}, optionsFind)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.M{"credits.cast": nil, "language": language}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -225,7 +227,7 @@ func InsertPerson(itemInsert Person) interface{} {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").InsertOne(context.TODO(), itemInsert)
+	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).InsertOne(context.TODO(), itemInsert)
 	if err != nil {
 		log.Println("EERRORRR")
 		log.Println(err)
@@ -240,7 +242,7 @@ func InsertMany(persons []interface{}) interface{} {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").InsertMany(context.TODO(), persons)
+	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).InsertMany(context.TODO(), persons)
 	if err != nil {
 		log.Println("EERRORRR")
 		log.Println(err)
@@ -257,7 +259,7 @@ func Update(person Person, language string) {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").UpdateOne(context.TODO(), bson.M{"id": person.Id, "language": language}, bson.M{
+	client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).UpdateOne(context.TODO(), bson.M{"id": person.Id, "language": language}, bson.M{
 		"$set": person,
 	})
 }
@@ -269,7 +271,7 @@ func UpdateMany(persons []Person, language string) {
 	defer client.Disconnect(ctx)
 
 	for _, person := range persons {
-		client.Database(os.Getenv("MONGO_DATABASE")).Collection("person").UpdateOne(context.TODO(), bson.M{"id": person.Id, "language": language}, bson.M{
+		client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).UpdateOne(context.TODO(), bson.M{"id": person.Id, "language": language}, bson.M{
 			"$set": persons,
 		})
 	}

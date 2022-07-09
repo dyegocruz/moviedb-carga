@@ -16,6 +16,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var serieCollection = database.SERIE
+
 func GetSerieDetailsOnApiDb(id int, language string) Serie {
 	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
 	apiKey := parametro.Options.TmdbApiKey
@@ -154,7 +156,7 @@ func GetAll(skip int64, limit int64) []Serie {
 	defer client.Disconnect(ctx)
 
 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").Find(context.TODO(), bson.M{}, optionsFind)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(serieCollection).Find(context.TODO(), bson.M{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -180,7 +182,7 @@ func GetCountAll() int64 {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").CountDocuments(context.TODO(), bson.M{})
+	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(serieCollection).CountDocuments(context.TODO(), bson.M{})
 	if err != nil {
 		log.Println(err)
 	}
@@ -195,7 +197,7 @@ func GetItemByIdAndLanguage(id int, collecionString string, language string, ite
 	defer client.Disconnect(ctx)
 
 	var item Serie
-	err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").FindOneAndUpdate(context.TODO(), bson.M{"id": id, "language": language}, bson.M{
+	err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(serieCollection).FindOneAndUpdate(context.TODO(), bson.M{"id": id, "language": language}, bson.M{
 		"$set": itemSearh,
 	}).Decode(&item)
 	if err != nil {
@@ -213,7 +215,7 @@ func GetSerieByIdAndLanguage(id int, language string) Serie {
 	defer client.Disconnect(ctx)
 
 	var item Serie
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
+	client.Database(os.Getenv("MONGO_DATABASE")).Collection(serieCollection).FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
 
 	return item
 }
@@ -224,7 +226,7 @@ func InsertSerie(language string, itemInsert Serie) interface{} {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").InsertOne(context.TODO(), itemInsert)
+	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(serieCollection).InsertOne(context.TODO(), itemInsert)
 	if err != nil {
 		log.Println("EERRORRR")
 		log.Println(err)
@@ -239,7 +241,7 @@ func InsertMany(series []interface{}) interface{} {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").InsertMany(context.TODO(), series)
+	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(serieCollection).InsertMany(context.TODO(), series)
 	if err != nil {
 		log.Println("EERRORRR")
 		log.Println(err)
@@ -255,7 +257,7 @@ func UpdateMany(persons []Serie, language string) {
 	defer client.Disconnect(ctx)
 
 	for _, person := range persons {
-		client.Database(os.Getenv("MONGO_DATABASE")).Collection("serie").UpdateOne(context.TODO(), bson.M{"id": person.Id, "language": language}, bson.M{
+		client.Database(os.Getenv("MONGO_DATABASE")).Collection(serieCollection).UpdateOne(context.TODO(), bson.M{"id": person.Id, "language": language}, bson.M{
 			"$set": persons,
 		})
 	}
