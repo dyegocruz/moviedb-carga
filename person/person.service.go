@@ -55,7 +55,8 @@ func PopulatePersonByLanguage(itemObj Person, language string) {
 		log.Println("INSERT PERSON: ", itemObj.Id)
 		InsertPerson(itemObj)
 	} else {
-		log.Println("PERSON ALREADY INSERTED: ", itemObj.Id)
+		log.Println("UPDATE PERSON: ", itemObj.Id)
+		UpdatePerson(itemObj, language)
 	}
 
 	// if itemFind.Id == 0 {
@@ -65,6 +66,11 @@ func PopulatePersonByLanguage(itemObj Person, language string) {
 	// 	log.Println("UPDATE PERSON: ", itemObj.Id)
 	// 	Update(itemObj, language)
 	// }
+}
+
+func PopulatePersonByIdAndLanguage(id int, language string) {
+	itemObj := GetPersonDetailsOnApiDb(id, language)
+	PopulatePersonByLanguage(itemObj, language)
 }
 
 func PopulatePersons(language string) {
@@ -253,7 +259,7 @@ func InsertMany(persons []interface{}) interface{} {
 	return result.InsertedIDs
 }
 
-func Update(person Person, language string) {
+func UpdatePerson(person Person, language string) {
 
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()

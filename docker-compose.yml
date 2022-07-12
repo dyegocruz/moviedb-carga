@@ -6,7 +6,7 @@ services:
     image: moviedb-carga:1.0
     build:
       context: .
-      args: 
+      args:
         - NODE_ENV=${NODE_ENV}
     logging:
       driver: "json-file"
@@ -15,12 +15,12 @@ services:
         max-file: "3"
         labels: "production_status"
         env: "os"
-    # restart: on-failure
-    ports:
-      - "8223:1323"
+    restart: on-failure
+    # ports:
+    #   - "8223:1323"
     environment:
       - NODE_ENV=${NODE_ENV}
-      
+
 networks:
   default:
     external:
