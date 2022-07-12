@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
 	"log"
+	"moviedb/carga"
 	"moviedb/database"
-	"moviedb/person"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -38,16 +36,16 @@ func main() {
 
 	// var movieFile = "./movie_ids_06_30_2022.json"
 	// var tvFile = "./tv_series_ids_06_30_2022.json"
-	var personFile = "./person_ids_06_30_2022.json"
+	// var personFile = "./person_ids_06_30_2022.json"
 
 	if env == "production" {
 		// movieFile = "./movie_ids_06_30_2022.json"
 		// tvFile = "./tv_series_ids_06_30_2022.json"
-		personFile = "./person_ids_06_30_2022.json"
+		// personFile = "./person_ids_06_30_2022.json"
 	}
 
-	var languageEn = "en"
-	var languageBr = "pt-BR"
+	// var languageEn = "en"
+	// var languageBr = "pt-BR"
 
 	// log.Println("INIT MOVIES")
 	// fileMovie, err := os.Open(movieFile)
@@ -109,43 +107,43 @@ func main() {
 	// }
 	// log.Println("FINISH SERIES")
 
-	log.Println("INIT PERSONS")
+	// log.Println("INIT PERSONS")
 
-	filePerson, err := os.Open(personFile)
+	// filePerson, err := os.Open(personFile)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	defer filePerson.Close()
+	// defer filePerson.Close()
 
-	scannerPerson := bufio.NewScanner(filePerson)
+	// scannerPerson := bufio.NewScanner(filePerson)
 
-	for scannerPerson.Scan() {
+	// for scannerPerson.Scan() {
 
-		var personRead person.Person
-		json.Unmarshal([]byte(scannerPerson.Text()), &personRead)
+	// 	var personRead person.Person
+	// 	json.Unmarshal([]byte(scannerPerson.Text()), &personRead)
 
-		personFindBr := person.GetPersonByIdAndLanguage(personRead.Id, languageBr)
-		if personFindBr.Id == 0 {
-			personInsert := person.GetPersonDetailsOnApiDb(personRead.Id, languageBr)
-			person.PopulatePersonByLanguage(personInsert, languageBr)
+	// 	personFindBr := person.GetPersonByIdAndLanguage(personRead.Id, languageBr)
+	// 	if personFindBr.Id == 0 {
+	// 		personInsert := person.GetPersonDetailsOnApiDb(personRead.Id, languageBr)
+	// 		person.PopulatePersonByLanguage(personInsert, languageBr)
 
-			personFindEn := person.GetPersonByIdAndLanguage(personRead.Id, languageEn)
-			if personFindEn.Id == 0 {
-				personInsert := person.GetPersonDetailsOnApiDb(personRead.Id, languageEn)
-				person.PopulatePersonByLanguage(personInsert, languageEn)
-			} else {
-				log.Println("PERSON EN ALREADY INSERTED: ", personRead.Id)
-			}
-		} else {
-			log.Println("PERSON PT-BR ALREADY INSERTED: ", personRead.Id)
-		}
+	// 		personFindEn := person.GetPersonByIdAndLanguage(personRead.Id, languageEn)
+	// 		if personFindEn.Id == 0 {
+	// 			personInsert := person.GetPersonDetailsOnApiDb(personRead.Id, languageEn)
+	// 			person.PopulatePersonByLanguage(personInsert, languageEn)
+	// 		} else {
+	// 			log.Println("PERSON EN ALREADY INSERTED: ", personRead.Id)
+	// 		}
+	// 	} else {
+	// 		log.Println("PERSON PT-BR ALREADY INSERTED: ", personRead.Id)
+	// 	}
 
-	}
-	log.Println("FINISH PERSONS")
+	// }
+	// log.Println("FINISH PERSONS")
 
-	// carga.CargaGeral()
+	carga.CargaGeral()
 
 	// c := cron.New()
 	// // // c.AddFunc("*/1 * * * *", func() {
