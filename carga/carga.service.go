@@ -2,7 +2,6 @@ package carga
 
 import (
 	"context"
-	"log"
 	"moviedb/movie"
 	"moviedb/person"
 	"moviedb/tv"
@@ -11,88 +10,78 @@ import (
 )
 
 func CargaGeral() {
-	movie.PopulateMovies("en", "")
-	movie.PopulateMovies("pt-BR", "")
 
-	// // // FILTRA APENAS ANIMAÇÕES
-	movie.PopulateMovies("en", "16")
-	movie.PopulateMovies("pt-BR", "16")
+	var languageEn = "en"
+	var languageBr = "pt-BR"
 
-	tv.PopulateSeries("en", "")
-	tv.PopulateSeries("pt-BR", "")
+	movie.PopulateMovies(languageEn, "")
+	movie.PopulateMovies(languageBr, "")
 
-	// // // // FILTRA APENAS ANIMAÇÕES
-	tv.PopulateSeries("en", "16")
-	tv.PopulateSeries("pt-BR", "16")
+	// FILTRA APENAS ANIMAÇÕES
+	movie.PopulateMovies(languageEn, "16")
+	movie.PopulateMovies(languageBr, "16")
 
-	person.PopulatePersons("en")
-	person.PopulatePersons("pt-BR")
+	tv.PopulateSeries(languageEn, "")
+	tv.PopulateSeries(languageBr, "")
 
-	// personsWithoutCreditsEn := person.GetPersonsWithoutCredits("en")
-	// log.Println("PERSONS EN WITHOUT personsWithoutCreditsEn: ", len(personsWithoutCreditsEn))
+	// FILTRA APENAS ANIMAÇÕES
+	tv.PopulateSeries(languageEn, "16")
+	tv.PopulateSeries(languageBr, "16")
 
-	// for _, personUpdate := range personsWithoutCreditsEn {
-	// 	person.PopulatePersonByLanguage(personUpdate, "en")
+	person.PopulatePersons(languageEn)
+	person.PopulatePersons(languageBr)
+
+	// personsEn := person.GetPersonsWithCredits("en")
+	// log.Println("PERSONS EN CAST CHECK: ", len(personsEn))
+
+	// for _, personEn := range personsEn {
+	// 	log.Println("personEn.Credits.Cast: ", len(personEn.Credits.Cast))
+	// 	for _, cast := range personEn.Credits.Cast {
+	// 		if cast.MediaType == "movie" {
+	// 			movieFindEn := movie.GetMovieByIdAndLanguage(cast.ID, "en")
+	// 			log.Println("movieFindEn.Id: ", movieFindEn.Id)
+	// 			if movieFindEn.Id == 0 {
+	// 				movieInsert := movie.GetMovieDetailsOnApiDb(cast.ID, "en")
+
+	// 				movie.PopulateMovieByLanguage(movieInsert, "en")
+	// 			}
+	// 		}
+
+	// 		if cast.MediaType == "serie" {
+	// 			serieFindEn := tv.GetSerieByIdAndLanguage(cast.ID, "en")
+	// 			if serieFindEn.Id == 0 {
+	// 				serieInsert := tv.GetSerieDetailsOnApiDb(cast.ID, "en")
+	// 				tv.PopulateSerieByLanguage(serieInsert, "en")
+	// 			}
+	// 		}
+	// 	}
 	// }
 
-	// personsWithoutCreditsBr := person.GetPersonsWithoutCredits("pt-BR")
-	// log.Println("PERSONS BR WITHOUT personsWithoutCreditsBr: ", len(personsWithoutCreditsBr))
+	// personsBr := person.GetPersonsWithCredits("pt-BR")
+	// log.Println("PERSONS EN CAST CHECK: ", len(personsBr))
 
-	// for _, personUpdate := range personsWithoutCreditsBr {
-	// 	person.PopulatePersonByLanguage(personUpdate, "pt-BR")
+	// for _, personEn := range personsBr {
+	// 	log.Println("personEn.Credits.Cast: ", len(personEn.Credits.Cast))
+	// 	for _, cast := range personEn.Credits.Cast {
+	// 		if cast.MediaType == "movie" {
+	// 			movieFindEn := movie.GetMovieByIdAndLanguage(cast.ID, "pt-BR")
+	// 			log.Println("movieFindEn.Id: ", movieFindEn.Id)
+	// 			if movieFindEn.Id == 0 {
+	// 				movieInsert := movie.GetMovieDetailsOnApiDb(cast.ID, "pt-BR")
+
+	// 				movie.PopulateMovieByLanguage(movieInsert, "pt-BR")
+	// 			}
+	// 		}
+
+	// 		if cast.MediaType == "serie" {
+	// 			serieFindEn := tv.GetSerieByIdAndLanguage(cast.ID, "pt-BR")
+	// 			if serieFindEn.Id == 0 {
+	// 				serieInsert := tv.GetSerieDetailsOnApiDb(cast.ID, "pt-BR")
+	// 				tv.PopulateSerieByLanguage(serieInsert, "pt-BR")
+	// 			}
+	// 		}
+	// 	}
 	// }
-
-	personsEn := person.GetPersonsWithCredits("en")
-	log.Println("PERSONS EN CAST CHECK: ", len(personsEn))
-
-	for _, personEn := range personsEn {
-		log.Println("personEn.Credits.Cast: ", len(personEn.Credits.Cast))
-		for _, cast := range personEn.Credits.Cast {
-			if cast.MediaType == "movie" {
-				movieFindEn := movie.GetMovieByIdAndLanguage(cast.ID, "en")
-				log.Println("movieFindEn.Id: ", movieFindEn.Id)
-				if movieFindEn.Id == 0 {
-					movieInsert := movie.GetMovieDetailsOnApiDb(cast.ID, "en")
-
-					movie.PopulateMovieByLanguage(movieInsert, "en")
-				}
-			}
-
-			if cast.MediaType == "serie" {
-				serieFindEn := tv.GetSerieByIdAndLanguage(cast.ID, "en")
-				if serieFindEn.Id == 0 {
-					serieInsert := tv.GetSerieDetailsOnApiDb(cast.ID, "en")
-					tv.PopulateSerieByLanguage(serieInsert, "en")
-				}
-			}
-		}
-	}
-
-	personsBr := person.GetPersonsWithCredits("pt-BR")
-	log.Println("PERSONS EN CAST CHECK: ", len(personsBr))
-
-	for _, personEn := range personsBr {
-		log.Println("personEn.Credits.Cast: ", len(personEn.Credits.Cast))
-		for _, cast := range personEn.Credits.Cast {
-			if cast.MediaType == "movie" {
-				movieFindEn := movie.GetMovieByIdAndLanguage(cast.ID, "pt-BR")
-				log.Println("movieFindEn.Id: ", movieFindEn.Id)
-				if movieFindEn.Id == 0 {
-					movieInsert := movie.GetMovieDetailsOnApiDb(cast.ID, "pt-BR")
-
-					movie.PopulateMovieByLanguage(movieInsert, "pt-BR")
-				}
-			}
-
-			if cast.MediaType == "serie" {
-				serieFindEn := tv.GetSerieByIdAndLanguage(cast.ID, "pt-BR")
-				if serieFindEn.Id == 0 {
-					serieInsert := tv.GetSerieDetailsOnApiDb(cast.ID, "pt-BR")
-					tv.PopulateSerieByLanguage(serieInsert, "pt-BR")
-				}
-			}
-		}
-	}
 
 	// moviesCount := movie.GetCountAll()
 	// log.Println("Total de filmes: ", moviesCount)

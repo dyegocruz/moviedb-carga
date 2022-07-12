@@ -6,6 +6,7 @@ import (
 	"log"
 	"moviedb/database"
 	"moviedb/parametro"
+	"moviedb/person"
 	"net/http"
 	"os"
 	"strconv"
@@ -51,55 +52,23 @@ func PopulateMovieByLanguage(itemObj Movie, language string) {
 
 	json.NewDecoder(reqCredits.Body).Decode(&itemObj.MovieCredits)
 
-	// for _, cast := range itemObj.MovieCredits.Cast {
+	for _, cast := range itemObj.MovieCredits.Cast {
+		person.PopulatePersonByIdAndLanguage(cast.Id, language)
+	}
 
-	// 	var personCheck person.Person
-	// 	personCheck.Id = cast.Id
-	// 	personCheck.Name = cast.Name
-	// 	// personCheck.OriginalName = cast.OriginalName
-	// 	personCheck.KnowForDepartment = cast.KnownForDepartment
-	// 	personCheck.Language = language
-	// 	personCheck.Slug = slug.Make(personCheck.Name)
-	// 	personCheck.SlugUrl = "person-" + strconv.Itoa(personCheck.Id)
-
-	// 	// personFindUpdate := person.GetPersonByIdAndLanguage(cast.Id, language)
-
-	// 	person.PopulatePersonByLanguage(personCheck, language)
-	// 	// if personFindUpdate.Id == 0 {
-	// 	// 	log.Println("TREAT PERSON CAST: ", personCheck.Id)
-	// 	// 	person.PopulatePersonByLanguage(personCheck, language)
-	// 	// 	// person.InsertPerson(personCheck)
-	// 	// }
-	// }
-
-	// for _, crew := range itemObj.MovieCredits.Crew {
-
-	// 	var personCheck person.Person
-	// 	personCheck.Id = crew.Id
-	// 	personCheck.Name = crew.Name
-	// 	personCheck.KnowForDepartment = crew.KnownForDepartment
-	// 	personCheck.Language = language
-	// 	personCheck.Slug = slug.Make(personCheck.Name)
-	// 	personCheck.SlugUrl = "person-" + strconv.Itoa(personCheck.Id)
-	// 	person.PopulatePersonByLanguage(personCheck, language)
-	// 	// personFindUpdate := person.GetPersonByIdAndLanguage(crew.Id, language)
-
-	// 	// if personFindUpdate.Id == 0 {
-	// 	// 	log.Println("TREAT PERSON CREW: ", personCheck.Id)
-	// 	// 	person.PopulatePersonByLanguage(personCheck, language)
-	// 	// 	// person.InsertPerson(personCheck)
-	// 	// }
-	// 	crew.OriginalName = ""
-	// }
-	// // FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
+	for _, crew := range itemObj.MovieCredits.Crew {
+		person.PopulatePersonByIdAndLanguage(crew.Id, language)
+	}
+	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
 
 	itemFind := GetMovieByIdAndLanguage(itemObj.Id, language)
 
 	if itemFind.Id == 0 {
-		log.Println("INSERT MOVIE: ", itemObj.Id)
-		InsertMovie(language, itemObj)
+		log.Println("===>INSERT MOVIE: ", itemObj.Id)
+		InsertMovie(itemObj, language)
 	} else {
-		log.Println("MOVIE ALREADY INSERTED: ", itemObj.Id)
+		log.Println("===>UPDATE MOVIE: ", itemObj.Id)
+		UpdateMovie(itemFind, language)
 	}
 }
 
@@ -125,11 +94,14 @@ func PopulateMovies(language string, idGenre string) {
 		json.NewDecoder(response.Body).Decode(&result)
 		for _, item := range result.Results {
 
-			movieLocalFind := GetMovieByIdAndLanguage(item.Id, language)
-			if movieLocalFind.Id == 0 {
-				itemObj := GetMovieDetailsOnApiDb(item.Id, language)
-				PopulateMovieByLanguage(itemObj, language)
-			}
+			itemObj := GetMovieDetailsOnApiDb(item.Id, language)
+			PopulateMovieByLanguage(itemObj, language)
+
+			// movieLocalFind := GetMovieByIdAndLanguage(item.Id, language)
+			// if movieLocalFind.Id == 0 {
+			// 	itemObj := GetMovieDetailsOnApiDb(item.Id, language)
+			// 	PopulateMovieByLanguage(itemObj, language)
+			// }
 
 		}
 	}
@@ -187,7 +159,7 @@ func GetMovieByIdAndLanguage(id int, language string) Movie {
 	return item
 }
 
-func InsertMovie(language string, itemInsert Movie) interface{} {
+func InsertMovie(itemInsert Movie, language string) interface{} {
 
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()
@@ -219,7 +191,7 @@ func InsertMany(movies []interface{}) interface{} {
 	return result.InsertedIDs
 }
 
-func Update(movie Movie, language string) {
+func UpdateMovie(movie Movie, language string) {
 
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()
