@@ -31,58 +31,6 @@ func CargaGeral() {
 	person.PopulatePersons(languageEn)
 	person.PopulatePersons(languageBr)
 
-	// personsEn := person.GetPersonsWithCredits("en")
-	// log.Println("PERSONS EN CAST CHECK: ", len(personsEn))
-
-	// for _, personEn := range personsEn {
-	// 	log.Println("personEn.Credits.Cast: ", len(personEn.Credits.Cast))
-	// 	for _, cast := range personEn.Credits.Cast {
-	// 		if cast.MediaType == "movie" {
-	// 			movieFindEn := movie.GetMovieByIdAndLanguage(cast.ID, "en")
-	// 			log.Println("movieFindEn.Id: ", movieFindEn.Id)
-	// 			if movieFindEn.Id == 0 {
-	// 				movieInsert := movie.GetMovieDetailsOnApiDb(cast.ID, "en")
-
-	// 				movie.PopulateMovieByLanguage(movieInsert, "en")
-	// 			}
-	// 		}
-
-	// 		if cast.MediaType == "serie" {
-	// 			serieFindEn := tv.GetSerieByIdAndLanguage(cast.ID, "en")
-	// 			if serieFindEn.Id == 0 {
-	// 				serieInsert := tv.GetSerieDetailsOnApiDb(cast.ID, "en")
-	// 				tv.PopulateSerieByLanguage(serieInsert, "en")
-	// 			}
-	// 		}
-	// 	}
-	// }
-
-	// personsBr := person.GetPersonsWithCredits("pt-BR")
-	// log.Println("PERSONS EN CAST CHECK: ", len(personsBr))
-
-	// for _, personEn := range personsBr {
-	// 	log.Println("personEn.Credits.Cast: ", len(personEn.Credits.Cast))
-	// 	for _, cast := range personEn.Credits.Cast {
-	// 		if cast.MediaType == "movie" {
-	// 			movieFindEn := movie.GetMovieByIdAndLanguage(cast.ID, "pt-BR")
-	// 			log.Println("movieFindEn.Id: ", movieFindEn.Id)
-	// 			if movieFindEn.Id == 0 {
-	// 				movieInsert := movie.GetMovieDetailsOnApiDb(cast.ID, "pt-BR")
-
-	// 				movie.PopulateMovieByLanguage(movieInsert, "pt-BR")
-	// 			}
-	// 		}
-
-	// 		if cast.MediaType == "serie" {
-	// 			serieFindEn := tv.GetSerieByIdAndLanguage(cast.ID, "pt-BR")
-	// 			if serieFindEn.Id == 0 {
-	// 				serieInsert := tv.GetSerieDetailsOnApiDb(cast.ID, "pt-BR")
-	// 				tv.PopulateSerieByLanguage(serieInsert, "pt-BR")
-	// 			}
-	// 		}
-	// 	}
-	// }
-
 	// moviesCount := movie.GetCountAll()
 	// log.Println("Total de filmes: ", moviesCount)
 
