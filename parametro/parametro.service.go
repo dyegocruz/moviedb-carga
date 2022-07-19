@@ -8,7 +8,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-var parametroCollection = database.PARAMETRO
+var parametroCollection = database.COLLECTION_PARAMETRO
 
 func GetByTipo(tipo string) Parametro {
 	client, ctx, cancel := database.GetConnection()

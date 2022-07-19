@@ -7,7 +7,7 @@ services:
     build:
       context: .
       args:
-        - NODE_ENV=${NODE_ENV}
+        - GO_ENV=${GO_ENV}
     logging:
       driver: "json-file"
       options:
@@ -19,7 +19,7 @@ services:
     # ports:
     #   - "8223:1323"
     environment:
-      - NODE_ENV=${NODE_ENV}
+      - GO_ENV=${GO_ENV}
 
 networks:
   default:

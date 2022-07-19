@@ -4,38 +4,46 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"moviedb/common"
 	"moviedb/database"
 	"moviedb/parametro"
 	"moviedb/person"
-	"net/http"
+	"moviedb/tmdb"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var movieCollection = database.MOVIE
+var movieCollection = database.COLLECTION_MOVIE
 
-func GetMovieDetailsOnApiDb(id int, language string) Movie {
-	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
-	apiKey := parametro.Options.TmdbApiKey
-	reqMovie, err := http.Get("https://api.themoviedb.org/3/movie/" + strconv.Itoa(id) + "?api_key=" + apiKey + "&language=" + language)
-	if err != nil {
-		log.Println(err)
+func CheckMoviesChanges() {
+	movieChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_MOVIE)
+
+	for _, movie := range movieChanges.Results {
+		PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN)
+		PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_PTBR)
 	}
+}
+
+func GetMovieDetailsOnTMDBApi(id int, language string) Movie {
+	movieResponse := tmdb.GetDetailsByIdLanguageAndDataType(id, language, tmdb.DATATYPE_MOVIE)
 
 	var movie Movie
-	json.NewDecoder(reqMovie.Body).Decode(&movie)
+	json.NewDecoder(movieResponse.Body).Decode(&movie)
 
 	return movie
 }
 
+func PopulateMovieByIdAndLanguage(id int, language string) {
+	itemObj := GetMovieDetailsOnTMDBApi(id, language)
+	PopulateMovieByLanguage(itemObj, language)
+}
+
 func PopulateMovieByLanguage(itemObj Movie, language string) {
-	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
-	apiKey := parametro.Options.TmdbApiKey
+
 	t := time.Now()
 	itemObj.UpdatedNew = t.Format("02/01/2006 15:04:05")
 
@@ -45,10 +53,7 @@ func PopulateMovieByLanguage(itemObj Movie, language string) {
 	itemObj.SlugUrl = "movie-" + strconv.Itoa(itemObj.Id)
 
 	// INÍCIO TRATAMENTO DAS PESSOAS DO CAST E CREW
-	reqCredits, err := http.Get("https://api.themoviedb.org/3/movie/" + strconv.Itoa(itemObj.Id) + "/credits?api_key=" + apiKey + "&language=" + language)
-	if err != nil {
-		log.Println(err)
-	}
+	reqCredits := tmdb.GetMovieCreditsByIdAndLanguage(itemObj.Id, language)
 
 	json.NewDecoder(reqCredits.Body).Decode(&itemObj.MovieCredits)
 
@@ -75,9 +80,6 @@ func PopulateMovieByLanguage(itemObj Movie, language string) {
 func PopulateMovies(language string, idGenre string) {
 
 	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
-
-	apiKey := parametro.Options.TmdbApiKey
-	apiHost := parametro.Options.TmdbHost
 	apiMaxPage := parametro.Options.TmdbMaxPageLoad
 
 	for i := 1; i < apiMaxPage+1; i++ {
@@ -85,66 +87,24 @@ func PopulateMovies(language string, idGenre string) {
 		page := strconv.Itoa(i)
 
 		// Busca filmes por página
-		response, err := http.Get(apiHost + "/discover/movie?api_key=" + apiKey + "&language=" + language + "&sort_by=popularity.desc&include_adult=false&include_video=false&page=" + page + "&with_genres=" + idGenre)
-		if err != nil {
-			log.Println(err)
-		}
+		response := tmdb.GetDiscoverMoviesByLanguageGenreAndPage(language, idGenre, page)
 
 		var result ResultMovie
 		json.NewDecoder(response.Body).Decode(&result)
 		for _, item := range result.Results {
 
-			itemObj := GetMovieDetailsOnApiDb(item.Id, language)
-			PopulateMovieByLanguage(itemObj, language)
+			itemObjEn := GetMovieDetailsOnTMDBApi(item.Id, language)
+			PopulateMovieByLanguage(itemObjEn, language)
 
-			// movieLocalFind := GetMovieByIdAndLanguage(item.Id, language)
-			// if movieLocalFind.Id == 0 {
-			// 	itemObj := GetMovieDetailsOnApiDb(item.Id, language)
-			// 	PopulateMovieByLanguage(itemObj, language)
-			// }
+			itemObjPtBr := GetMovieDetailsOnTMDBApi(item.Id, common.LANGUAGE_PTBR)
+			PopulateMovieByLanguage(itemObjPtBr, common.LANGUAGE_PTBR)
 
 		}
 	}
-}
-
-func GetAll(skip int64, limit int64) []Movie {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).Find(context.TODO(), bson.M{}, optionsFind)
-	if err != nil {
-		log.Println(err)
-	}
-
-	movies := make([]Movie, 0)
-	for cur.Next(context.TODO()) {
-		var movie Movie
-		err := cur.Decode(&movie)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		movies = append(movies, movie)
-	}
-
-	cur.Close(context.TODO())
-
-	return movies
 }
 
 func GetCountAll() int64 {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).CountDocuments(context.TODO(), bson.M{})
-	if err != nil {
-		log.Println(err)
-	}
-
-	return count
+	return database.GetCountAllByColletcion(movieCollection)
 }
 
 func GetMovieByIdAndLanguage(id int, language string) Movie {
@@ -174,23 +134,6 @@ func InsertMovie(itemInsert Movie, language string) interface{} {
 	return result.InsertedID
 }
 
-func InsertMany(movies []interface{}) interface{} {
-
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).InsertMany(context.TODO(), movies)
-	if err != nil {
-		log.Println("EERRORRR")
-		log.Println(err)
-	}
-
-	log.Println("Movies Inserted: ", len(movies))
-
-	return result.InsertedIDs
-}
-
 func UpdateMovie(movie Movie, language string) {
 
 	client, ctx, cancel := database.GetConnection()
@@ -200,19 +143,4 @@ func UpdateMovie(movie Movie, language string) {
 	client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).UpdateOne(context.TODO(), bson.M{"id": movie.Id, "language": language}, bson.M{
 		"$set": movie,
 	})
-}
-
-func UpdateMany(movies []Movie, language string) {
-
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	for _, movie := range movies {
-		client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).UpdateOne(context.TODO(), bson.M{"id": movie.Id, "language": language}, bson.M{
-			"$set": movie,
-		})
-	}
-
-	log.Println("Movies Updated: ", len(movies))
 }
