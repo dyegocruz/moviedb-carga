@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	PARAMETRO = "parametro"
-	MOVIE     = "movie"
-	PERSON    = "person"
-	SERIE     = "serie"
+	COLLECTION_PARAMETRO = "parametro"
+	COLLECTION_MOVIE     = "movie"
+	COLLECTION_PERSON    = "person"
+	COLLECTION_SERIE     = "serie"
 )
 
 const (
@@ -77,37 +77,37 @@ func CheckCreateCollections() {
 	opts := options.CreateIndexes().SetMaxTime(10 * time.Second)
 
 	// Movies
-	if !util.ArrayContainsString(names, MOVIE) {
-		log.Println("criar collection " + MOVIE)
-		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), MOVIE)
-		collMovies := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(MOVIE)
+	if !util.ArrayContainsString(names, COLLECTION_MOVIE) {
+		log.Println("criar collection " + COLLECTION_MOVIE)
+		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), COLLECTION_MOVIE)
+		collMovies := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(COLLECTION_MOVIE)
 
 		collMovies.Indexes().CreateMany(context.TODO(), index, opts)
 	}
 
 	// Series
-	if !util.ArrayContainsString(names, SERIE) {
-		log.Println("criar collection " + SERIE)
-		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), SERIE)
-		collSeries := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(SERIE)
+	if !util.ArrayContainsString(names, COLLECTION_SERIE) {
+		log.Println("criar collection " + COLLECTION_SERIE)
+		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), COLLECTION_SERIE)
+		collSeries := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(COLLECTION_SERIE)
 
 		collSeries.Indexes().CreateMany(context.TODO(), index, opts)
 	}
 
 	// Persons
-	if !util.ArrayContainsString(names, PERSON) {
-		log.Println("criar collection " + PERSON)
-		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), PERSON)
-		collPerson := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(PERSON)
+	if !util.ArrayContainsString(names, COLLECTION_PERSON) {
+		log.Println("criar collection " + COLLECTION_PERSON)
+		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), COLLECTION_PERSON)
+		collPerson := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(COLLECTION_PERSON)
 
 		collPerson.Indexes().CreateMany(context.TODO(), index, opts)
 	}
 
 	// Parametro
-	if !util.ArrayContainsString(names, PARAMETRO) {
-		log.Println("criar collection " + PARAMETRO)
-		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), PARAMETRO)
-		collParametro := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(PARAMETRO)
+	if !util.ArrayContainsString(names, COLLECTION_PARAMETRO) {
+		log.Println("criar collection " + COLLECTION_PARAMETRO)
+		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), COLLECTION_PARAMETRO)
+		collParametro := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(COLLECTION_PARAMETRO)
 
 		index := []mongo.IndexModel{
 			{
@@ -118,4 +118,17 @@ func CheckCreateCollections() {
 		collParametro.Indexes().CreateMany(context.TODO(), index, opts)
 	}
 
+}
+
+func GetCountAllByColletcion(collection string) int64 {
+	client, ctx, cancel := GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).CountDocuments(context.TODO(), bson.M{})
+	if err != nil {
+		log.Println(err)
+	}
+
+	return count
 }

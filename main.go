@@ -143,7 +143,14 @@ func main() {
 	// }
 	// log.Println("FINISH PERSONS")
 
-	carga.CargaGeral()
+	carga.GeneralCharge()
+
+	// movie.CheckMoviesChanges()
+
+	// person.CheckPersonChanges()
+
+	// currentMovieTime := time.Now()
+	// log.Println(currentMovieTime.Format("2006-01-02"))
 
 	// c := cron.New()
 	// // // c.AddFunc("*/1 * * * *", func() {

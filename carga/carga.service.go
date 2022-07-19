@@ -2,34 +2,35 @@ package carga
 
 import (
 	"context"
+	"moviedb/common"
 	"moviedb/movie"
-	"moviedb/person"
-	"moviedb/tv"
 
 	"github.com/olivere/elastic"
 )
 
-func CargaGeral() {
+func GeneralCharge() {
 
-	var languageEn = "en"
-	var languageBr = "pt-BR"
+	movie.PopulateMovies(common.LANGUAGE_EN, "")
+	// movie.PopulateMovies(common.LANGUAGE_PTBR, "")
 
-	movie.PopulateMovies(languageEn, "")
-	movie.PopulateMovies(languageBr, "")
+	// FILTER JUST ANIMATIONS
+	movie.PopulateMovies(common.LANGUAGE_EN, "16")
+	// movie.PopulateMovies(common.LANGUAGE_PTBR, "16")
 
-	// FILTRA APENAS ANIMAÇÕES
-	movie.PopulateMovies(languageEn, "16")
-	movie.PopulateMovies(languageBr, "16")
+	// tv.PopulateSeries(common.LANGUAGE_EN, "")
+	// tv.PopulateSeries(common.LANGUAGE_PTBR, "")
 
-	tv.PopulateSeries(languageEn, "")
-	tv.PopulateSeries(languageBr, "")
+	// FILTER JUST ANIMATIONS
+	// tv.PopulateSeries(common.LANGUAGE_EN, "16")
+	// tv.PopulateSeries(common.LANGUAGE_PTBR, "16")
 
-	// FILTRA APENAS ANIMAÇÕES
-	tv.PopulateSeries(languageEn, "16")
-	tv.PopulateSeries(languageBr, "16")
+	// person.PopulatePersons(common.LANGUAGE_EN)
+	// person.PopulatePersons(common.LANGUAGE_PTBR)
 
-	person.PopulatePersons(languageEn)
-	person.PopulatePersons(languageBr)
+	// Checking changes by data type
+	// movie.CheckMoviesChanges()
+	// tv.CheckTvChanges()
+	// person.CheckPersonChanges()
 
 	// moviesCount := movie.GetCountAll()
 	// log.Println("Total de filmes: ", moviesCount)
