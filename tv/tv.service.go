@@ -50,15 +50,18 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 		var seasonReq Season
 		json.NewDecoder(reqSeasonEpisodes.Body).Decode(&seasonReq)
 
-		// Getting cast from episode
-		seasonEpisodesWithCredits := make([]Episode, 0)
-		for _, episode := range seasonReq.Episodes {
-			reqTvCredits := tmdb.GetTvSeasonEpisodeCredits(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
-			json.NewDecoder(reqTvCredits.Body).Decode(&episode.TvEpisodeCredits)
-			seasonEpisodesWithCredits = append(seasonEpisodesWithCredits, episode)
+		if itemObj.NumberOfEpisodes > 0 {
+			// Getting cast from episode
+			seasonEpisodesWithCredits := make([]Episode, 0)
+			for _, episode := range seasonReq.Episodes {
+				reqTvCredits := tmdb.GetTvSeasonEpisodeCredits(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
+				json.NewDecoder(reqTvCredits.Body).Decode(&episode.TvEpisodeCredits)
+				seasonEpisodesWithCredits = append(seasonEpisodesWithCredits, episode)
+			}
+
+			seasonReq.Episodes = seasonEpisodesWithCredits
 		}
 
-		seasonReq.Episodes = seasonEpisodesWithCredits
 		seasonReq.EpisodeCount = season.EpisodeCount
 		seasonReq.Overview = season.Overview
 		seasonsDetails = append(seasonsDetails, seasonReq)
