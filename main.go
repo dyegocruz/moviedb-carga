@@ -34,6 +34,18 @@ func init() {
 
 }
 
+func reverseArray(arrayElement []string) []string {
+	arrayElementSize := len(arrayElement)
+	revArr := make([]string, arrayElementSize)
+	j := 0
+	for i := arrayElementSize - 1; i >= 0; i-- {
+		revArr[j] = arrayElement[i]
+		j++
+	}
+
+	return revArr
+}
+
 func main() {
 	env := os.Getenv("GO_ENV")
 
@@ -91,10 +103,16 @@ func main() {
 
 	scannerTv := bufio.NewScanner(fileTv)
 
+	tvScannerArray := make([]string, 0)
 	for scannerTv.Scan() {
+		tvScannerArray = append(tvScannerArray, scannerTv.Text())
+	}
+	tvScannerArray = reverseArray(tvScannerArray)
+
+	for _, tvScanner := range tvScannerArray {
 
 		var tvRead tv.Serie
-		json.Unmarshal([]byte(scannerTv.Text()), &tvRead)
+		json.Unmarshal([]byte(tvScanner), &tvRead)
 
 		// tvFindEn := tv.GetSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_EN)
 		// if tvFindEn.Id == 0 {
