@@ -2,8 +2,8 @@ version: "3.1"
 
 services:
   api:
-    container_name: moviedb-carga-container
-    image: moviedb-carga:1.0
+    container_name: moviedb-charge-tv-episodes-credits
+    image: moviedb-charge-tv-episodes-credits:1.0
     build:
       context: .
       args:

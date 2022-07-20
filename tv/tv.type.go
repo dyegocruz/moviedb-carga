@@ -28,17 +28,18 @@ type SpokenLanguages struct {
 
 // type EpisodeToAir struct {
 type Episode struct {
-	AirDate       string  `json:"air_date,omitempty" bson:"air_date"`
-	EpisodeNumber int     `json:"episode_number" bson:"episode_number"`
-	Id            int     `json:"id" bson:"id"`
-	Name          string  `json:"name" bson:"name"`
-	Overview      string  `json:"overview" bson:"overview"`
-	ProdctionCode string  `json:"production_code" bson:"production_code"`
-	SeasonNumber  int     `json:"season_number" bson:"season_number"`
-	ShowId        int     `json:"show_id" bson:"show_id"`
-	StillPath     string  `json:"still_path" bson:"still_path"`
-	VoteAverage   float64 `json:"vote_average" bson:"vote_average"`
-	VoteCount     float64 `json:"vote_count" bson:"vote_count"`
+	AirDate          string           `json:"air_date,omitempty" bson:"air_date"`
+	EpisodeNumber    int              `json:"episode_number" bson:"episode_number"`
+	Id               int              `json:"id" bson:"id"`
+	Name             string           `json:"name" bson:"name"`
+	Overview         string           `json:"overview" bson:"overview"`
+	ProdctionCode    string           `json:"production_code" bson:"production_code"`
+	SeasonNumber     int              `json:"season_number" bson:"season_number"`
+	ShowId           int              `json:"show_id" bson:"show_id"`
+	StillPath        string           `json:"still_path" bson:"still_path"`
+	VoteAverage      float64          `json:"vote_average" bson:"vote_average"`
+	VoteCount        float64          `json:"vote_count" bson:"vote_count"`
+	TvEpisodeCredits TvEpisodeCredits `json:"credits" bson:"credits"`
 }
 
 type Network struct {
@@ -68,7 +69,6 @@ type CreatedBy struct {
 }
 
 type TvCast struct {
-	// Adult              bool    `json:"adult"`
 	Gender             int     `json:"gender"`
 	Id                 int     `json:"id" bson:"id"`
 	KnownForDepartment string  `json:"known_for_department"`
@@ -77,13 +77,10 @@ type TvCast struct {
 	Popularity         float64 `json:"popularity"`
 	ProfilePath        string  `json:"profile_path"`
 	Character          string  `json:"character" bson:"character"`
-	Order              int     `json:"order"`
-	// CastID             int     `json:"cast_id"`
-	// CreditID  string `json:"credit_id"`
+	Order              int     `json:"order" bson:"order"`
 }
 
 type TvCrew struct {
-	// Adult              bool    `json:"adult"`
 	Gender             int     `json:"gender"`
 	Id                 int     `json:"id" bson:"id"`
 	KnownForDepartment string  `json:"known_for_department"`
@@ -93,16 +90,23 @@ type TvCrew struct {
 	ProfilePath        string  `json:"profile_path"`
 	Department         string  `json:"department" bson:"department"`
 	Job                string  `json:"job" bson:"job"`
-	// CreditID           string  `json:"credit_id"`
+}
+
+type TvGuestStar struct {
+	Id        int    `json:"id" bson:"id"`
+	Character string `json:"character" bson:"character"`
+	Order     int    `json:"order" bson:"order"`
 }
 
 type TvCredits struct {
-	// Cast    []person.Cast `json:"cast" bson:"cast"`
 	Cast []TvCast `json:"cast" bson:"cast"`
 	Crew []TvCrew `json:"crew" bson:"crew"`
-	// CastIds []int       `json:"castIds" bson:"castIds"`
-	// Crew    []person.Crew `json:"crew" bson:"crew"`
-	// CrewIds []int       `json:"crewIds" bson:"crewIds"`
+}
+
+type TvEpisodeCredits struct {
+	Cast        []TvCast      `json:"cast" bson:"cast"`
+	Crew        []TvCrew      `json:"crew" bson:"crew"`
+	TvGuestStar []TvGuestStar `json:"guest_stars" bson:"guest_stars"`
 }
 
 type Serie struct {
