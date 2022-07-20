@@ -3,21 +3,21 @@ package carga
 import (
 	"context"
 	"moviedb/common"
-	"moviedb/movie"
+	"moviedb/tv"
 
 	"github.com/olivere/elastic"
 )
 
 func GeneralCharge() {
 
-	movie.PopulateMovies(common.LANGUAGE_EN, "")
+	// movie.PopulateMovies(common.LANGUAGE_EN, "")
 	// movie.PopulateMovies(common.LANGUAGE_PTBR, "")
 
 	// FILTER JUST ANIMATIONS
-	movie.PopulateMovies(common.LANGUAGE_EN, "16")
+	// movie.PopulateMovies(common.LANGUAGE_EN, "16")
 	// movie.PopulateMovies(common.LANGUAGE_PTBR, "16")
 
-	// tv.PopulateSeries(common.LANGUAGE_EN, "")
+	tv.PopulateSeries(common.LANGUAGE_EN, "")
 	// tv.PopulateSeries(common.LANGUAGE_PTBR, "")
 
 	// FILTER JUST ANIMATIONS

@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"log"
-	"moviedb/carga"
+	"moviedb/common"
 	"moviedb/database"
+	"moviedb/tv"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -35,12 +38,12 @@ func main() {
 	env := os.Getenv("GO_ENV")
 
 	// var movieFile = "./movie_ids_06_30_2022.json"
-	// var tvFile = "./tv_series_ids_06_30_2022.json"
+	var tvFile = "./tv_series_ids_06_30_2022.json"
 	// var personFile = "./person_ids_06_30_2022.json"
 
 	if env == "production" {
 		// movieFile = "./movie_ids_06_30_2022.json"
-		// tvFile = "./tv_series_ids_06_30_2022.json"
+		tvFile = "./tv_series_ids_06_30_2022.json"
 		// personFile = "./person_ids_06_30_2022.json"
 	}
 
@@ -77,35 +80,35 @@ func main() {
 	// }
 	// log.Println("FINISH MOVIES")
 
-	// log.Println("INIT SERIES")
-	// fileTv, err := os.Open(tvFile)
+	log.Println("INIT SERIES")
+	fileTv, err := os.Open(tvFile)
 
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// defer fileTv.Close()
+	defer fileTv.Close()
 
-	// scannerTv := bufio.NewScanner(fileTv)
+	scannerTv := bufio.NewScanner(fileTv)
 
-	// for scannerTv.Scan() {
+	for scannerTv.Scan() {
 
-	// 	var tvRead tv.Serie
-	// 	json.Unmarshal([]byte(scannerTv.Text()), &tvRead)
+		var tvRead tv.Serie
+		json.Unmarshal([]byte(scannerTv.Text()), &tvRead)
 
-	// 	tvFindEn := tv.GetSerieByIdAndLanguage(tvRead.Id, languageEn)
-	// 	if tvFindEn.Id == 0 {
-	// 		tvInsert := tv.GetSerieDetailsOnApiDb(tvRead.Id, languageEn)
-	// 		tv.PopulateSerieByLanguage(tvInsert, languageEn)
-	// 	}
+		// tvFindEn := tv.GetSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_EN)
+		// if tvFindEn.Id == 0 {
+		tvInsert := tv.GetSerieDetailsOnTMDBApi(tvRead.Id, common.LANGUAGE_EN)
+		tv.PopulateSerieByLanguage(tvInsert, common.LANGUAGE_EN)
+		// }
 
-	// 	tvFindBr := tv.GetSerieByIdAndLanguage(tvRead.Id, languageBr)
-	// 	if tvFindBr.Id == 0 {
-	// 		tvInsert := tv.GetSerieDetailsOnApiDb(tvRead.Id, languageBr)
-	// 		tv.PopulateSerieByLanguage(tvInsert, languageBr)
-	// 	}
-	// }
-	// log.Println("FINISH SERIES")
+		// tvFindBr := tv.GetSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_PTBR)
+		// if tvFindBr.Id == 0 {
+		tvBrInsert := tv.GetSerieDetailsOnTMDBApi(tvRead.Id, common.LANGUAGE_PTBR)
+		tv.PopulateSerieByLanguage(tvBrInsert, common.LANGUAGE_PTBR)
+		// }
+	}
+	log.Println("FINISH SERIES")
 
 	// log.Println("INIT PERSONS")
 
@@ -143,7 +146,7 @@ func main() {
 	// }
 	// log.Println("FINISH PERSONS")
 
-	carga.GeneralCharge()
+	// carga.GeneralCharge()
 
 	// movie.CheckMoviesChanges()
 

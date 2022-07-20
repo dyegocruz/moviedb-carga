@@ -6,7 +6,6 @@ import (
 	"log"
 	"moviedb/common"
 	"moviedb/database"
-	"moviedb/person"
 	"moviedb/tmdb"
 	"os"
 	"strconv"
@@ -49,8 +48,17 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 		reqSeasonEpisodes := tmdb.GetTvSeason(itemObj.Id, season.SeasonNumber, language)
 
 		var seasonReq Season
-
 		json.NewDecoder(reqSeasonEpisodes.Body).Decode(&seasonReq)
+
+		// Getting cast from episode
+		seasonEpisodesWithCredits := make([]Episode, 0)
+		for _, episode := range seasonReq.Episodes {
+			reqTvCredits := tmdb.GetTvSeasonEpisodeCredits(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
+			json.NewDecoder(reqTvCredits.Body).Decode(&episode.TvEpisodeCredits)
+			seasonEpisodesWithCredits = append(seasonEpisodesWithCredits, episode)
+		}
+
+		seasonReq.Episodes = seasonEpisodesWithCredits
 		seasonReq.EpisodeCount = season.EpisodeCount
 		seasonReq.Overview = season.Overview
 		seasonsDetails = append(seasonsDetails, seasonReq)
@@ -71,13 +79,13 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 
 	json.NewDecoder(reqCredits.Body).Decode(&itemObj.TvCredits)
 
-	for _, cast := range itemObj.TvCredits.Cast {
-		person.PopulatePersonByIdAndLanguage(cast.Id, language)
-	}
+	// for _, cast := range itemObj.TvCredits.Cast {
+	// 	person.PopulatePersonByIdAndLanguage(cast.Id, language)
+	// }
 
-	for _, crew := range itemObj.TvCredits.Crew {
-		person.PopulatePersonByIdAndLanguage(crew.Id, language)
-	}
+	// for _, crew := range itemObj.TvCredits.Crew {
+	// 	person.PopulatePersonByIdAndLanguage(crew.Id, language)
+	// }
 	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
 	itemFind := GetSerieByIdAndLanguage(itemObj.Id, language)
 
@@ -93,7 +101,7 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 func PopulateSeries(language string, idGenre string) {
 
 	// for i := 1; i < apiMaxPage+1; i++ {
-	for i := 1; i < 10+1; i++ {
+	for i := 1; i < 5; i++ {
 		log.Println("======> SERIE PAGE: ", language, i)
 		page := strconv.Itoa(i)
 		response := tmdb.GetDiscoverTvByLanguageGenreAndPage(language, idGenre, page)
@@ -105,6 +113,9 @@ func PopulateSeries(language string, idGenre string) {
 
 			itemObj := GetSerieDetailsOnTMDBApi(item.Id, language)
 			PopulateSerieByLanguage(itemObj, language)
+
+			itemObjBr := GetSerieDetailsOnTMDBApi(item.Id, common.LANGUAGE_PTBR)
+			PopulateSerieByLanguage(itemObjBr, common.LANGUAGE_PTBR)
 		}
 	}
 }
