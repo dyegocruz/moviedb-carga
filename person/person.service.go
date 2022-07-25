@@ -89,6 +89,33 @@ func GetCountAll() int64 {
 	return database.GetCountAllByColletcion(personCollection)
 }
 
+func GetAll(skip int64, limit int64) []Person {
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_PERSON).Find(context.TODO(), bson.M{}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	persons := make([]Person, 0)
+	for cur.Next(context.TODO()) {
+		var movie Person
+		err := cur.Decode(&movie)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		persons = append(persons, movie)
+	}
+
+	cur.Close(context.TODO())
+
+	return persons
+}
+
 func GetPersonByIdAndLanguage(id int, language string) Person {
 
 	client, ctx, cancel := database.GetConnection()
