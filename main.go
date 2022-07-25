@@ -1,20 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"compress/gzip"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"moviedb/common"
+	"moviedb/carga"
 	"moviedb/database"
-	"moviedb/movie"
-	"moviedb/person"
-	"moviedb/tv"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -104,112 +98,108 @@ func RemoveFile(name string) {
 func main() {
 	// env := os.Getenv("GO_ENV")
 
-	t := time.Now()
-	dateFile := t.Format("01_02_2006")
-	movieFile := "movie_ids_" + dateFile
-	tvFile := "tv_series_ids_" + dateFile
-	personFile := "movie_ids_" + dateFile
+	// t := time.Now()
+	// dateFile := t.Format("01_02_2006")
+	// movieFile := "movie_ids_" + dateFile
+	// tvFile := "tv_series_ids_" + dateFile
+	// personFile := "movie_ids_" + dateFile
 
-	log.Println("INIT MOVIES")
-	downloadExportFile(movieFile)
-	unzip(movieFile)
+	// log.Println("INIT MOVIES")
+	// downloadExportFile(movieFile)
+	// unzip(movieFile)
 
-	fileMovie, err := os.Open(movieFile + ".json")
+	// fileMovie, err := os.Open(movieFile + ".json")
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	defer fileMovie.Close()
+	// defer fileMovie.Close()
 
-	scannerMovies := bufio.NewScanner(fileMovie)
+	// scannerMovies := bufio.NewScanner(fileMovie)
 
-	for scannerMovies.Scan() {
+	// for scannerMovies.Scan() {
 
-		var movieRead movie.Movie
-		json.Unmarshal([]byte(scannerMovies.Text()), &movieRead)
+	// 	var movieRead movie.Movie
+	// 	json.Unmarshal([]byte(scannerMovies.Text()), &movieRead)
 
-		movieFindEn := movie.GetMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_PTBR)
-		if movieFindEn.Id == 0 {
-			// movieInsert := tmdb.GetDetailsByIdLanguageAndDataType(movieRead.Id, languageEn, tmdb.DATATYPE_MOVIE)
-			movie.PopulateMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_EN, "Y")
-			movie.PopulateMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_PTBR, "Y")
-		} else {
-			log.Println("MOVIE ALREADY INSERTED: ", movieRead.Id)
-		}
-	}
-	RemoveFile(movieFile + ".json")
-	log.Println("FINISH MOVIES")
+	// 	movieFindEn := movie.GetMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_PTBR)
+	// 	if movieFindEn.Id == 0 {
+	// 		// movieInsert := tmdb.GetDetailsByIdLanguageAndDataType(movieRead.Id, languageEn, tmdb.DATATYPE_MOVIE)
+	// 		movie.PopulateMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_EN, "Y")
+	// 		movie.PopulateMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_PTBR, "Y")
+	// 	} else {
+	// 		log.Println("MOVIE ALREADY INSERTED: ", movieRead.Id)
+	// 	}
+	// }
+	// RemoveFile(movieFile + ".json")
+	// log.Println("FINISH MOVIES")
 
-	log.Println("INIT SERIES")
-	downloadExportFile(tvFile)
-	unzip(tvFile)
-	fileTv, err := os.Open(tvFile + ".json")
+	// log.Println("INIT SERIES")
+	// downloadExportFile(tvFile)
+	// unzip(tvFile)
+	// fileTv, err := os.Open(tvFile + ".json")
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	defer fileTv.Close()
+	// defer fileTv.Close()
 
-	scannerTv := bufio.NewScanner(fileTv)
+	// scannerTv := bufio.NewScanner(fileTv)
 
-	tvScannerArray := make([]string, 0)
-	for scannerTv.Scan() {
-		tvScannerArray = append(tvScannerArray, scannerTv.Text())
-	}
-	// tvScannerArray = reverseArray(tvScannerArray)
+	// tvScannerArray := make([]string, 0)
+	// for scannerTv.Scan() {
+	// 	tvScannerArray = append(tvScannerArray, scannerTv.Text())
+	// }
+	// // tvScannerArray = reverseArray(tvScannerArray)
 
-	for _, tvScanner := range tvScannerArray {
+	// for _, tvScanner := range tvScannerArray {
 
-		var tvRead tv.Serie
-		json.Unmarshal([]byte(tvScanner), &tvRead)
+	// 	var tvRead tv.Serie
+	// 	json.Unmarshal([]byte(tvScanner), &tvRead)
 
-		tvFindBr := tv.GetSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_PTBR)
-		if tvFindBr.Id == 0 {
-			tv.PopulateSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_EN)
-			tv.PopulateSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_PTBR)
-		} else {
-			log.Println("TV ALREADY INSERTED: ", tvRead.Id)
-		}
-	}
-	RemoveFile(tvFile + ".json")
-	log.Println("FINISH SERIES")
+	// 	tvFindBr := tv.GetSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_PTBR)
+	// 	if tvFindBr.Id == 0 {
+	// 		tv.PopulateSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_EN)
+	// 		tv.PopulateSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_PTBR)
+	// 	} else {
+	// 		log.Println("TV ALREADY INSERTED: ", tvRead.Id)
+	// 	}
+	// }
+	// RemoveFile(tvFile + ".json")
+	// log.Println("FINISH SERIES")
 
-	log.Println("INIT PERSONS")
-	downloadExportFile(personFile + ".json")
-	unzip(personFile + ".json")
-	filePerson, err := os.Open(personFile)
+	// log.Println("INIT PERSONS")
+	// downloadExportFile(personFile + ".json")
+	// unzip(personFile + ".json")
+	// filePerson, err := os.Open(personFile)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	defer filePerson.Close()
+	// defer filePerson.Close()
 
-	scannerPerson := bufio.NewScanner(filePerson)
+	// scannerPerson := bufio.NewScanner(filePerson)
 
-	for scannerPerson.Scan() {
+	// for scannerPerson.Scan() {
 
-		var personRead person.Person
-		json.Unmarshal([]byte(scannerPerson.Text()), &personRead)
+	// 	var personRead person.Person
+	// 	json.Unmarshal([]byte(scannerPerson.Text()), &personRead)
 
-		personFindBr := person.GetPersonByIdAndLanguage(personRead.Id, common.LANGUAGE_PTBR)
-		if personFindBr.Id == 0 {
-			person.PopulatePersonByIdAndLanguage(personRead.Id, common.LANGUAGE_EN)
-			person.PopulatePersonByIdAndLanguage(personRead.Id, common.LANGUAGE_PTBR)
-		} else {
-			log.Println("PERSON ALREADY INSERTED: ", personRead.Id)
-		}
-	}
-	RemoveFile(personFile + ".json")
-	log.Println("FINISH PERSONS")
+	// 	personFindBr := person.GetPersonByIdAndLanguage(personRead.Id, common.LANGUAGE_PTBR)
+	// 	if personFindBr.Id == 0 {
+	// 		person.PopulatePersonByIdAndLanguage(personRead.Id, common.LANGUAGE_EN)
+	// 		person.PopulatePersonByIdAndLanguage(personRead.Id, common.LANGUAGE_PTBR)
+	// 	} else {
+	// 		log.Println("PERSON ALREADY INSERTED: ", personRead.Id)
+	// 	}
+	// }
+	// RemoveFile(personFile + ".json")
+	// log.Println("FINISH PERSONS")
 
-	// carga.GeneralCharge()
-
-	// movie.CheckMoviesChanges()
-
-	// person.CheckPersonChanges()
+	carga.GeneralCharge()
 
 	// currentMovieTime := time.Now()
 	// log.Println(currentMovieTime.Format("2006-01-02"))

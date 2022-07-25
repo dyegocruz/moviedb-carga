@@ -24,8 +24,11 @@ func CheckTvChanges() {
 	tvChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_TV)
 
 	for _, serie := range tvChanges.Results {
-		PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_EN)
-		PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_PTBR)
+
+		if !serie.Adult {
+			PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_EN)
+			PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_PTBR)
+		}
 	}
 }
 
