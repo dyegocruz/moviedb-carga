@@ -22,10 +22,12 @@ var movieCollection = database.COLLECTION_MOVIE
 
 func CheckMoviesChanges() {
 	movieChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_MOVIE)
-
 	for _, movie := range movieChanges.Results {
-		PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN, "Y")
-		PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_PTBR, "Y")
+
+		if !movie.Adult {
+			PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN, "Y")
+			PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_PTBR, "Y")
+		}
 	}
 }
 
