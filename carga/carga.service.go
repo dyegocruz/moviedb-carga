@@ -27,7 +27,7 @@ func GeneralCharge() {
 	// tv.PopulateSeries(common.LANGUAGE_PTBR, "16")
 
 	person.PopulatePersons(common.LANGUAGE_EN)
-	person.PopulatePersons(common.LANGUAGE_PTBR)
+	// person.PopulatePersons(common.LANGUAGE_PTBR)
 
 	// Checking changes by data type
 	movie.CheckMoviesChanges()

@@ -76,7 +76,7 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 		var seasonReq Season
 		json.NewDecoder(reqSeasonEpisodes.Body).Decode(&seasonReq)
 
-		log.Println("EPISODES: ", itemObj.NumberOfEpisodes)
+		log.Println("TV EPISODES TOTAL: ", itemObj.NumberOfEpisodes)
 		if itemObj.NumberOfEpisodes > 0 {
 			// Getting cast from episode
 			seasonEpisodesWithCredits := make([]Episode, 0)
@@ -131,11 +131,15 @@ func PopulateSeries(language string, idGenre string) {
 
 		for _, item := range result.Results {
 
-			itemObj := GetSerieDetailsOnTMDBApi(item.Id, language)
-			PopulateSerieByLanguage(itemObj, language)
+			checkTvExist := GetSerieByIdAndLanguage(item.Id, common.LANGUAGE_PTBR)
 
-			itemObjBr := GetSerieDetailsOnTMDBApi(item.Id, common.LANGUAGE_PTBR)
-			PopulateSerieByLanguage(itemObjBr, common.LANGUAGE_PTBR)
+			if checkTvExist.Id == 0 {
+				itemObj := GetSerieDetailsOnTMDBApi(item.Id, language)
+				PopulateSerieByLanguage(itemObj, language)
+
+				itemObjBr := GetSerieDetailsOnTMDBApi(item.Id, common.LANGUAGE_PTBR)
+				PopulateSerieByLanguage(itemObjBr, common.LANGUAGE_PTBR)
+			}
 		}
 	}
 }
