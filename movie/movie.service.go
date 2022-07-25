@@ -24,8 +24,8 @@ func CheckMoviesChanges() {
 	movieChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_MOVIE)
 
 	for _, movie := range movieChanges.Results {
-		PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN)
-		PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_PTBR)
+		PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN, "Y")
+		PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_PTBR, "Y")
 	}
 }
 
@@ -38,12 +38,12 @@ func GetMovieDetailsOnTMDBApi(id int, language string) Movie {
 	return movie
 }
 
-func PopulateMovieByIdAndLanguage(id int, language string) {
+func PopulateMovieByIdAndLanguage(id int, language string, updateCast string) {
 	itemObj := GetMovieDetailsOnTMDBApi(id, language)
-	PopulateMovieByLanguage(itemObj, language)
+	PopulateMovieByLanguage(itemObj, language, "Y")
 }
 
-func PopulateMovieByLanguage(itemObj Movie, language string) {
+func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) {
 
 	t := time.Now()
 	itemObj.UpdatedNew = t.Format("02/01/2006 15:04:05")
@@ -58,13 +58,15 @@ func PopulateMovieByLanguage(itemObj Movie, language string) {
 
 	json.NewDecoder(reqCredits.Body).Decode(&itemObj.MovieCredits)
 
-	// for _, cast := range itemObj.MovieCredits.Cast {
-	// 	person.PopulatePersonByIdAndLanguage(cast.Id, language)
-	// }
+	if updateCast == "Y" {
+		for _, cast := range itemObj.MovieCredits.Cast {
+			person.PopulatePersonByIdAndLanguage(cast.Id, language)
+		}
 
-	// for _, crew := range itemObj.MovieCredits.Crew {
-	// 	person.PopulatePersonByIdAndLanguage(crew.Id, language)
-	// }
+		for _, crew := range itemObj.MovieCredits.Crew {
+			person.PopulatePersonByIdAndLanguage(crew.Id, language)
+		}
+	}
 	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
 
 	itemFind := GetMovieByIdAndLanguage(itemObj.Id, language)
@@ -103,12 +105,15 @@ func PopulateMovies(language string, idGenre string) {
 		json.NewDecoder(response.Body).Decode(&result)
 		for _, item := range result.Results {
 
-			itemObjEn := GetMovieDetailsOnTMDBApi(item.Id, language)
-			PopulateMovieByLanguage(itemObjEn, language)
+			checkMovieExist := GetMovieByIdAndLanguage(item.Id, common.LANGUAGE_PTBR)
 
-			itemObjPtBr := GetMovieDetailsOnTMDBApi(item.Id, common.LANGUAGE_PTBR)
-			PopulateMovieByLanguage(itemObjPtBr, common.LANGUAGE_PTBR)
+			if checkMovieExist.Id == 0 {
+				itemObjEn := GetMovieDetailsOnTMDBApi(item.Id, language)
+				PopulateMovieByLanguage(itemObjEn, language, "N")
 
+				itemObjPtBr := GetMovieDetailsOnTMDBApi(item.Id, common.LANGUAGE_PTBR)
+				PopulateMovieByLanguage(itemObjPtBr, common.LANGUAGE_PTBR, "N")
+			}
 		}
 	}
 }
