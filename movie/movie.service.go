@@ -60,15 +60,15 @@ func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) 
 
 	json.NewDecoder(reqCredits.Body).Decode(&itemObj.MovieCredits)
 
-	if updateCast == "Y" {
-		for _, cast := range itemObj.MovieCredits.Cast {
-			person.PopulatePersonByIdAndLanguage(cast.Id, language)
-		}
+	// if updateCast == "Y" {
+	// 	for _, cast := range itemObj.MovieCredits.Cast {
+	// 		person.PopulatePersonByIdAndLanguage(cast.Id, language)
+	// 	}
 
-		for _, crew := range itemObj.MovieCredits.Crew {
-			person.PopulatePersonByIdAndLanguage(crew.Id, language)
-		}
-	}
+	// 	for _, crew := range itemObj.MovieCredits.Crew {
+	// 		person.PopulatePersonByIdAndLanguage(crew.Id, language)
+	// 	}
+	// }
 	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
 
 	itemFind := GetMovieByIdAndLanguage(itemObj.Id, language)
