@@ -6,6 +6,8 @@ import (
 	"log"
 	"moviedb/common"
 	"moviedb/database"
+	"moviedb/parametro"
+	"moviedb/person"
 	"moviedb/tmdb"
 	"os"
 	"strconv"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var serieCollection = database.COLLECTION_SERIE
@@ -41,6 +44,29 @@ func GetSerieDetailsOnTMDBApi(id int, language string) Serie {
 }
 
 func PopulateSerieByLanguage(itemObj Serie, language string) {
+
+	t := time.Now()
+	itemObj.UpdatedNew = t.Format("02/01/2006 15:04:05")
+
+	itemObj.MediaType = "serie"
+	itemObj.Language = language
+	itemObj.Slug = slug.Make(itemObj.Title)
+	itemObj.SlugUrl = "serie-" + strconv.Itoa(itemObj.Id)
+
+	// INÍCIO TRATAMENTO DAS PESSOAS DO CAST E CREW
+	reqCredits := tmdb.GetTvCreditsByIdAndLanguage(itemObj.Id, language)
+
+	json.NewDecoder(reqCredits.Body).Decode(&itemObj.TvCredits)
+
+	// for _, cast := range itemObj.TvCredits.Cast {
+	// 	person.PopulatePersonByIdAndLanguage(cast.Id, language)
+	// }
+
+	// for _, crew := range itemObj.TvCredits.Crew {
+	// 	person.PopulatePersonByIdAndLanguage(crew.Id, language)
+	// }
+	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
+	itemFind := GetSerieByIdAndLanguage(itemObj.Id, language)
 
 	// Início tratamento para episódios de uma série
 	var seasonsDetails []Season
@@ -71,30 +97,16 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 	itemObj.Seasons = seasonsDetails
 	// FINAL tratamento para episódios de uma série
 
-	t := time.Now()
-	itemObj.UpdatedNew = t.Format("02/01/2006 15:04:05")
-
-	itemObj.MediaType = "serie"
-	itemObj.Language = language
-	itemObj.Slug = slug.Make(itemObj.Title)
-	itemObj.SlugUrl = "serie-" + strconv.Itoa(itemObj.Id)
-
-	// INÍCIO TRATAMENTO DAS PESSOAS DO CAST E CREW
-	reqCredits := tmdb.GetTvCreditsByIdAndLanguage(itemObj.Id, language)
-
-	json.NewDecoder(reqCredits.Body).Decode(&itemObj.TvCredits)
-
-	// for _, cast := range itemObj.TvCredits.Cast {
-	// 	person.PopulatePersonByIdAndLanguage(cast.Id, language)
-	// }
-
-	// for _, crew := range itemObj.TvCredits.Crew {
-	// 	person.PopulatePersonByIdAndLanguage(crew.Id, language)
-	// }
-	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
-	itemFind := GetSerieByIdAndLanguage(itemObj.Id, language)
-
 	if itemFind.Id == 0 {
+
+		for _, cast := range itemObj.TvCredits.Cast {
+			person.PopulatePersonByIdAndLanguage(cast.Id, language)
+		}
+
+		for _, crew := range itemObj.TvCredits.Crew {
+			person.PopulatePersonByIdAndLanguage(crew.Id, language)
+		}
+
 		log.Println("===>INSERT SERIE: ", itemObj.Id)
 		InsertSerie(itemObj, language)
 	} else {
@@ -105,8 +117,11 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 
 func PopulateSeries(language string, idGenre string) {
 
-	// for i := 1; i < apiMaxPage+1; i++ {
-	for i := 1; i < 5; i++ {
+	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
+	apiMaxPage := parametro.Options.TmdbMaxPageLoad
+
+	for i := 1; i < apiMaxPage+1; i++ {
+		// for i := 1; i < 2; i++ {
 		log.Println("======> SERIE PAGE: ", language, i)
 		page := strconv.Itoa(i)
 		response := tmdb.GetDiscoverTvByLanguageGenreAndPage(language, idGenre, page)
@@ -127,6 +142,33 @@ func PopulateSeries(language string, idGenre string) {
 
 func GetCountAll() int64 {
 	return database.GetCountAllByColletcion(serieCollection)
+}
+
+func GetAll(skip int64, limit int64) []Serie {
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.M{}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	series := make([]Serie, 0)
+	for cur.Next(context.TODO()) {
+		var movie Serie
+		err := cur.Decode(&movie)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		series = append(series, movie)
+	}
+
+	cur.Close(context.TODO())
+
+	return series
 }
 
 func GetSerieByIdAndLanguage(id int, language string) Serie {

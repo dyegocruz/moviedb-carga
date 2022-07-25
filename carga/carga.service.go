@@ -3,6 +3,8 @@ package carga
 import (
 	"context"
 	"moviedb/common"
+	"moviedb/movie"
+	"moviedb/person"
 	"moviedb/tv"
 
 	"github.com/olivere/elastic"
@@ -10,29 +12,29 @@ import (
 
 func GeneralCharge() {
 
-	// movie.PopulateMovies(common.LANGUAGE_EN, "")
+	movie.PopulateMovies(common.LANGUAGE_EN, "")
 	// movie.PopulateMovies(common.LANGUAGE_PTBR, "")
 
 	// FILTER JUST ANIMATIONS
-	// movie.PopulateMovies(common.LANGUAGE_EN, "16")
+	movie.PopulateMovies(common.LANGUAGE_EN, "16")
 	// movie.PopulateMovies(common.LANGUAGE_PTBR, "16")
 
 	tv.PopulateSeries(common.LANGUAGE_EN, "")
 	// tv.PopulateSeries(common.LANGUAGE_PTBR, "")
 
 	// FILTER JUST ANIMATIONS
-	// tv.PopulateSeries(common.LANGUAGE_EN, "16")
+	tv.PopulateSeries(common.LANGUAGE_EN, "16")
 	// tv.PopulateSeries(common.LANGUAGE_PTBR, "16")
 
-	// person.PopulatePersons(common.LANGUAGE_EN)
-	// person.PopulatePersons(common.LANGUAGE_PTBR)
+	person.PopulatePersons(common.LANGUAGE_EN)
+	person.PopulatePersons(common.LANGUAGE_PTBR)
 
 	// Checking changes by data type
-	// movie.CheckMoviesChanges()
-	// tv.CheckTvChanges()
-	// person.CheckPersonChanges()
+	movie.CheckMoviesChanges()
+	tv.CheckTvChanges()
+	person.CheckPersonChanges()
 
-	// moviesCount := movie.GetCountAll()
+	// moviesCount := database.GetCountAllByColletcion(database.COLLECTION_MOVIE)
 	// log.Println("Total de filmes: ", moviesCount)
 
 	// var (
@@ -59,21 +61,21 @@ func GeneralCharge() {
 
 	// // CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
 	// mapping := `{
-	// 	"settings":{
-	// 		"number_of_shards":1,
-	// 		"number_of_replicas":0
-	// 	},
-	// 	"mappings":{
-	// 		"properties":{
-	// 			"tags":{
-	// 				"type":"keyword"
-	// 			},
-	// 			"suggest_field":{
-	// 				"type":"completion"
+	// 		"settings":{
+	// 			"number_of_shards":1,
+	// 			"number_of_replicas":0
+	// 		},
+	// 		"mappings":{
+	// 			"properties":{
+	// 				"tags":{
+	// 					"type":"keyword"
+	// 				},
+	// 				"suggest_field":{
+	// 					"type":"completion"
+	// 				}
 	// 			}
 	// 		}
-	// 	}
-	// }`
+	// 	}`
 	// ctx := context.TODO()
 
 	// elasticMovieAliasName := "movies"
@@ -95,9 +97,9 @@ func GeneralCharge() {
 	// var m int64
 	// for m = 0; m < moviesCount; m++ {
 
-	// 	if m%1000 == 0 {
+	// 	if m%10 == 0 {
 	// 		log.Println(m)
-	// 		movies := movie.GetAll(m, 1000)
+	// 		movies := movie.GetAll(m, 10)
 
 	// 		for _, movie := range movies {
 	// 			// log.Println(m)
@@ -137,7 +139,7 @@ func GeneralCharge() {
 	// log.Println("Filmes carregados length: ", moviesCount)
 
 	// // ==========> SÉRIEs
-	// seriesCount := tv.GetCountAll()
+	// seriesCount := database.GetCountAllByColletcion(database.COLLECTION_SERIE)
 	// log.Println("Total de séries: ", seriesCount)
 
 	// elasticSerieAliasName := "series"
@@ -161,8 +163,8 @@ func GeneralCharge() {
 	// var s int64
 	// for s = 0; s < seriesCount; s++ {
 
-	// 	if s%200 == 0 {
-	// 		series := tv.GetAll(s, 200)
+	// 	if s%10 == 0 {
+	// 		series := tv.GetAll(s, 10)
 
 	// 		for _, serie := range series {
 	// 			// log.Println(m)
@@ -202,7 +204,7 @@ func GeneralCharge() {
 	// log.Println("Séries carregadas length: ", seriesCount)
 
 	// // // ==========> PESSOAS
-	// personsCount := person.GetCountAll()
+	// personsCount := database.GetCountAllByColletcion(database.COLLECTION_PERSON)
 	// log.Println("Total de pessoas: ", personsCount)
 
 	// elasticPersonAliasName := "persons"
@@ -226,8 +228,8 @@ func GeneralCharge() {
 	// var p int64
 	// for p = 0; p < personsCount; p++ {
 
-	// 	if p%1000 == 0 {
-	// 		persons := person.GetAll(p, 1000)
+	// 	if p%10000 == 0 {
+	// 		persons := person.GetAll(p, 10000)
 
 	// 		for _, person := range persons {
 	// 			// log.Println(m)
