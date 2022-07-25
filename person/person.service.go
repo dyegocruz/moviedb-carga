@@ -79,8 +79,11 @@ func PopulatePersons(language string) {
 		json.NewDecoder(response.Body).Decode(&result)
 
 		for _, item := range result.Results {
-			itemObj := GetPersonDetailsOnApiDb(item.Id, language)
-			PopulatePersonByLanguage(itemObj, language)
+			itemObjEn := GetPersonDetailsOnApiDb(item.Id, language)
+			PopulatePersonByLanguage(itemObjEn, language)
+
+			itemObj := GetPersonDetailsOnApiDb(item.Id, common.LANGUAGE_PTBR)
+			PopulatePersonByLanguage(itemObj, common.LANGUAGE_PTBR)
 		}
 	}
 }
