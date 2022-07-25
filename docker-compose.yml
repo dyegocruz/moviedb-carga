@@ -2,8 +2,8 @@ version: "3.1"
 
 services:
   api:
-    container_name: moviedb-charge-tv-episodes-credits-inverted
-    image: moviedb-charge-tv-episodes-credits-inverted:1.0
+    container_name: moviedb-charge
+    image: moviedb-charge:1.0
     build:
       context: .
       args:
