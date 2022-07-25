@@ -1,10 +1,20 @@
 package main
 
 import (
+	"bufio"
+	"compress/gzip"
+	"encoding/json"
+	"fmt"
+	"io"
 	"log"
-	"moviedb/carga"
+	"moviedb/common"
 	"moviedb/database"
+	"moviedb/movie"
+	"moviedb/person"
+	"moviedb/tv"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -43,125 +53,159 @@ func reverseArray(arrayElement []string) []string {
 	return revArr
 }
 
-func main() {
-	env := os.Getenv("GO_ENV")
+func downloadExportFile(name string) {
+	url := fmt.Sprintf("http://files.tmdb.org/p/exports/%s.json.gz", name)
+	resp, _ := http.Get(url)
+	defer resp.Body.Close()
+	filename := fmt.Sprintf("%s.json.gz", name)
+	out, _ := os.Create(filename)
+	defer out.Close()
+	io.Copy(out, resp.Body)
+}
 
-	// var movieFile = "./movie_ids_06_30_2022.json"
-	// var tvFile = "./tv_series_ids_06_30_2022.json"
-	// var personFile = "./person_ids_06_30_2022.json"
-
-	if env == "production" {
-		// movieFile = "./movie_ids_06_30_2022.json"
-		// tvFile = "./tv_series_ids_06_30_2022.json"
-		// personFile = "./person_ids_06_30_2022.json"
+func unzip(name string) {
+	// Open compressed file
+	gzipFile, err := os.Open(name + ".json.gz")
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	// var languageEn = "en"
-	// var languageBr = "pt-BR"
+	// Create a gzip reader on top of the file reader
+	// Again, it could be any type reader though
+	gzipReader, err := gzip.NewReader(gzipFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer gzipReader.Close()
 
-	// log.Println("INIT MOVIES")
-	// fileMovie, err := os.Open(movieFile)
+	// Uncompress to a writer. We'll use a file writer
+	outfileWriter, err := os.Create(name + ".json")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer outfileWriter.Close()
 
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	// Copy contents of gzipped file to output file
+	_, err = io.Copy(outfileWriter, gzipReader)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// defer fileMovie.Close()
+	RemoveFile(name + ".json.gz")
+}
 
-	// scannerMovies := bufio.NewScanner(fileMovie)
+func RemoveFile(name string) {
+	e := os.Remove(name)
+	if e != nil {
+		log.Fatal(e)
+	}
+}
 
-	// for scannerMovies.Scan() {
+func main() {
+	// env := os.Getenv("GO_ENV")
 
-	// 	var movieRead movie.Movie
-	// 	json.Unmarshal([]byte(scannerMovies.Text()), &movieRead)
+	t := time.Now()
+	dateFile := t.Format("01_02_2006")
+	movieFile := "movie_ids_" + dateFile
+	tvFile := "tv_series_ids_" + dateFile
+	personFile := "movie_ids_" + dateFile
 
-	// 	movieFindEn := movie.GetMovieByIdAndLanguage(movieRead.Id, languageEn)
-	// 	if movieFindEn.Id == 0 {
-	// 		movieInsert := movie.GetMovieDetailsOnApiDb(movieRead.Id, languageEn)
-	// 		movie.PopulateMovieByLanguage(movieInsert, languageEn)
-	// 	}
+	log.Println("INIT MOVIES")
+	downloadExportFile(movieFile)
+	unzip(movieFile)
 
-	// 	movieFindBr := movie.GetMovieByIdAndLanguage(movieRead.Id, languageBr)
-	// 	if movieFindBr.Id == 0 {
-	// 		movieInsert := movie.GetMovieDetailsOnApiDb(movieRead.Id, languageBr)
-	// 		movie.PopulateMovieByLanguage(movieInsert, languageBr)
-	// 	}
-	// }
-	// log.Println("FINISH MOVIES")
+	fileMovie, err := os.Open(movieFile + ".json")
 
-	// log.Println("INIT SERIES")
-	// fileTv, err := os.Open(tvFile)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	defer fileMovie.Close()
 
-	// defer fileTv.Close()
+	scannerMovies := bufio.NewScanner(fileMovie)
 
-	// scannerTv := bufio.NewScanner(fileTv)
+	for scannerMovies.Scan() {
 
-	// tvScannerArray := make([]string, 0)
-	// for scannerTv.Scan() {
-	// 	tvScannerArray = append(tvScannerArray, scannerTv.Text())
-	// }
+		var movieRead movie.Movie
+		json.Unmarshal([]byte(scannerMovies.Text()), &movieRead)
+
+		movieFindEn := movie.GetMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_PTBR)
+		if movieFindEn.Id == 0 {
+			// movieInsert := tmdb.GetDetailsByIdLanguageAndDataType(movieRead.Id, languageEn, tmdb.DATATYPE_MOVIE)
+			movie.PopulateMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_EN, "Y")
+			movie.PopulateMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_PTBR, "Y")
+		} else {
+			log.Println("MOVIE ALREADY INSERTED: ", movieRead.Id)
+		}
+	}
+	RemoveFile(movieFile + ".json")
+	log.Println("FINISH MOVIES")
+
+	log.Println("INIT SERIES")
+	downloadExportFile(tvFile)
+	unzip(tvFile)
+	fileTv, err := os.Open(tvFile + ".json")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer fileTv.Close()
+
+	scannerTv := bufio.NewScanner(fileTv)
+
+	tvScannerArray := make([]string, 0)
+	for scannerTv.Scan() {
+		tvScannerArray = append(tvScannerArray, scannerTv.Text())
+	}
 	// tvScannerArray = reverseArray(tvScannerArray)
 
-	// for _, tvScanner := range tvScannerArray {
+	for _, tvScanner := range tvScannerArray {
 
-	// 	var tvRead tv.Serie
-	// 	json.Unmarshal([]byte(tvScanner), &tvRead)
+		var tvRead tv.Serie
+		json.Unmarshal([]byte(tvScanner), &tvRead)
 
-	// 	// tvFindEn := tv.GetSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_EN)
-	// 	// if tvFindEn.Id == 0 {
-	// 	tvInsert := tv.GetSerieDetailsOnTMDBApi(tvRead.Id, common.LANGUAGE_EN)
-	// 	tv.PopulateSerieByLanguage(tvInsert, common.LANGUAGE_EN)
-	// 	// }
+		tvFindBr := tv.GetSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_PTBR)
+		if tvFindBr.Id == 0 {
+			tv.PopulateSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_EN)
+			tv.PopulateSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_PTBR)
+		} else {
+			log.Println("TV ALREADY INSERTED: ", tvRead.Id)
+		}
+	}
+	RemoveFile(tvFile + ".json")
+	log.Println("FINISH SERIES")
 
-	// 	// tvFindBr := tv.GetSerieByIdAndLanguage(tvRead.Id, common.LANGUAGE_PTBR)
-	// 	// if tvFindBr.Id == 0 {
-	// 	tvBrInsert := tv.GetSerieDetailsOnTMDBApi(tvRead.Id, common.LANGUAGE_PTBR)
-	// 	tv.PopulateSerieByLanguage(tvBrInsert, common.LANGUAGE_PTBR)
-	// 	// }
-	// }
-	// log.Println("FINISH SERIES")
+	log.Println("INIT PERSONS")
+	downloadExportFile(personFile + ".json")
+	unzip(personFile + ".json")
+	filePerson, err := os.Open(personFile)
 
-	// log.Println("INIT PERSONS")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// filePerson, err := os.Open(personFile)
+	defer filePerson.Close()
 
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	scannerPerson := bufio.NewScanner(filePerson)
 
-	// defer filePerson.Close()
+	for scannerPerson.Scan() {
 
-	// scannerPerson := bufio.NewScanner(filePerson)
+		var personRead person.Person
+		json.Unmarshal([]byte(scannerPerson.Text()), &personRead)
 
-	// for scannerPerson.Scan() {
+		personFindBr := person.GetPersonByIdAndLanguage(personRead.Id, common.LANGUAGE_PTBR)
+		if personFindBr.Id == 0 {
+			person.PopulatePersonByIdAndLanguage(personRead.Id, common.LANGUAGE_EN)
+			person.PopulatePersonByIdAndLanguage(personRead.Id, common.LANGUAGE_PTBR)
+		} else {
+			log.Println("PERSON ALREADY INSERTED: ", personRead.Id)
+		}
+	}
+	RemoveFile(personFile + ".json")
+	log.Println("FINISH PERSONS")
 
-	// 	var personRead person.Person
-	// 	json.Unmarshal([]byte(scannerPerson.Text()), &personRead)
-
-	// 	personFindBr := person.GetPersonByIdAndLanguage(personRead.Id, languageBr)
-	// 	if personFindBr.Id == 0 {
-	// 		personInsert := person.GetPersonDetailsOnApiDb(personRead.Id, languageBr)
-	// 		person.PopulatePersonByLanguage(personInsert, languageBr)
-
-	// 		personFindEn := person.GetPersonByIdAndLanguage(personRead.Id, languageEn)
-	// 		if personFindEn.Id == 0 {
-	// 			personInsert := person.GetPersonDetailsOnApiDb(personRead.Id, languageEn)
-	// 			person.PopulatePersonByLanguage(personInsert, languageEn)
-	// 		} else {
-	// 			log.Println("PERSON EN ALREADY INSERTED: ", personRead.Id)
-	// 		}
-	// 	} else {
-	// 		log.Println("PERSON PT-BR ALREADY INSERTED: ", personRead.Id)
-	// 	}
-
-	// }
-	// log.Println("FINISH PERSONS")
-
-	carga.GeneralCharge()
+	// carga.GeneralCharge()
 
 	// movie.CheckMoviesChanges()
 
