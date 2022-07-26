@@ -71,7 +71,7 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 		json.NewDecoder(reqSeasonEpisodes.Body).Decode(&seasonReq)
 
 		log.Println("TV EPISODES TOTAL: ", itemObj.NumberOfEpisodes, itemObj.NumberOfEpisodes > 0 && (itemObj.Status != "Ended" || itemFind.Id == 0))
-		if len(seasonReq.Episodes) > 0 && (itemObj.Status != "Ended" || itemFind.Id == 0) {
+		if len(seasonReq.Episodes) > 0 && (itemObj.NextEpisodeToAir.Id != 0 || itemFind.Id == 0) {
 			// Getting cast from episode
 			seasonEpisodesWithCredits := make([]Episode, 0)
 			for _, episode := range seasonReq.Episodes {

@@ -23,7 +23,7 @@ func GeneralCharge() {
 	// FILTER JUST ANIMATIONS
 	go tv.PopulateSeries(common.LANGUAGE_EN, "16")
 
-	person.PopulatePersons(common.LANGUAGE_EN)
+	go person.PopulatePersons(common.LANGUAGE_EN)
 
 	// Checking changes by data type
 	tv.CheckTvChanges()
