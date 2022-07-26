@@ -12,27 +12,27 @@ import (
 
 func GeneralCharge() {
 
-	movie.PopulateMovies(common.LANGUAGE_EN, "")
+	go movie.PopulateMovies(common.LANGUAGE_EN, "")
 	// movie.PopulateMovies(common.LANGUAGE_PTBR, "")
 
 	// FILTER JUST ANIMATIONS
-	movie.PopulateMovies(common.LANGUAGE_EN, "16")
+	go movie.PopulateMovies(common.LANGUAGE_EN, "16")
 	// movie.PopulateMovies(common.LANGUAGE_PTBR, "16")
 
-	tv.PopulateSeries(common.LANGUAGE_EN, "")
+	go tv.PopulateSeries(common.LANGUAGE_EN, "")
 	// tv.PopulateSeries(common.LANGUAGE_PTBR, "")
 
 	// FILTER JUST ANIMATIONS
-	tv.PopulateSeries(common.LANGUAGE_EN, "16")
+	go tv.PopulateSeries(common.LANGUAGE_EN, "16")
 	// tv.PopulateSeries(common.LANGUAGE_PTBR, "16")
 
-	person.PopulatePersons(common.LANGUAGE_EN)
+	go person.PopulatePersons(common.LANGUAGE_EN)
 	// person.PopulatePersons(common.LANGUAGE_PTBR)
 
 	// Checking changes by data type
-	movie.CheckMoviesChanges()
-	tv.CheckTvChanges()
-	person.CheckPersonChanges()
+	go movie.CheckMoviesChanges()
+	go tv.CheckTvChanges()
+	go person.CheckPersonChanges()
 
 	// moviesCount := database.GetCountAllByColletcion(database.COLLECTION_MOVIE)
 	// log.Println("Total de filmes: ", moviesCount)
