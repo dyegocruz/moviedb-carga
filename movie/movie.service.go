@@ -25,8 +25,8 @@ func CheckMoviesChanges() {
 	for _, movie := range movieChanges.Results {
 
 		if !movie.Adult {
-			PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN, "Y")
 			PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_PTBR, "Y")
+			go PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN, "Y")
 		}
 	}
 }
@@ -57,18 +57,7 @@ func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) 
 
 	// INÍCIO TRATAMENTO DAS PESSOAS DO CAST E CREW
 	reqCredits := tmdb.GetMovieCreditsByIdAndLanguage(itemObj.Id, language)
-
 	json.NewDecoder(reqCredits.Body).Decode(&itemObj.MovieCredits)
-
-	// if updateCast == "Y" {
-	// 	for _, cast := range itemObj.MovieCredits.Cast {
-	// 		person.PopulatePersonByIdAndLanguage(cast.Id, language)
-	// 	}
-
-	// 	for _, crew := range itemObj.MovieCredits.Crew {
-	// 		person.PopulatePersonByIdAndLanguage(crew.Id, language)
-	// 	}
-	// }
 	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
 
 	itemFind := GetMovieByIdAndLanguage(itemObj.Id, language)
@@ -110,11 +99,11 @@ func PopulateMovies(language string, idGenre string) {
 			checkMovieExist := GetMovieByIdAndLanguage(item.Id, common.LANGUAGE_PTBR)
 
 			if checkMovieExist.Id == 0 {
-				itemObjEn := GetMovieDetailsOnTMDBApi(item.Id, language)
-				PopulateMovieByLanguage(itemObjEn, language, "N")
-
 				itemObjPtBr := GetMovieDetailsOnTMDBApi(item.Id, common.LANGUAGE_PTBR)
 				PopulateMovieByLanguage(itemObjPtBr, common.LANGUAGE_PTBR, "N")
+
+				itemObjEn := GetMovieDetailsOnTMDBApi(item.Id, language)
+				go PopulateMovieByLanguage(itemObjEn, language, "N")
 			}
 		}
 	}
