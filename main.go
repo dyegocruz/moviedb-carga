@@ -200,6 +200,7 @@ func main() {
 	// log.Println("FINISH PERSONS")
 
 	carga.GeneralCharge()
+	log.Println("PROCESS CONCLUDED")
 
 	// currentMovieTime := time.Now()
 	// log.Println(currentMovieTime.Format("2006-01-02"))
