@@ -23,8 +23,8 @@ func CheckPersonChanges() {
 	personChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_PERSON)
 
 	for _, person := range personChanges.Results {
-		PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_EN)
 		PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_PTBR)
+		go PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_EN)
 	}
 }
 
@@ -79,11 +79,11 @@ func PopulatePersons(language string) {
 		json.NewDecoder(response.Body).Decode(&result)
 
 		for _, item := range result.Results {
-			itemObjEn := GetPersonDetailsOnApiDb(item.Id, language)
-			PopulatePersonByLanguage(itemObjEn, language)
-
 			itemObj := GetPersonDetailsOnApiDb(item.Id, common.LANGUAGE_PTBR)
 			PopulatePersonByLanguage(itemObj, common.LANGUAGE_PTBR)
+
+			itemObjEn := GetPersonDetailsOnApiDb(item.Id, language)
+			go PopulatePersonByLanguage(itemObjEn, language)
 		}
 	}
 }

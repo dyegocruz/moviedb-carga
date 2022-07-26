@@ -12,22 +12,18 @@ import (
 
 func GeneralCharge() {
 
-	movie.PopulateMovies(common.LANGUAGE_EN, "")
+	go movie.PopulateMovies(common.LANGUAGE_EN, "")
 	// movie.PopulateMovies(common.LANGUAGE_PTBR, "")
 
 	// FILTER JUST ANIMATIONS
 	go movie.PopulateMovies(common.LANGUAGE_EN, "16")
-	// movie.PopulateMovies(common.LANGUAGE_PTBR, "16")
 
-	tv.PopulateSeries(common.LANGUAGE_EN, "")
-	// tv.PopulateSeries(common.LANGUAGE_PTBR, "")
+	go tv.PopulateSeries(common.LANGUAGE_EN, "")
 
 	// FILTER JUST ANIMATIONS
 	go tv.PopulateSeries(common.LANGUAGE_EN, "16")
-	// tv.PopulateSeries(common.LANGUAGE_PTBR, "16")
 
 	person.PopulatePersons(common.LANGUAGE_EN)
-	// person.PopulatePersons(common.LANGUAGE_PTBR)
 
 	// Checking changes by data type
 	tv.CheckTvChanges()

@@ -26,8 +26,8 @@ func CheckTvChanges() {
 	for _, serie := range tvChanges.Results {
 
 		if !serie.Adult {
-			PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_EN)
 			PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_PTBR)
+			go PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_EN)
 		}
 	}
 }
@@ -58,16 +58,7 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 
 	// INÍCIO TRATAMENTO DAS PESSOAS DO CAST E CREW
 	reqCredits := tmdb.GetTvCreditsByIdAndLanguage(itemObj.Id, language)
-
 	json.NewDecoder(reqCredits.Body).Decode(&itemObj.TvCredits)
-
-	// for _, cast := range itemObj.TvCredits.Cast {
-	// 	person.PopulatePersonByIdAndLanguage(cast.Id, language)
-	// }
-
-	// for _, crew := range itemObj.TvCredits.Crew {
-	// 	person.PopulatePersonByIdAndLanguage(crew.Id, language)
-	// }
 	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
 	itemFind := GetSerieByIdAndLanguage(itemObj.Id, language)
 
@@ -79,8 +70,8 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 		var seasonReq Season
 		json.NewDecoder(reqSeasonEpisodes.Body).Decode(&seasonReq)
 
-		log.Println("TV EPISODES TOTAL: ", itemObj.NumberOfEpisodes)
-		if itemObj.NumberOfEpisodes > 0 {
+		log.Println("TV EPISODES TOTAL: ", itemObj.NumberOfEpisodes, itemObj.NumberOfEpisodes > 0 && (itemObj.Status != "Ended" || itemFind.Id == 0))
+		if len(seasonReq.Episodes) > 0 && (itemObj.Status != "Ended" || itemFind.Id == 0) {
 			// Getting cast from episode
 			seasonEpisodesWithCredits := make([]Episode, 0)
 			for _, episode := range seasonReq.Episodes {
@@ -137,11 +128,11 @@ func PopulateSeries(language string, idGenre string) {
 			checkTvExist := GetSerieByIdAndLanguage(item.Id, common.LANGUAGE_PTBR)
 
 			if checkTvExist.Id == 0 {
-				itemObj := GetSerieDetailsOnTMDBApi(item.Id, language)
-				PopulateSerieByLanguage(itemObj, language)
-
 				itemObjBr := GetSerieDetailsOnTMDBApi(item.Id, common.LANGUAGE_PTBR)
 				PopulateSerieByLanguage(itemObjBr, common.LANGUAGE_PTBR)
+
+				itemObj := GetSerieDetailsOnTMDBApi(item.Id, language)
+				go PopulateSerieByLanguage(itemObj, language)
 			}
 		}
 	}
