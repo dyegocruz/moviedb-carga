@@ -30,8 +30,8 @@ func GeneralCharge() {
 	// person.PopulatePersons(common.LANGUAGE_PTBR)
 
 	// Checking changes by data type
+	tv.CheckTvChanges()
 	go movie.CheckMoviesChanges()
-	go tv.CheckTvChanges()
 	go person.CheckPersonChanges()
 
 	// moviesCount := database.GetCountAllByColletcion(database.COLLECTION_MOVIE)
