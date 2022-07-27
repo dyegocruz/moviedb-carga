@@ -56,8 +56,8 @@ func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) 
 	itemObj.SlugUrl = "movie-" + strconv.Itoa(itemObj.Id)
 
 	// INÍCIO TRATAMENTO DAS PESSOAS DO CAST E CREW
-	reqCredits := tmdb.GetMovieCreditsByIdAndLanguage(itemObj.Id, language)
-	json.NewDecoder(reqCredits.Body).Decode(&itemObj.MovieCredits)
+	// reqCredits := tmdb.GetMovieCreditsByIdAndLanguage(itemObj.Id, language)
+	// json.NewDecoder(reqCredits.Body).Decode(&itemObj.MovieCredits)
 	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
 
 	itemFind := GetMovieByIdAndLanguage(itemObj.Id, language)

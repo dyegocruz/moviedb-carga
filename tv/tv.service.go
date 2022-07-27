@@ -57,8 +57,8 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 	itemObj.SlugUrl = "serie-" + strconv.Itoa(itemObj.Id)
 
 	// INÍCIO TRATAMENTO DAS PESSOAS DO CAST E CREW
-	reqCredits := tmdb.GetTvCreditsByIdAndLanguage(itemObj.Id, language)
-	json.NewDecoder(reqCredits.Body).Decode(&itemObj.TvCredits)
+	// reqCredits := tmdb.GetTvCreditsByIdAndLanguage(itemObj.Id, language)
+	// json.NewDecoder(reqCredits.Body).Decode(&itemObj.TvCredits)
 	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
 	itemFind := GetSerieByIdAndLanguage(itemObj.Id, language)
 
@@ -70,19 +70,19 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 		var seasonReq Season
 		json.NewDecoder(reqSeasonEpisodes.Body).Decode(&seasonReq)
 
-		log.Println("TV EPISODES TOTAL: ", itemObj.NumberOfEpisodes, itemObj.NumberOfEpisodes > 0 && (itemObj.Status != "Ended" || itemFind.Id == 0))
-		if len(seasonReq.Episodes) > 0 && (itemObj.NextEpisodeToAir.Id != 0 || itemFind.Id == 0) {
-			// Getting cast from episode
-			seasonEpisodesWithCredits := make([]Episode, 0)
-			for _, episode := range seasonReq.Episodes {
-				log.Println("TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber)
-				reqTvCredits := tmdb.GetTvSeasonEpisodeCredits(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
-				json.NewDecoder(reqTvCredits.Body).Decode(&episode.TvEpisodeCredits)
-				seasonEpisodesWithCredits = append(seasonEpisodesWithCredits, episode)
-			}
+		// log.Println("TV EPISODES TOTAL: ", itemObj.NumberOfEpisodes, itemObj.NumberOfEpisodes > 0 && (itemObj.Status != "Ended" || itemFind.Id == 0))
+		// if len(seasonReq.Episodes) > 0 && (itemObj.NextEpisodeToAir.Id != 0 || itemFind.Id == 0) {
+		// Getting cast from episode
+		// seasonEpisodesWithCredits := make([]Episode, 0)
+		// for _, episode := range seasonReq.Episodes {
+		// 	log.Println("TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber)
+		// 	reqTvEpisode := tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
+		// 	json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
+		// 	seasonEpisodesWithCredits = append(seasonEpisodesWithCredits, episode)
+		// }
 
-			seasonReq.Episodes = seasonEpisodesWithCredits
-		}
+		// seasonReq.Episodes = seasonEpisodesWithCredits
+		// }
 
 		seasonReq.EpisodeCount = season.EpisodeCount
 		seasonReq.Overview = season.Overview
