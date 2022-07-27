@@ -45,9 +45,9 @@ func PopulatePersonByLanguage(itemObj Person, language string) {
 	itemObj.Slug = slug.Make(itemObj.Name)
 	itemObj.SlugUrl = "person-" + strconv.Itoa(itemObj.Id)
 
-	reqCredit := tmdb.GetPersonCreditsByIdAndLanguage(itemObj.Id, language)
+	// reqCredit := tmdb.GetPersonCreditsByIdAndLanguage(itemObj.Id, language)
 
-	json.NewDecoder(reqCredit.Body).Decode(&itemObj.Credits)
+	// json.NewDecoder(reqCredit.Body).Decode(&itemObj.Credits)
 
 	itemFind := GetPersonByIdAndLanguage(itemObj.Id, language)
 
