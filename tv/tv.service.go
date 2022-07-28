@@ -24,18 +24,10 @@ func CheckTvChanges() {
 	tvChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_TV)
 
 	for _, serie := range tvChanges.Results {
-
-		if serie.Id == 14424 {
-			if !serie.Adult {
-				PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_PTBR)
-				go PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_EN)
-			}
+		if !serie.Adult {
+			PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_PTBR)
+			go PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_EN)
 		}
-
-		// if !serie.Adult {
-		// 	PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_PTBR)
-		// 	PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_EN)
-		// }
 	}
 }
 
@@ -88,17 +80,38 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 			// 	episode.TvEpisodeCredits = findEpisode.TvEpisodeCredits
 			// }
 
-			reqTvEpisode := tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
-			json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
-			// log.Println(episode.TvEpisodeCredits)
-			episode.Language = language
-
 			if findEpisode.Id == 0 {
+				reqTvEpisode := tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
+				json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
+				// log.Println(episode.TvEpisodeCredits)
+				episode.Language = language
+
 				log.Println("INSERT TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
 				InsertEpisode(episode, language)
 			} else {
-				log.Println("UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
-				UpdateEpisode(episode, language)
+
+				if episode.AirDate != "" {
+					air_date, err := time.Parse("2006-01-02", episode.AirDate)
+					if err != nil {
+						log.Println("Date converter error: ", err)
+					}
+
+					var now = time.Now()
+
+					if air_date.After(now.AddDate(0, 0, -7)) {
+						reqTvEpisode := tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
+						json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
+
+						episode.Language = language
+
+						log.Println("UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
+						UpdateEpisode(episode, language)
+					} else {
+						log.Println("BYPASS UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
+					}
+				} else {
+					log.Println("BYPASS UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
+				}
 			}
 		}
 
