@@ -26,7 +26,7 @@ func CheckMoviesChanges() {
 
 		if !movie.Adult {
 			PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_PTBR, "Y")
-			go PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN, "Y")
+			PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN, "Y")
 		}
 	}
 }
@@ -103,7 +103,7 @@ func PopulateMovies(language string, idGenre string) {
 				PopulateMovieByLanguage(itemObjPtBr, common.LANGUAGE_PTBR, "N")
 
 				itemObjEn := GetMovieDetailsOnTMDBApi(item.Id, language)
-				go PopulateMovieByLanguage(itemObjEn, language, "N")
+				PopulateMovieByLanguage(itemObjEn, language, "N")
 			}
 		}
 	}

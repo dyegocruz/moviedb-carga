@@ -2,18 +2,29 @@ package carga
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"moviedb/common"
+	"moviedb/database"
 	"moviedb/movie"
 	"moviedb/person"
 	"moviedb/tv"
+	"os"
+	"strconv"
+	"time"
 
 	"github.com/olivere/elastic"
 )
 
-func GeneralCharge() {
+var (
+	elasticClient *elastic.Client
+	err           error
+)
 
+// elasticIndexType := "_doc"
+
+func MongoCharge() {
 	go movie.PopulateMovies(common.LANGUAGE_EN, "")
-	// movie.PopulateMovies(common.LANGUAGE_PTBR, "")
 
 	// FILTER JUST ANIMATIONS
 	go movie.PopulateMovies(common.LANGUAGE_EN, "16")
@@ -29,241 +40,322 @@ func GeneralCharge() {
 	tv.CheckTvChanges()
 	go movie.CheckMoviesChanges()
 	go person.CheckPersonChanges()
+}
 
-	// moviesCount := database.GetCountAllByColletcion(database.COLLECTION_MOVIE)
-	// log.Println("Total de filmes: ", moviesCount)
+func ElasticChargetMovies() {
+	moviesCount := database.GetCountAllByColletcion(database.COLLECTION_MOVIE)
+	log.Println("Total de filmes: ", moviesCount)
 
-	// var (
-	// 	elasticClient *elastic.Client
-	// 	err           error
-	// )
-	// // elasticIndexType := "_doc"
+	elasticClient, err = elastic.NewSimpleClient(
+		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
+		elastic.SetSniff(false),
+		elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
+		elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
+		elastic.SetInfoLog(log.New(os.Stdout, "LOG: ", log.LstdFlags)),
+		// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
+	)
+	fmt.Println("connect to es success!")
+	if err != nil {
+		log.Println(err)
+		time.Sleep(3 * time.Second)
+	} else {
+		// break
+	}
 
-	// elasticClient, err = elastic.NewSimpleClient(
-	// 	elastic.SetURL(os.Getenv("ELASTICSEARCH")),
-	// 	elastic.SetSniff(false),
-	// 	elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
-	// 	elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
-	// 	elastic.SetInfoLog(log.New(os.Stdout, "LOG: ", log.LstdFlags)),
-	// 	// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
-	// )
-	// fmt.Println("connect to es success!")
-	// if err != nil {
-	// 	log.Println(err)
-	// 	time.Sleep(3 * time.Second)
-	// } else {
-	// 	// break
-	// }
+	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
+	mapping := `{
+			"settings":{
+				"number_of_shards":1,
+				"number_of_replicas":0
+			},
+			"mappings":{
+				"properties":{
+					"tags":{
+						"type":"keyword"
+					},
+					"suggest_field":{
+						"type":"completion"
+					}
+				}
+			}
+		}`
+	ctx := context.TODO()
 
-	// // CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
-	// mapping := `{
-	// 		"settings":{
-	// 			"number_of_shards":1,
-	// 			"number_of_replicas":0
-	// 		},
-	// 		"mappings":{
-	// 			"properties":{
-	// 				"tags":{
-	// 					"type":"keyword"
-	// 				},
-	// 				"suggest_field":{
-	// 					"type":"completion"
-	// 				}
-	// 			}
-	// 		}
-	// 	}`
-	// ctx := context.TODO()
+	elasticMovieAliasName := "movies"
 
-	// elasticMovieAliasName := "movies"
+	currentMovieTime := time.Now()
+	var newMovieIndexName = elasticMovieAliasName + "_" + currentMovieTime.Format("20060102150401")
+	log.Println(newMovieIndexName)
 
-	// currentMovieTime := time.Now()
-	// var newMovieIndexName = elasticMovieAliasName + "_" + currentMovieTime.Format("20060102150401")
-	// log.Println(newMovieIndexName)
+	createMovieIndex, err := elasticClient.CreateIndex(newMovieIndexName).BodyString(mapping).Do(ctx)
+	if err != nil {
+		log.Println("Falha ao criar o índice:", newMovieIndexName)
+		panic(err)
+	}
+	if !createMovieIndex.Acknowledged {
+		// Not acknowledged
+	}
 
-	// createMovieIndex, err := elasticClient.CreateIndex(newMovieIndexName).BodyString(mapping).Do(ctx)
-	// if err != nil {
-	// 	log.Println("Falha ao criar o índice:", newMovieIndexName)
-	// 	panic(err)
-	// }
-	// if !createMovieIndex.Acknowledged {
-	// 	// Not acknowledged
-	// }
+	var bulkRequest = elasticClient.Bulk()
+	var m int64
+	for m = 0; m < moviesCount; m++ {
 
-	// var bulkRequest = elasticClient.Bulk()
-	// var m int64
-	// for m = 0; m < moviesCount; m++ {
+		if m%100 == 0 {
+			log.Println(m)
+			movies := movie.GetAll(m, 100)
 
-	// 	if m%10 == 0 {
-	// 		log.Println(m)
-	// 		movies := movie.GetAll(m, 10)
+			for _, movie := range movies {
+				// log.Println(m)
+				req := elastic.NewBulkIndexRequest().
+					Index(newMovieIndexName).
+					// Type(elasticIndexType).
+					Id(strconv.Itoa(movie.Id) + "-" + movie.Language).
+					Doc(movie)
 
-	// 		for _, movie := range movies {
-	// 			// log.Println(m)
-	// 			req := elastic.NewBulkIndexRequest().
-	// 				Index(newMovieIndexName).
-	// 				// Type(elasticIndexType).
-	// 				Id(strconv.Itoa(movie.Id) + "-" + movie.Language).
-	// 				Doc(movie)
+				bulkRequest = bulkRequest.Add(req)
+			}
 
-	// 			bulkRequest = bulkRequest.Add(req)
-	// 		}
+			bulkResponse, err := bulkRequest.Do(ctx)
+			if err != nil {
+				fmt.Println(err)
+			}
+			if bulkResponse != nil {
 
-	// 		bulkResponse, err := bulkRequest.Do(ctx)
-	// 		if err != nil {
-	// 			fmt.Println(err)
-	// 		}
-	// 		if bulkResponse != nil {
+			}
+			bulkRequest = elasticClient.Bulk()
+		}
+	}
 
-	// 		}
-	// 		bulkRequest = elasticClient.Bulk()
-	// 	}
-	// }
+	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DOS FILMES
+	existentMovieAliases, err := IndexNamesByAlias(elasticMovieAliasName, elasticClient)
+	log.Println(existentMovieAliases)
 
-	// // BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DOS FILMES
-	// existentMovieAliases, err := IndexNamesByAlias(elasticMovieAliasName, elasticClient)
-	// log.Println(existentMovieAliases)
+	// ADICIONA
+	elasticClient.Alias().Add(newMovieIndexName, elasticMovieAliasName).Do(context.TODO())
 
-	// // ADICIONA
-	// elasticClient.Alias().Add(newMovieIndexName, elasticMovieAliasName).Do(context.TODO())
+	if len(existentMovieAliases) > 0 {
+		oldIndex := existentMovieAliases[0]
+		elasticClient.Alias().Remove(oldIndex, elasticMovieAliasName).Do(context.TODO())
+		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
+	}
+	log.Println("Carga finalizada com sucesso!")
+	log.Println("Filmes carregados length: ", moviesCount)
+}
 
-	// if len(existentMovieAliases) > 0 {
-	// 	oldIndex := existentMovieAliases[0]
-	// 	elasticClient.Alias().Remove(oldIndex, elasticMovieAliasName).Do(context.TODO())
-	// 	elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
-	// }
-	// log.Println("Carga finalizada com sucesso!")
-	// log.Println("Filmes carregados length: ", moviesCount)
+func ElasticChargeTv() {
+	elasticClient, err = elastic.NewSimpleClient(
+		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
+		elastic.SetSniff(false),
+		elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
+		elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
+		elastic.SetInfoLog(log.New(os.Stdout, "LOG: ", log.LstdFlags)),
+		// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
+	)
+	fmt.Println("connect to es success!")
+	if err != nil {
+		log.Println(err)
+		time.Sleep(3 * time.Second)
+	} else {
+		// break
+	}
 
-	// // ==========> SÉRIEs
-	// seriesCount := database.GetCountAllByColletcion(database.COLLECTION_SERIE)
-	// log.Println("Total de séries: ", seriesCount)
+	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
+	mapping := `{
+			"settings":{
+				"number_of_shards":1,
+				"number_of_replicas":0
+			},
+			"mappings":{
+				"properties":{
+					"tags":{
+						"type":"keyword"
+					},
+					"suggest_field":{
+						"type":"completion"
+					}
+				}
+			}
+		}`
+	ctx := context.TODO()
 
-	// elasticSerieAliasName := "series"
+	// ==========> SÉRIEs
+	seriesCount := database.GetCountAllByColletcion(database.COLLECTION_SERIE)
+	log.Println("Total de séries: ", seriesCount)
 
-	// currentSerieTime := time.Now()
-	// var newSerieIndexName = elasticSerieAliasName + "_" + currentSerieTime.Format("20060102150401")
-	// log.Println(newSerieIndexName)
+	elasticSerieAliasName := "series"
 
-	// createSerieIndex, err := elasticClient.CreateIndex(newSerieIndexName).BodyString(mapping).Do(ctx)
-	// if err != nil {
-	// 	// Handle error
-	// 	// panic(err)
-	// 	log.Println("Falha ao criar o índice:", newSerieIndexName)
-	// 	panic(err)
-	// }
-	// if !createSerieIndex.Acknowledged {
-	// 	// Not acknowledged
-	// }
+	currentSerieTime := time.Now()
+	var newSerieIndexName = elasticSerieAliasName + "_" + currentSerieTime.Format("20060102150401")
+	log.Println(newSerieIndexName)
 
-	// bulkRequest = elasticClient.Bulk()
-	// var s int64
-	// for s = 0; s < seriesCount; s++ {
+	createSerieIndex, err := elasticClient.CreateIndex(newSerieIndexName).BodyString(mapping).Do(ctx)
+	if err != nil {
+		// Handle error
+		// panic(err)
+		log.Println("Falha ao criar o índice:", newSerieIndexName)
+		panic(err)
+	}
+	if !createSerieIndex.Acknowledged {
+		// Not acknowledged
+	}
 
-	// 	if s%10 == 0 {
-	// 		series := tv.GetAll(s, 10)
+	var bulkRequest = elasticClient.Bulk()
+	var s int64
+	for s = 0; s < seriesCount; s++ {
 
-	// 		for _, serie := range series {
-	// 			// log.Println(m)
-	// 			req := elastic.NewBulkIndexRequest().
-	// 				Index(newSerieIndexName).
-	// 				// Type(elasticIndexType).
-	// 				Id(strconv.Itoa(serie.Id) + "-" + serie.Language).
-	// 				Doc(serie)
+		if s%10 == 0 {
+			series := tv.GetAll(s, 10)
 
-	// 			bulkRequest = bulkRequest.Add(req)
-	// 		}
+			for _, serie := range series {
+				// log.Println(m)
+				req := elastic.NewBulkIndexRequest().
+					Index(newSerieIndexName).
+					// Type(elasticIndexType).
+					Id(strconv.Itoa(serie.Id) + "-" + serie.Language).
+					Doc(serie)
 
-	// 		bulkResponse, err := bulkRequest.Do(ctx)
-	// 		if err != nil {
-	// 			fmt.Println(err)
-	// 		}
-	// 		if bulkResponse != nil {
+				bulkRequest = bulkRequest.Add(req)
+			}
 
-	// 		}
-	// 		bulkRequest = elasticClient.Bulk()
-	// 	}
-	// }
+			bulkResponse, err := bulkRequest.Do(ctx)
+			if err != nil {
+				fmt.Println(err)
+			}
+			if bulkResponse != nil {
 
-	// // BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
-	// existentSerieAliases, err := IndexNamesByAlias(elasticSerieAliasName, elasticClient)
-	// log.Println(existentSerieAliases)
+			}
+			bulkRequest = elasticClient.Bulk()
+		}
+	}
 
-	// // ADICIONA
-	// elasticClient.Alias().Add(newSerieIndexName, elasticSerieAliasName).Do(context.TODO())
+	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
+	existentSerieAliases, err := IndexNamesByAlias(elasticSerieAliasName, elasticClient)
+	log.Println(existentSerieAliases)
 
-	// if len(existentSerieAliases) > 0 {
-	// 	oldIndex := existentSerieAliases[0]
-	// 	elasticClient.Alias().Remove(oldIndex, elasticSerieAliasName).Do(context.TODO())
-	// 	elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
-	// }
-	// log.Println("Carga finalizada com sucesso!")
-	// log.Println("Séries carregadas length: ", seriesCount)
+	// ADICIONA
+	elasticClient.Alias().Add(newSerieIndexName, elasticSerieAliasName).Do(context.TODO())
 
-	// // // ==========> PESSOAS
-	// personsCount := database.GetCountAllByColletcion(database.COLLECTION_PERSON)
-	// log.Println("Total de pessoas: ", personsCount)
+	if len(existentSerieAliases) > 0 {
+		oldIndex := existentSerieAliases[0]
+		elasticClient.Alias().Remove(oldIndex, elasticSerieAliasName).Do(context.TODO())
+		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
+	}
+	log.Println("Carga finalizada com sucesso!")
+	log.Println("Séries carregadas length: ", seriesCount)
+}
 
-	// elasticPersonAliasName := "persons"
+func ElasticChargePerson() {
+	elasticClient, err = elastic.NewSimpleClient(
+		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
+		elastic.SetSniff(false),
+		elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
+		elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
+		elastic.SetInfoLog(log.New(os.Stdout, "LOG: ", log.LstdFlags)),
+		// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
+	)
+	fmt.Println("connect to es success!")
+	if err != nil {
+		log.Println(err)
+		time.Sleep(3 * time.Second)
+	} else {
+		// break
+	}
 
-	// currentPersonTime := time.Now()
-	// var newPersonIndexName = elasticPersonAliasName + "_" + currentPersonTime.Format("20060102150401")
-	// log.Println(newPersonIndexName)
+	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
+	mapping := `{
+			"settings":{
+				"number_of_shards":1,
+				"number_of_replicas":0
+			},
+			"mappings":{
+				"properties":{
+					"tags":{
+						"type":"keyword"
+					},
+					"suggest_field":{
+						"type":"completion"
+					}
+				}
+			}
+		}`
+	ctx := context.TODO()
 
-	// createPersonIndex, err := elasticClient.CreateIndex(newPersonIndexName).BodyString(mapping).Do(ctx)
-	// if err != nil {
-	// 	// Handle error
-	// 	// panic(err)
-	// 	log.Println("Falha ao criar o índice:", newPersonIndexName)
-	// 	panic(err)
-	// }
-	// if !createPersonIndex.Acknowledged {
-	// 	// Not acknowledged
-	// }
+	// ==========> PESSOAS
+	personsCount := database.GetCountAllByColletcion(database.COLLECTION_PERSON)
+	log.Println("Total de pessoas: ", personsCount)
 
-	// bulkRequest = elasticClient.Bulk()
-	// var p int64
-	// for p = 0; p < personsCount; p++ {
+	elasticPersonAliasName := "persons"
 
-	// 	if p%10000 == 0 {
-	// 		persons := person.GetAll(p, 10000)
+	currentPersonTime := time.Now()
+	var newPersonIndexName = elasticPersonAliasName + "_" + currentPersonTime.Format("20060102150401")
+	log.Println(newPersonIndexName)
 
-	// 		for _, person := range persons {
-	// 			// log.Println(m)
-	// 			req := elastic.NewBulkIndexRequest().
-	// 				Index(newPersonIndexName).
-	// 				// Type(elasticIndexType).
-	// 				Id(strconv.Itoa(person.Id) + "-" + person.Language).
-	// 				Doc(person)
+	createPersonIndex, err := elasticClient.CreateIndex(newPersonIndexName).BodyString(mapping).Do(ctx)
+	if err != nil {
+		// Handle error
+		// panic(err)
+		log.Println("Falha ao criar o índice:", newPersonIndexName)
+		panic(err)
+	}
+	if !createPersonIndex.Acknowledged {
+		// Not acknowledged
+	}
 
-	// 			bulkRequest = bulkRequest.Add(req)
-	// 		}
+	var bulkRequest = elasticClient.Bulk()
+	var p int64
+	for p = 0; p < personsCount; p++ {
 
-	// 		bulkResponse, err := bulkRequest.Do(ctx)
-	// 		if err != nil {
-	// 			fmt.Println(err)
-	// 		}
-	// 		if bulkResponse != nil {
+		if p%10000 == 0 {
+			persons := person.GetAll(p, 10000)
 
-	// 		}
-	// 		bulkRequest.Reset()
-	// 		// bulkRequest = elasticClient.Bulk()
-	// 	}
-	// }
+			for _, person := range persons {
+				// log.Println(m)
+				req := elastic.NewBulkIndexRequest().
+					Index(newPersonIndexName).
+					// Type(elasticIndexType).
+					Id(strconv.Itoa(person.Id) + "-" + person.Language).
+					Doc(person)
 
-	// // BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE PESSOAS
-	// existentPersonAliases, err := IndexNamesByAlias(elasticPersonAliasName, elasticClient)
-	// log.Println(existentPersonAliases)
+				bulkRequest = bulkRequest.Add(req)
+			}
 
-	// // ADICIONA
-	// elasticClient.Alias().Add(newPersonIndexName, elasticPersonAliasName).Do(context.TODO())
+			bulkResponse, err := bulkRequest.Do(ctx)
+			if err != nil {
+				fmt.Println(err)
+			}
+			if bulkResponse != nil {
 
-	// if len(existentPersonAliases) > 0 {
-	// 	oldIndex := existentPersonAliases[0]
-	// 	elasticClient.Alias().Remove(oldIndex, elasticPersonAliasName).Do(context.TODO())
-	// 	elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
-	// }
-	// log.Println("Carga finalizada com sucesso!")
-	// log.Println("Pessoas carregadas length: ", personsCount)
+			}
+			bulkRequest.Reset()
+			// bulkRequest = elasticClient.Bulk()
+		}
+	}
+
+	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE PESSOAS
+	existentPersonAliases, err := IndexNamesByAlias(elasticPersonAliasName, elasticClient)
+	log.Println(existentPersonAliases)
+
+	// ADICIONA
+	elasticClient.Alias().Add(newPersonIndexName, elasticPersonAliasName).Do(context.TODO())
+
+	if len(existentPersonAliases) > 0 {
+		oldIndex := existentPersonAliases[0]
+		elasticClient.Alias().Remove(oldIndex, elasticPersonAliasName).Do(context.TODO())
+		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
+	}
+	log.Println("Carga finalizada com sucesso!")
+	log.Println("Pessoas carregadas length: ", personsCount)
+}
+
+func ElasticGeneralCharge() {
+	go ElasticChargetMovies()
+	ElasticChargeTv()
+	go ElasticChargePerson()
+}
+
+func GeneralCharge() {
+	MongoCharge()
+	// ElasticGeneralCharge()
 }
 
 func IndexNamesByAlias(aliasName string, elasticClient *elastic.Client) ([]string, error) {
