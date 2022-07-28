@@ -26,7 +26,7 @@ func CheckMoviesChanges() {
 
 		if !movie.Adult {
 			PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_PTBR, "Y")
-			PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN, "Y")
+			go PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN, "Y")
 		}
 	}
 }
