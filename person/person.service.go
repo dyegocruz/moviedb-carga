@@ -24,7 +24,7 @@ func CheckPersonChanges() {
 
 	for _, person := range personChanges.Results {
 		PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_PTBR)
-		PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_EN)
+		go PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_EN)
 	}
 }
 

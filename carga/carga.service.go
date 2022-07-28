@@ -42,7 +42,7 @@ func MongoCharge() {
 	go person.CheckPersonChanges()
 }
 
-func ElasticChargetMovies() {
+func ElasticChargeMovies() {
 	moviesCount := database.GetCountAllByColletcion(database.COLLECTION_MOVIE)
 	log.Println("Total de filmes: ", moviesCount)
 
@@ -348,7 +348,7 @@ func ElasticChargePerson() {
 }
 
 func ElasticGeneralCharge() {
-	go ElasticChargetMovies()
+	go ElasticChargeMovies()
 	ElasticChargeTv()
 	go ElasticChargePerson()
 }
