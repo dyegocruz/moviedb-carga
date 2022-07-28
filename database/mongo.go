@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	COLLECTION_PARAMETRO = "parametro"
-	COLLECTION_MOVIE     = "movie"
-	COLLECTION_PERSON    = "person"
-	COLLECTION_SERIE     = "serie"
+	COLLECTION_PARAMETRO     = "parametro"
+	COLLECTION_MOVIE         = "movie"
+	COLLECTION_PERSON        = "person"
+	COLLECTION_SERIE         = "serie"
+	COLLECTION_SERIE_EPISODE = "serie-episode"
 )
 
 const (
@@ -90,6 +91,15 @@ func CheckCreateCollections() {
 		log.Println("criar collection " + COLLECTION_SERIE)
 		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), COLLECTION_SERIE)
 		collSeries := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(COLLECTION_SERIE)
+
+		collSeries.Indexes().CreateMany(context.TODO(), index, opts)
+	}
+
+	// Series Episodes
+	if !util.ArrayContainsString(names, COLLECTION_SERIE_EPISODE) {
+		log.Println("criar collection " + COLLECTION_SERIE_EPISODE)
+		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), COLLECTION_SERIE_EPISODE)
+		collSeries := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(COLLECTION_SERIE_EPISODE)
 
 		collSeries.Indexes().CreateMany(context.TODO(), index, opts)
 	}

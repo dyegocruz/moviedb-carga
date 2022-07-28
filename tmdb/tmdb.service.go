@@ -78,6 +78,11 @@ func GetTvSeasonEpisodeCredits(id int, seasonNumber int, episode int, language s
 	return util.HttpGet(apiHost + "/tv/" + strconv.Itoa(id) + "/season/" + strconv.Itoa(seasonNumber) + "/episode/" + strconv.Itoa(episode) + "/credits?api_key=" + apiKey + "&language=" + language)
 }
 
+// func GetTvSeasonEpisode(id int, seasonNumber int, episode int, language string) *http.Response {
+// 	apiKey, apiHost := getApiConfig()
+// 	return util.HttpGet(apiHost + "/tv/" + strconv.Itoa(id) + "/season/" + strconv.Itoa(seasonNumber) + "/episode/" + strconv.Itoa(episode) + "?api_key=" + apiKey + "&language=" + language + "&append_to_response=credits")
+// }
+
 func GetTvSeasonEpisode(id int, seasonNumber int, episode int, language string) *http.Response {
 	apiKey, apiHost := getApiConfig()
 	return util.HttpGet(apiHost + "/tv/" + strconv.Itoa(id) + "/season/" + strconv.Itoa(seasonNumber) + "/episode/" + strconv.Itoa(episode) + "?api_key=" + apiKey + "&language=" + language + "&append_to_response=credits")

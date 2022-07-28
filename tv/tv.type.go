@@ -31,6 +31,7 @@ type Episode struct {
 	AirDate          string           `json:"air_date,omitempty" bson:"air_date"`
 	EpisodeNumber    int              `json:"episode_number" bson:"episode_number"`
 	Id               int              `json:"id" bson:"id"`
+	Language         string           `json:"language" bson:"language"`
 	Name             string           `json:"name" bson:"name"`
 	Overview         string           `json:"overview" bson:"overview"`
 	ProdctionCode    string           `json:"production_code" bson:"production_code"`
