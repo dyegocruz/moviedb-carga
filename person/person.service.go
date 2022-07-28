@@ -24,7 +24,7 @@ func CheckPersonChanges() {
 
 	for _, person := range personChanges.Results {
 		PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_PTBR)
-		go PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_EN)
+		PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_EN)
 	}
 }
 
@@ -83,7 +83,7 @@ func PopulatePersons(language string) {
 			PopulatePersonByLanguage(itemObj, common.LANGUAGE_PTBR)
 
 			itemObjEn := GetPersonDetailsOnApiDb(item.Id, language)
-			go PopulatePersonByLanguage(itemObjEn, language)
+			PopulatePersonByLanguage(itemObjEn, language)
 		}
 	}
 }
