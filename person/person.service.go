@@ -79,11 +79,14 @@ func PopulatePersons(language string) {
 		json.NewDecoder(response.Body).Decode(&result)
 
 		for _, item := range result.Results {
-			itemObj := GetPersonDetailsOnApiDb(item.Id, common.LANGUAGE_PTBR)
-			PopulatePersonByLanguage(itemObj, common.LANGUAGE_PTBR)
 
-			itemObjEn := GetPersonDetailsOnApiDb(item.Id, language)
-			PopulatePersonByLanguage(itemObjEn, language)
+			if item.Id > 0 {
+				itemObj := GetPersonDetailsOnApiDb(item.Id, common.LANGUAGE_PTBR)
+				PopulatePersonByLanguage(itemObj, common.LANGUAGE_PTBR)
+
+				itemObjEn := GetPersonDetailsOnApiDb(item.Id, language)
+				go PopulatePersonByLanguage(itemObjEn, language)
+			}
 		}
 	}
 }
@@ -98,7 +101,7 @@ func GetAll(skip int64, limit int64) []Person {
 	defer client.Disconnect(ctx)
 
 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_PERSON).Find(context.TODO(), bson.M{}, optionsFind)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_PERSON).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}

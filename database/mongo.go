@@ -135,7 +135,7 @@ func GetCountAllByColletcion(collection string) int64 {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).CountDocuments(context.TODO(), bson.M{})
+	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).CountDocuments(context.TODO(), bson.M{"id": bson.M{"$gt": 0}})
 	if err != nil {
 		log.Println(err)
 	}

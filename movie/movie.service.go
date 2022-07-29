@@ -96,15 +96,18 @@ func PopulateMovies(language string, idGenre string) {
 		json.NewDecoder(response.Body).Decode(&result)
 		for _, item := range result.Results {
 
-			checkMovieExist := GetMovieByIdAndLanguage(item.Id, common.LANGUAGE_PTBR)
+			if item.Id > 0 {
+				checkMovieExist := GetMovieByIdAndLanguage(item.Id, common.LANGUAGE_PTBR)
 
-			if checkMovieExist.Id == 0 {
-				itemObjPtBr := GetMovieDetailsOnTMDBApi(item.Id, common.LANGUAGE_PTBR)
-				PopulateMovieByLanguage(itemObjPtBr, common.LANGUAGE_PTBR, "N")
+				if checkMovieExist.Id == 0 {
+					itemObjPtBr := GetMovieDetailsOnTMDBApi(item.Id, common.LANGUAGE_PTBR)
+					PopulateMovieByLanguage(itemObjPtBr, common.LANGUAGE_PTBR, "N")
 
-				itemObjEn := GetMovieDetailsOnTMDBApi(item.Id, language)
-				PopulateMovieByLanguage(itemObjEn, language, "N")
+					itemObjEn := GetMovieDetailsOnTMDBApi(item.Id, language)
+					go PopulateMovieByLanguage(itemObjEn, language, "N")
+				}
 			}
+
 		}
 	}
 }
@@ -119,7 +122,7 @@ func GetAll(skip int64, limit int64) []Movie {
 	defer client.Disconnect(ctx)
 
 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).Find(context.TODO(), bson.M{}, optionsFind)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}

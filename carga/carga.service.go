@@ -16,10 +16,10 @@ import (
 	"github.com/olivere/elastic"
 )
 
-var (
-	elasticClient *elastic.Client
-	err           error
-)
+// var (
+// 	elasticClient *elastic.Client
+// 	err           error
+// )
 
 // elasticIndexType := "_doc"
 
@@ -42,25 +42,25 @@ func MongoCharge() {
 	go person.CheckPersonChanges()
 }
 
-func ElasticChargeMovies() {
+func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 	moviesCount := database.GetCountAllByColletcion(database.COLLECTION_MOVIE)
 	log.Println("Total de filmes: ", moviesCount)
 
-	elasticClient, err = elastic.NewSimpleClient(
-		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
-		elastic.SetSniff(false),
-		elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
-		elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
-		elastic.SetInfoLog(log.New(os.Stdout, "LOG: ", log.LstdFlags)),
-		// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
-	)
-	fmt.Println("connect to es success!")
-	if err != nil {
-		log.Println(err)
-		time.Sleep(3 * time.Second)
-	} else {
-		// break
-	}
+	// elasticClient, err = elastic.NewSimpleClient(
+	// 	elastic.SetURL(os.Getenv("ELASTICSEARCH")),
+	// 	elastic.SetSniff(false),
+	// 	elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
+	// 	elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
+	// 	elastic.SetInfoLog(log.New(os.Stdout, "LOG MOVIE: ", log.LstdFlags)),
+	// 	// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
+	// )
+	// fmt.Println("connect to es success!")
+	// if err != nil {
+	// 	log.Println(err)
+	// 	time.Sleep(3 * time.Second)
+	// } else {
+	// 	// break
+	// }
 
 	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
 	mapping := `{
@@ -100,9 +100,9 @@ func ElasticChargeMovies() {
 	var m int64
 	for m = 0; m < moviesCount; m++ {
 
-		if m%100 == 0 {
-			log.Println(m)
-			movies := movie.GetAll(m, 100)
+		if m%interval == 0 {
+			// log.Println(m)
+			movies := movie.GetAll(m, interval)
 
 			for _, movie := range movies {
 				// log.Println(m)
@@ -142,22 +142,22 @@ func ElasticChargeMovies() {
 	log.Println("Filmes carregados length: ", moviesCount)
 }
 
-func ElasticChargeTv() {
-	elasticClient, err = elastic.NewSimpleClient(
-		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
-		elastic.SetSniff(false),
-		elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
-		elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
-		elastic.SetInfoLog(log.New(os.Stdout, "LOG: ", log.LstdFlags)),
-		// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
-	)
-	fmt.Println("connect to es success!")
-	if err != nil {
-		log.Println(err)
-		time.Sleep(3 * time.Second)
-	} else {
-		// break
-	}
+func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
+	// elasticClient, err = elastic.NewSimpleClient(
+	// 	elastic.SetURL(os.Getenv("ELASTICSEARCH")),
+	// 	elastic.SetSniff(false),
+	// 	elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
+	// 	elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
+	// 	elastic.SetInfoLog(log.New(os.Stdout, "LOG TV: ", log.LstdFlags)),
+	// 	// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
+	// )
+	// fmt.Println("connect to es success!")
+	// if err != nil {
+	// 	log.Println(err)
+	// 	time.Sleep(3 * time.Second)
+	// } else {
+	// 	// break
+	// }
 
 	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
 	mapping := `{
@@ -203,8 +203,8 @@ func ElasticChargeTv() {
 	var s int64
 	for s = 0; s < seriesCount; s++ {
 
-		if s%10 == 0 {
-			series := tv.GetAll(s, 10)
+		if s%interval == 0 {
+			series := tv.GetAll(s, interval)
 
 			for _, serie := range series {
 				// log.Println(m)
@@ -244,22 +244,124 @@ func ElasticChargeTv() {
 	log.Println("Séries carregadas length: ", seriesCount)
 }
 
-func ElasticChargePerson() {
-	elasticClient, err = elastic.NewSimpleClient(
-		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
-		elastic.SetSniff(false),
-		elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
-		elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
-		elastic.SetInfoLog(log.New(os.Stdout, "LOG: ", log.LstdFlags)),
-		// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
-	)
-	fmt.Println("connect to es success!")
+func ElasticChargeTvEpisodes(elasticClient *elastic.Client, interval int64) {
+	// elasticClient, err = elastic.NewSimpleClient(
+	// 	elastic.SetURL(os.Getenv("ELASTICSEARCH")),
+	// 	elastic.SetSniff(false),
+	// 	elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
+	// 	elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
+	// 	elastic.SetInfoLog(log.New(os.Stdout, "LOG TV EPISODES: ", log.LstdFlags)),
+	// 	// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
+	// )
+	// fmt.Println("connect to es success!")
+	// if err != nil {
+	// 	log.Println(err)
+	// 	time.Sleep(3 * time.Second)
+	// } else {
+	// 	// break
+	// }
+
+	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
+	mapping := `{
+			"settings":{
+				"number_of_shards":1,
+				"number_of_replicas":0
+			},
+			"mappings":{
+				"properties":{
+					"tags":{
+						"type":"keyword"
+					},
+					"suggest_field":{
+						"type":"completion"
+					}
+				}
+			}
+		}`
+	ctx := context.TODO()
+
+	// ==========> EPISODES
+	seriesEpisodesCount := database.GetCountAllByColletcion(database.COLLECTION_SERIE_EPISODE)
+	log.Println("Total de episódios: ", seriesEpisodesCount)
+
+	elasticSerieEpisodeAliasName := "series-episodes"
+
+	currentSerieTime := time.Now()
+	var newSerieEpisodeIndexName = elasticSerieEpisodeAliasName + "_" + currentSerieTime.Format("20060102150401")
+	log.Println(newSerieEpisodeIndexName)
+
+	createSerieIndex, err := elasticClient.CreateIndex(newSerieEpisodeIndexName).BodyString(mapping).Do(ctx)
 	if err != nil {
-		log.Println(err)
-		time.Sleep(3 * time.Second)
-	} else {
-		// break
+		// Handle error
+		// panic(err)
+		log.Println("Falha ao criar o índice:", newSerieEpisodeIndexName)
+		panic(err)
 	}
+	if !createSerieIndex.Acknowledged {
+		// Not acknowledged
+	}
+
+	var bulkRequest = elasticClient.Bulk()
+	var s int64
+	for s = 0; s < seriesEpisodesCount; s++ {
+
+		if s%interval == 0 {
+			episodes := tv.GetAllEpisodes(s, interval)
+
+			for _, episode := range episodes {
+				// log.Println(m)
+				req := elastic.NewBulkIndexRequest().
+					Index(newSerieEpisodeIndexName).
+					// Type(elasticIndexType).
+					Id(strconv.Itoa(episode.Id) + "-" + episode.Language).
+					Doc(episode)
+
+				bulkRequest = bulkRequest.Add(req)
+			}
+
+			bulkResponse, err := bulkRequest.Do(ctx)
+			if err != nil {
+				fmt.Println(err)
+			}
+			if bulkResponse != nil {
+
+			}
+			bulkRequest = elasticClient.Bulk()
+		}
+	}
+
+	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
+	existentSerieAliases, err := IndexNamesByAlias(elasticSerieEpisodeAliasName, elasticClient)
+	log.Println(existentSerieAliases)
+
+	// ADICIONA
+	elasticClient.Alias().Add(newSerieEpisodeIndexName, elasticSerieEpisodeAliasName).Do(context.TODO())
+
+	if len(existentSerieAliases) > 0 {
+		oldIndex := existentSerieAliases[0]
+		elasticClient.Alias().Remove(oldIndex, elasticSerieEpisodeAliasName).Do(context.TODO())
+		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
+	}
+	log.Println("Carga finalizada com sucesso!")
+	log.Println("Episódios carregadas length: ", seriesEpisodesCount)
+}
+
+func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
+	// elasticClient, err = elastic.NewSimpleClient(
+	// 	elastic.SetURL(os.Getenv("ELASTICSEARCH")),
+	// 	elastic.SetSniff(false),
+	// 	elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
+	// 	elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
+	// 	elastic.SetInfoLog(log.New(os.Stdout, "LOG PERSON: ", log.LstdFlags)),
+	// 	// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
+	// )
+	// fmt.Println("connect to es success!")
+	// if err != nil {
+	// 	log.Println(err)
+	// 	time.Sleep(3 * time.Second)
+	// } else {
+	// 	// break
+	// }
 
 	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
 	mapping := `{
@@ -305,8 +407,8 @@ func ElasticChargePerson() {
 	var p int64
 	for p = 0; p < personsCount; p++ {
 
-		if p%10000 == 0 {
-			persons := person.GetAll(p, 10000)
+		if p%interval == 0 {
+			persons := person.GetAll(p, interval)
 
 			for _, person := range persons {
 				// log.Println(m)
@@ -348,14 +450,31 @@ func ElasticChargePerson() {
 }
 
 func ElasticGeneralCharge() {
-	go ElasticChargeMovies()
-	ElasticChargeTv()
-	go ElasticChargePerson()
+	elasticClient, err := elastic.NewSimpleClient(
+		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
+		elastic.SetSniff(false),
+		elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
+		elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
+		elastic.SetInfoLog(log.New(os.Stdout, "LOG: ", log.LstdFlags)),
+		// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
+	)
+	fmt.Println("connect to es success!")
+	if err != nil {
+		log.Println(err)
+		time.Sleep(3 * time.Second)
+	} else {
+		// break
+	}
+
+	go ElasticChargeMovies(elasticClient, 100)
+	go ElasticChargeTv(elasticClient, 10)
+	ElasticChargeTvEpisodes(elasticClient, 100)
+	go ElasticChargePerson(elasticClient, 10000)
 }
 
 func GeneralCharge() {
-	MongoCharge()
-	// ElasticGeneralCharge()
+	// MongoCharge()
+	ElasticGeneralCharge()
 }
 
 func IndexNamesByAlias(aliasName string, elasticClient *elastic.Client) ([]string, error) {
