@@ -466,10 +466,11 @@ func ElasticGeneralCharge() {
 		// break
 	}
 
-	go ElasticChargeMovies(elasticClient, 100)
-	go ElasticChargeTv(elasticClient, 10)
+	go ElasticChargeTvEpisodes(elasticClient, 500)
+	ElasticChargeTv(elasticClient, 200)
 	go ElasticChargePerson(elasticClient, 10000)
-	ElasticChargeTvEpisodes(elasticClient, 100)
+	ElasticChargeMovies(elasticClient, 200)
+
 }
 
 func GeneralCharge() {
