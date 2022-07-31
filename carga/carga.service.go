@@ -474,7 +474,7 @@ func ElasticGeneralCharge() {
 }
 
 func GeneralCharge() {
-	// MongoCharge()
+	MongoCharge()
 	ElasticGeneralCharge()
 }
 
