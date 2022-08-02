@@ -216,10 +216,10 @@ func main() {
 	log.Println("Start Job")
 	c.Start()
 
-	// g := gin.Default()
+	g := gin.Default()
 
-	// g.GET("/", func(c *gin.Context) {
-	// 	c.JSON(http.StatusOK, gin.H{"appName": "Aplicação/Job de carga do Guia Médico", "env": os.Getenv("NODE_ENV")})
-	// })
-	// g.Run(":1323")
+	g.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"appName": "App to make a Charge data", "env": os.Getenv("NODE_ENV")})
+	})
+	g.Run(":1323")
 }
