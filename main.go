@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/robfig/cron"
 )
 
 func init() {
@@ -199,20 +200,21 @@ func main() {
 	// RemoveFile(personFile + ".json")
 	// log.Println("FINISH PERSONS")
 
-	carga.GeneralCharge()
-	log.Println("PROCESS CONCLUDED")
+	// carga.GeneralCharge()
+	// log.Println("PROCESS CONCLUDED")
 
 	// currentMovieTime := time.Now()
 	// log.Println(currentMovieTime.Format("2006-01-02"))
 
-	// c := cron.New()
-	// // // c.AddFunc("*/1 * * * *", func() {
-	// c.AddFunc("@daily", func() {
-	// 	log.Println("[Job] CargaGeral")
-	// 	carga.CargaGeral()
-	// })
-	// log.Println("Start Job")
-	// c.Start()
+	c := cron.New()
+	// // c.AddFunc("*/1 * * * *", func() {
+	c.AddFunc("@daily", func() {
+		log.Println("[Job] General Charge")
+		carga.GeneralCharge()
+		log.Println("PROCESS CONCLUDED")
+	})
+	log.Println("Start Job")
+	c.Start()
 
 	// g := gin.Default()
 
