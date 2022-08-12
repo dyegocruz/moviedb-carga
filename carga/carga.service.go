@@ -466,14 +466,19 @@ func ElasticGeneralCharge() {
 		// break
 	}
 
-	go ElasticChargeTv(elasticClient, 200)
+	// go ElasticChargeTv(elasticClient, 200)
+	// go ElasticChargePerson(elasticClient, 10000)
+	// go ElasticChargeMovies(elasticClient, 200)
+	// ElasticChargeTvEpisodes(elasticClient, 5000)
+	go ElasticChargeTvEpisodes(elasticClient, 2000)
+	ElasticChargeTv(elasticClient, 200)
 	go ElasticChargePerson(elasticClient, 10000)
-	go ElasticChargeMovies(elasticClient, 200)
-	ElasticChargeTvEpisodes(elasticClient, 5000)
+	ElasticChargeMovies(elasticClient, 200)
+
 }
 
 func GeneralCharge() {
-	MongoCharge()
+	// MongoCharge()
 	ElasticGeneralCharge()
 }
 
