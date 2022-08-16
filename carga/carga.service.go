@@ -54,6 +54,25 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
     },
     "mappings":{
       "properties":{
+				"search_field": {
+					"type": "text"
+				},
+				"title": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"original_title": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"overview": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"slug": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
         "popularity":{
           "type":"double"
         }
@@ -132,6 +151,25 @@ func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
     },
     "mappings":{
       "properties":{
+				"search_field": {
+					"type": "text"
+				},
+				"title": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"original_title": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"overview": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"slug": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
         "popularity":{
           "type":"double"
         }
@@ -300,6 +338,21 @@ func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
     },
     "mappings":{
       "properties":{
+				"search_field": {
+					"type": "text"
+				},
+				"name": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"biography": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"slug": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
         "popularity":{
           "type":"double"
         }
@@ -404,7 +457,7 @@ func ElasticGeneralCharge() {
 }
 
 func GeneralCharge() {
-	// MongoCharge()
+	MongoCharge()
 	ElasticGeneralCharge()
 }
 
