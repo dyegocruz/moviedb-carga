@@ -46,39 +46,39 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 	moviesCount := database.GetCountAllByColletcion(database.COLLECTION_MOVIE)
 	log.Println("Total de filmes: ", moviesCount)
 
-	// elasticClient, err = elastic.NewSimpleClient(
-	// 	elastic.SetURL(os.Getenv("ELASTICSEARCH")),
-	// 	elastic.SetSniff(false),
-	// 	elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
-	// 	elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
-	// 	elastic.SetInfoLog(log.New(os.Stdout, "LOG MOVIE: ", log.LstdFlags)),
-	// 	// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
-	// )
-	// fmt.Println("connect to es success!")
-	// if err != nil {
-	// 	log.Println(err)
-	// 	time.Sleep(3 * time.Second)
-	// } else {
-	// 	// break
-	// }
-
 	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
 	mapping := `{
-			"settings":{
-				"number_of_shards":1,
-				"number_of_replicas":0
-			},
-			"mappings":{
-				"properties":{
-					"tags":{
-						"type":"keyword"
-					},
-					"suggest_field":{
-						"type":"completion"
-					}
-				}
-			}
-		}`
+    "settings":{
+      "number_of_shards":1,
+      "number_of_replicas":0
+    },
+    "mappings":{
+      "properties":{
+				"search_field": {
+					"type": "text"
+				},
+				"title": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"original_title": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"overview": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"slug": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+        "popularity":{
+          "type":"double"
+        }
+      }
+    }
+  }`
 	ctx := context.TODO()
 
 	elasticMovieAliasName := "movies"
@@ -143,39 +143,39 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 }
 
 func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
-	// elasticClient, err = elastic.NewSimpleClient(
-	// 	elastic.SetURL(os.Getenv("ELASTICSEARCH")),
-	// 	elastic.SetSniff(false),
-	// 	elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
-	// 	elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
-	// 	elastic.SetInfoLog(log.New(os.Stdout, "LOG TV: ", log.LstdFlags)),
-	// 	// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
-	// )
-	// fmt.Println("connect to es success!")
-	// if err != nil {
-	// 	log.Println(err)
-	// 	time.Sleep(3 * time.Second)
-	// } else {
-	// 	// break
-	// }
-
 	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
 	mapping := `{
-			"settings":{
-				"number_of_shards":1,
-				"number_of_replicas":0
-			},
-			"mappings":{
-				"properties":{
-					"tags":{
-						"type":"keyword"
-					},
-					"suggest_field":{
-						"type":"completion"
-					}
-				}
-			}
-		}`
+    "settings":{
+      "number_of_shards":1,
+      "number_of_replicas":0
+    },
+    "mappings":{
+      "properties":{
+				"search_field": {
+					"type": "text"
+				},
+				"title": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"original_title": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"overview": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"slug": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+        "popularity":{
+          "type":"double"
+        }
+      }
+    }
+  }`
 	ctx := context.TODO()
 
 	// ==========> SÉRIEs
@@ -245,39 +245,21 @@ func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
 }
 
 func ElasticChargeTvEpisodes(elasticClient *elastic.Client, interval int64) {
-	// elasticClient, err = elastic.NewSimpleClient(
-	// 	elastic.SetURL(os.Getenv("ELASTICSEARCH")),
-	// 	elastic.SetSniff(false),
-	// 	elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
-	// 	elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
-	// 	elastic.SetInfoLog(log.New(os.Stdout, "LOG TV EPISODES: ", log.LstdFlags)),
-	// 	// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
-	// )
-	// fmt.Println("connect to es success!")
-	// if err != nil {
-	// 	log.Println(err)
-	// 	time.Sleep(3 * time.Second)
-	// } else {
-	// 	// break
-	// }
 
 	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
 	mapping := `{
-			"settings":{
-				"number_of_shards":1,
-				"number_of_replicas":0
-			},
-			"mappings":{
-				"properties":{
-					"tags":{
-						"type":"keyword"
-					},
-					"suggest_field":{
-						"type":"completion"
-					}
-				}
-			}
-		}`
+    "settings":{
+      "number_of_shards":1,
+      "number_of_replicas":0
+    },
+    "mappings":{
+      "properties":{
+        "language":{
+          "type":"text"
+        }
+      }
+    }
+  }`
 	ctx := context.TODO()
 
 	// ==========> EPISODES
@@ -347,39 +329,36 @@ func ElasticChargeTvEpisodes(elasticClient *elastic.Client, interval int64) {
 }
 
 func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
-	// elasticClient, err = elastic.NewSimpleClient(
-	// 	elastic.SetURL(os.Getenv("ELASTICSEARCH")),
-	// 	elastic.SetSniff(false),
-	// 	elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
-	// 	elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
-	// 	elastic.SetInfoLog(log.New(os.Stdout, "LOG PERSON: ", log.LstdFlags)),
-	// 	// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
-	// )
-	// fmt.Println("connect to es success!")
-	// if err != nil {
-	// 	log.Println(err)
-	// 	time.Sleep(3 * time.Second)
-	// } else {
-	// 	// break
-	// }
 
 	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
 	mapping := `{
-			"settings":{
-				"number_of_shards":1,
-				"number_of_replicas":0
-			},
-			"mappings":{
-				"properties":{
-					"tags":{
-						"type":"keyword"
-					},
-					"suggest_field":{
-						"type":"completion"
-					}
-				}
-			}
-		}`
+    "settings":{
+      "number_of_shards":1,
+      "number_of_replicas":0
+    },
+    "mappings":{
+      "properties":{
+				"search_field": {
+					"type": "text"
+				},
+				"name": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"biography": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"slug": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+        "popularity":{
+          "type":"double"
+        }
+      }
+    }
+  }`
 	ctx := context.TODO()
 
 	// ==========> PESSOAS
@@ -478,7 +457,7 @@ func ElasticGeneralCharge() {
 }
 
 func GeneralCharge() {
-	// MongoCharge()
+	MongoCharge()
 	ElasticGeneralCharge()
 }
 
