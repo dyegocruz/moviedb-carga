@@ -65,10 +65,6 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 					"type": "text",
 					"copy_to": "search_field"
 				},
-				"overview": {
-					"type": "text",
-					"copy_to": "search_field"
-				},
 				"slug": {
 					"type": "text",
 					"copy_to": "search_field"
@@ -159,10 +155,6 @@ func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
 					"copy_to": "search_field"
 				},
 				"original_title": {
-					"type": "text",
-					"copy_to": "search_field"
-				},
-				"overview": {
 					"type": "text",
 					"copy_to": "search_field"
 				},
@@ -449,6 +441,7 @@ func ElasticGeneralCharge() {
 	// go ElasticChargePerson(elasticClient, 10000)
 	// go ElasticChargeMovies(elasticClient, 200)
 	// ElasticChargeTvEpisodes(elasticClient, 5000)
+
 	go ElasticChargeTvEpisodes(elasticClient, 2000)
 	ElasticChargeTv(elasticClient, 200)
 	go ElasticChargePerson(elasticClient, 10000)
