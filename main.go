@@ -203,8 +203,13 @@ func main() {
 	// carga.GeneralCharge()
 	// log.Println("PROCESS CONCLUDED")
 
-	// currentMovieTime := time.Now()
-	// log.Println(currentMovieTime.Format("2006-01-02"))
+	// person.PopulatePersonByIdAndLanguage(71580, "pt-BR")
+	// person.PopulatePersonByIdAndLanguage(71580, "en")
+
+	// personsCount := person.GetCountAll()
+	// log.Println(personsCount)
+
+	// for
 
 	c := cron.New()
 	// // c.AddFunc("*/1 * * * *", func() {
