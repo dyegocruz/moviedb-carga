@@ -7,6 +7,7 @@ import (
 type Cast struct {
 	ID        int    `json:"id" bson:"id"`
 	CreditID  string `json:"credit_id" bson:"credit_id"`
+	Character string `json:"character" bson:"character"`
 	MediaType string `json:"media_type" bson:"media_type"`
 }
 
@@ -28,6 +29,7 @@ type Person struct {
 	Gender            int       `json:"gender" bson:"gender"`
 	KnowForDepartment string    `json:"known_for_department" bson:"known_for_department"`
 	Name              string    `json:"name" bson:"name"`
+	AlsoKnowAs        []string  `json:"also_known_as" bson:"also_known_as"`
 	ProfilepPath      string    `json:"profile_path" bson:"profile_path"`
 	Biography         string    `json:"biography" bson:"biography"`
 	Birthday          string    `json:"birthday,omitempty" bson:"birthday"`
@@ -39,7 +41,7 @@ type Person struct {
 	UpdatedNew        string    `json:"updatedNew" bson:"updatedNew"`
 	OriginCountry     []string  `json:"origin_country" bson:"origin_country"`
 	Languages         []string  `json:"languages" bson:"languages"`
-	Credits           Credits   `json:"credits" bson:"credits"`
+	Credits           Credits   `json:"combined_credits" bson:"credits"`
 }
 
 type ResultPerson struct {
