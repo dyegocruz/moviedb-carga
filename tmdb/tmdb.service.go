@@ -34,7 +34,14 @@ func GetChangesByDataType(dataType string) ChangeResults {
 
 func GetDetailsByIdLanguageAndDataType(id int, language string, dataType string) *http.Response {
 	apiKey, apiHost := getApiConfig()
-	response := util.HttpGet(apiHost + "/" + dataType + "/" + strconv.Itoa(id) + "?api_key=" + apiKey + "&language=" + language + "&append_to_response=credits")
+
+	appendResponse := "credits"
+
+	if dataType == DATATYPE_PERSON {
+		appendResponse = "combined_credits"
+	}
+
+	response := util.HttpGet(apiHost + "/" + dataType + "/" + strconv.Itoa(id) + "?api_key=" + apiKey + "&language=" + language + "&append_to_response=" + appendResponse)
 	return response
 }
 
