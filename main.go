@@ -203,14 +203,6 @@ func main() {
 	// carga.GeneralCharge()
 	// log.Println("PROCESS CONCLUDED")
 
-	// person.PopulatePersonByIdAndLanguage(71580, "pt-BR")
-	// person.PopulatePersonByIdAndLanguage(71580, "en")
-
-	// personsCount := person.GetCountAll()
-	// log.Println(personsCount)
-
-	// for
-
 	c := cron.New()
 	// // c.AddFunc("*/1 * * * *", func() {
 	c.AddFunc("@daily", func() {
