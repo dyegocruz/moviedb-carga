@@ -21,6 +21,7 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.KEY }}
         port: ${{ secrets.PORT }}
+        envs: GO_ENV
         script: |
           cd docker/moviedb-carga
           git pull
