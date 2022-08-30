@@ -420,13 +420,13 @@ func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
 	log.Println("Pessoas carregadas length: ", personsCount)
 }
 
-func ElasticGeneralCharge() {
+func elascitClient(logString string) *elastic.Client {
 	elasticClient, err := elastic.NewSimpleClient(
 		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
 		elastic.SetSniff(false),
 		elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
 		elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
-		elastic.SetInfoLog(log.New(os.Stdout, "LOG: ", log.LstdFlags)),
+		elastic.SetInfoLog(log.New(os.Stdout, logString+": ", log.LstdFlags)),
 		// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
 	)
 	fmt.Println("connect to es success!")
@@ -437,16 +437,14 @@ func ElasticGeneralCharge() {
 		// break
 	}
 
-	// go ElasticChargeTv(elasticClient, 150)
-	// go ElasticChargePerson(elasticClient, 8000)
-	// go ElasticChargeMovies(elasticClient, 150)
-	// ElasticChargeTvEpisodes(elasticClient, 4000)
+	return elasticClient
+}
 
-	go ElasticChargeTvEpisodes(elasticClient, 4000)
-	ElasticChargeTv(elasticClient, 150)
-	go ElasticChargePerson(elasticClient, 8000)
-	ElasticChargeMovies(elasticClient, 150)
-
+func ElasticGeneralCharge() {
+	go ElasticChargeTvEpisodes(elascitClient("TV_EPISODES"), 5000)
+	ElasticChargeTv(elascitClient("TV"), 200)
+	go ElasticChargePerson(elascitClient("PERSONS"), 10000)
+	ElasticChargeMovies(elascitClient("MOVIES"), 200)
 }
 
 func GeneralCharge() {
