@@ -2,9 +2,9 @@
 
 # default is development
 
-if [[ -z "${NODE_ENV}" ]]; then
+if [[ -z "${GO_ENV}" ]]; then
   echo "Setting to Development"
-  export NODE_ENV=development
+  export GO_ENV=development
 fi
 
 docker-compose config
