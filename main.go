@@ -216,7 +216,7 @@ func main() {
 	g := gin.Default()
 
 	g.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"appName": "App to make a Charge data", "env": os.Getenv("NODE_ENV")})
+		c.JSON(http.StatusOK, gin.H{"appName": "App to make a Charge data", "env": os.Getenv("GO_ENV")})
 	})
 	g.Run(":1323")
 }
