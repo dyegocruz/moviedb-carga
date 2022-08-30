@@ -23,6 +23,7 @@ jobs:
         port: ${{ secrets.PORT }}
         envs: GO_ENV
         script: |
+          echo "ENV $GO_ENV"
           cd docker/moviedb-carga
           git pull
           ./start.server.sh
