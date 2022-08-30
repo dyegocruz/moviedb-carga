@@ -173,7 +173,7 @@ func GetAll(skip int64, limit int64) []Serie {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(bson.M{"seasons.episodes.credits": 0})
+	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(bson.M{"seasons.episodes": 0})
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
 	if err != nil {
 		log.Println(err)
