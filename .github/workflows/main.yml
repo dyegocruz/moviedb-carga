@@ -14,6 +14,8 @@ jobs:
     steps:
     - name: connect and deploy docker
       uses: appleboy/ssh-action@master
+      env:
+        GO_ENV: "production"
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
