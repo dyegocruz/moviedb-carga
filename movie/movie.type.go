@@ -72,6 +72,7 @@ type Movie struct {
 	VoteAverage         float64               `json:"vote_average" bson:"vote_average"`
 	Title               string                `json:"title" bson:"title"`
 	ReleaseDate         string                `json:"release_date,omitempty" bson:"release_date"`
+	Runtime             int                   `json:"runtime,omitempty" bson:"runtime"`
 	OriginalLanguage    string                `json:"original_language" bson:"original_language"`
 	OriginalTitle       string                `json:"original_title" bson:"original_title"`
 	GenreIds            []int                 `json:"genre_ids" bson:"genre_ids"`
