@@ -16,13 +16,6 @@ import (
 	"github.com/olivere/elastic"
 )
 
-// var (
-// 	elasticClient *elastic.Client
-// 	err           error
-// )
-
-// elasticIndexType := "_doc"
-
 func MongoCharge() {
 	go movie.PopulateMovies(common.LANGUAGE_EN, "")
 
