@@ -202,6 +202,7 @@ func main() {
 	// RemoveFile(personFile + ".json")
 	// log.Println("FINISH PERSONS")
 
+	// movie.PopulateMovieByIdAndLanguage(120, common.LANGUAGE_EN, "N")
 	// carga.GeneralCharge()
 	log.Println("PROCESS CONCLUDED")
 
