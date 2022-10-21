@@ -1,14 +1,18 @@
 package main
 
 import (
+	"bufio"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"moviedb/carga"
+	"moviedb/common"
 	"moviedb/database"
+	"moviedb/movie"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -98,42 +102,41 @@ func RemoveFile(name string) {
 func main() {
 	// env := os.Getenv("GO_ENV")
 
-	// t := time.Now()
-	// dateFile := t.Format("01_02_2006")
-	// movieFile := "movie_ids_" + dateFile
+	t := time.Now()
+	dateFile := t.Format("01_02_2006")
+	movieFile := "movie_ids_" + dateFile
 	// tvFile := "tv_series_ids_" + dateFile
 	// personFile := "movie_ids_" + dateFile
 
-	// log.Println("INIT MOVIES")
-	// downloadExportFile(movieFile)
-	// unzip(movieFile)
+	log.Println("INIT MOVIES")
+	downloadExportFile(movieFile)
+	unzip(movieFile)
 
-	// fileMovie, err := os.Open(movieFile + ".json")
+	fileMovie, err := os.Open(movieFile + ".json")
 
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// defer fileMovie.Close()
+	defer fileMovie.Close()
 
-	// scannerMovies := bufio.NewScanner(fileMovie)
+	scannerMovies := bufio.NewScanner(fileMovie)
 
-	// for scannerMovies.Scan() {
+	for scannerMovies.Scan() {
 
-	// 	var movieRead movie.Movie
-	// 	json.Unmarshal([]byte(scannerMovies.Text()), &movieRead)
+		var movieRead movie.Movie
+		json.Unmarshal([]byte(scannerMovies.Text()), &movieRead)
 
-	// 	movieFindEn := movie.GetMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_PTBR)
-	// 	if movieFindEn.Id == 0 {
-	// 		// movieInsert := tmdb.GetDetailsByIdLanguageAndDataType(movieRead.Id, languageEn, tmdb.DATATYPE_MOVIE)
-	// 		movie.PopulateMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_EN, "Y")
-	// 		movie.PopulateMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_PTBR, "Y")
-	// 	} else {
-	// 		log.Println("MOVIE ALREADY INSERTED: ", movieRead.Id)
-	// 	}
-	// }
-	// RemoveFile(movieFile + ".json")
-	// log.Println("FINISH MOVIES")
+		// movieFindEn := movie.GetMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_PTBR)
+		// if movieFindEn.Id == 0 {
+		movie.PopulateMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_EN, "Y")
+		go movie.PopulateMovieByIdAndLanguage(movieRead.Id, common.LANGUAGE_PTBR, "Y")
+		// } else {
+		// 	log.Println("MOVIE ALREADY INSERTED: ", movieRead.Id)
+		// }
+	}
+	RemoveFile(movieFile + ".json")
+	log.Println("FINISH MOVIES")
 
 	// log.Println("INIT SERIES")
 	// downloadExportFile(tvFile)
@@ -199,7 +202,7 @@ func main() {
 	// RemoveFile(personFile + ".json")
 	// log.Println("FINISH PERSONS")
 
-	carga.GeneralCharge()
+	// carga.GeneralCharge()
 	log.Println("PROCESS CONCLUDED")
 
 	// c := cron.New()
