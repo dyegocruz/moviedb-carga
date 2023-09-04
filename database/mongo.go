@@ -4,6 +4,8 @@ package database
 import (
 	"context"
 	"log"
+
+	"moviedb/common"
 	"moviedb/util"
 	"os"
 	"time"
@@ -141,4 +143,28 @@ func GetCountAllByColletcion(collection string) int64 {
 	}
 
 	return count
+}
+
+func GenerateCatalogCheck(collection string, language string) map[int]common.CatalogCheck {
+	client, ctx, cancel := GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	filter := bson.M{"id": bson.M{"$gt": 0}, "language": language}
+	opts := options.Find().SetProjection(bson.M{"id": 1, "language": 1})
+
+	var results []common.CatalogCheck
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).Find(context.TODO(), filter, opts)
+	if err != nil {
+		log.Println(err)
+	}
+	cur.All(context.TODO(), &results)
+
+	var resultCatalog = make(map[int]common.CatalogCheck, len(results))
+
+	for _, result := range results {
+		resultCatalog[result.Id] = result
+	}
+
+	return resultCatalog
 }
