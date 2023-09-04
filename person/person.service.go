@@ -91,10 +91,6 @@ func PopulatePersons(language string) {
 	}
 }
 
-func GetCountAll() int64 {
-	return database.GetCountAllByColletcion(personCollection)
-}
-
 func GetAll(skip int64, limit int64) []Person {
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()
@@ -212,4 +208,12 @@ func UpdatePerson(person Person, language string) {
 	client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).UpdateOne(context.TODO(), bson.M{"id": person.Id, "language": language}, bson.M{
 		"$set": person,
 	})
+}
+
+func GetCountAll() int64 {
+	return database.GetCountAllByColletcion(personCollection)
+}
+
+func GeneratePersonCatalogCheck(language string) map[int]common.CatalogCheck {
+	return database.GenerateCatalogCheck(personCollection, language)
 }

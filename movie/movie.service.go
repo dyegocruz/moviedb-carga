@@ -46,7 +46,6 @@ func PopulateMovieByIdAndLanguage(id int, language string, updateCast string) {
 }
 
 func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) {
-	log.Println("RUNTIME: ", itemObj.Runtime)
 	t := time.Now()
 	itemObj.UpdatedNew = t.Format("02/01/2006 15:04:05")
 
@@ -112,10 +111,6 @@ func PopulateMovies(language string, idGenre string) {
 	}
 }
 
-func GetCountAll() int64 {
-	return database.GetCountAllByColletcion(movieCollection)
-}
-
 func GetAll(skip int64, limit int64) []Movie {
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()
@@ -175,8 +170,16 @@ func UpdateMovie(movie Movie, language string) {
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()
 	defer client.Disconnect(ctx)
-	log.Println("RUNTIME: ", movie.Runtime)
+
 	client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).UpdateOne(context.TODO(), bson.M{"id": movie.Id, "language": language}, bson.M{
 		"$set": movie,
 	})
+}
+
+func GetCountAll() int64 {
+	return database.GetCountAllByColletcion(movieCollection)
+}
+
+func GenerateMovieCatalogCheck(language string) map[int]common.CatalogCheck {
+	return database.GenerateCatalogCheck(movieCollection, language)
 }

@@ -164,10 +164,6 @@ func PopulateSeries(language string, idGenre string) {
 	}
 }
 
-func GetCountAll() int64 {
-	return database.GetCountAllByColletcion(serieCollection)
-}
-
 func GetAll(skip int64, limit int64) []Serie {
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()
@@ -300,4 +296,12 @@ func UpdateEpisode(espisode Episode, language string) {
 	client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).UpdateOne(context.TODO(), bson.M{"id": espisode.Id, "language": language}, bson.M{
 		"$set": espisode,
 	})
+}
+
+func GetCountAll() int64 {
+	return database.GetCountAllByColletcion(serieCollection)
+}
+
+func GenerateTvCatalogCheck(language string) map[int]common.CatalogCheck {
+	return database.GenerateCatalogCheck(serieCollection, language)
 }
