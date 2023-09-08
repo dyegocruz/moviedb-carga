@@ -16,23 +16,31 @@ import (
 	"github.com/olivere/elastic"
 )
 
-func MongoCharge() {
-	go movie.PopulateMovies(common.LANGUAGE_EN, "")
+func CatalogCharge() {
 
-	// FILTER JUST ANIMATIONS
-	go movie.PopulateMovies(common.LANGUAGE_EN, "16")
+	go CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_TV)
+	go CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_MOVIE)
+	CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_PERSON)
 
-	go tv.PopulateSeries(common.LANGUAGE_EN, "")
+	// go movie.PopulateMovies(common.LANGUAGE_EN, "")
 
-	// FILTER JUST ANIMATIONS
-	go tv.PopulateSeries(common.LANGUAGE_EN, "16")
+	// // FILTER JUST ANIMATIONS
+	// go movie.PopulateMovies(common.LANGUAGE_EN, "16")
 
-	go person.PopulatePersons(common.LANGUAGE_EN)
+	// go tv.PopulateSeries(common.LANGUAGE_EN, "")
 
+	// // FILTER JUST ANIMATIONS
+	// go tv.PopulateSeries(common.LANGUAGE_EN, "16")
+
+	// go person.PopulatePersons(common.LANGUAGE_EN)
+
+}
+
+func CatalogUpdates() {
 	// Checking changes by data type
-	tv.CheckTvChanges()
 	go movie.CheckMoviesChanges()
 	go person.CheckPersonChanges()
+	tv.CheckTvChanges()
 }
 
 func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
@@ -76,13 +84,10 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 	var newMovieIndexName = elasticMovieAliasName + "_" + currentMovieTime.Format("20060102150401")
 	log.Println(newMovieIndexName)
 
-	createMovieIndex, err := elasticClient.CreateIndex(newMovieIndexName).BodyString(mapping).Do(ctx)
+	_, err := elasticClient.CreateIndex(newMovieIndexName).BodyString(mapping).Do(ctx)
 	if err != nil {
 		log.Println("Falha ao criar o índice:", newMovieIndexName)
 		panic(err)
-	}
-	if !createMovieIndex.Acknowledged {
-		// Not acknowledged
 	}
 
 	var bulkRequest = elasticClient.Bulk()
@@ -104,12 +109,9 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 				bulkRequest = bulkRequest.Add(req)
 			}
 
-			bulkResponse, err := bulkRequest.Do(ctx)
+			_, err := bulkRequest.Do(ctx)
 			if err != nil {
 				fmt.Println(err)
-			}
-			if bulkResponse != nil {
-
 			}
 			bulkRequest = elasticClient.Bulk()
 		}
@@ -118,6 +120,9 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DOS FILMES
 	existentMovieAliases, err := IndexNamesByAlias(elasticMovieAliasName, elasticClient)
 	log.Println(existentMovieAliases)
+	if err != nil {
+		log.Println("Error ao buscar o index no alias: " + elasticMovieAliasName)
+	}
 
 	// ADICIONA
 	elasticClient.Alias().Add(newMovieIndexName, elasticMovieAliasName).Do(context.TODO())
@@ -173,15 +178,12 @@ func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
 	var newSerieIndexName = elasticSerieAliasName + "_" + currentSerieTime.Format("20060102150401")
 	log.Println(newSerieIndexName)
 
-	createSerieIndex, err := elasticClient.CreateIndex(newSerieIndexName).BodyString(mapping).Do(ctx)
+	_, err := elasticClient.CreateIndex(newSerieIndexName).BodyString(mapping).Do(ctx)
 	if err != nil {
 		// Handle error
 		// panic(err)
 		log.Println("Falha ao criar o índice:", newSerieIndexName)
 		panic(err)
-	}
-	if !createSerieIndex.Acknowledged {
-		// Not acknowledged
 	}
 
 	var bulkRequest = elasticClient.Bulk()
@@ -202,19 +204,20 @@ func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
 				bulkRequest = bulkRequest.Add(req)
 			}
 
-			bulkResponse, err := bulkRequest.Do(ctx)
+			_, err := bulkRequest.Do(ctx)
 			if err != nil {
 				fmt.Println(err)
 			}
-			if bulkResponse != nil {
 
-			}
 			bulkRequest = elasticClient.Bulk()
 		}
 	}
 
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
 	existentSerieAliases, err := IndexNamesByAlias(elasticSerieAliasName, elasticClient)
+	if err != nil {
+		log.Println("Error ao buscar o index no alias: " + elasticSerieAliasName)
+	}
 	log.Println(existentSerieAliases)
 
 	// ADICIONA
@@ -257,15 +260,12 @@ func ElasticChargeTvEpisodes(elasticClient *elastic.Client, interval int64) {
 	var newSerieEpisodeIndexName = elasticSerieEpisodeAliasName + "_" + currentSerieTime.Format("20060102150401")
 	log.Println(newSerieEpisodeIndexName)
 
-	createSerieIndex, err := elasticClient.CreateIndex(newSerieEpisodeIndexName).BodyString(mapping).Do(ctx)
+	_, err := elasticClient.CreateIndex(newSerieEpisodeIndexName).BodyString(mapping).Do(ctx)
 	if err != nil {
 		// Handle error
 		// panic(err)
 		log.Println("Falha ao criar o índice:", newSerieEpisodeIndexName)
 		panic(err)
-	}
-	if !createSerieIndex.Acknowledged {
-		// Not acknowledged
 	}
 
 	var bulkRequest = elasticClient.Bulk()
@@ -286,12 +286,9 @@ func ElasticChargeTvEpisodes(elasticClient *elastic.Client, interval int64) {
 				bulkRequest = bulkRequest.Add(req)
 			}
 
-			bulkResponse, err := bulkRequest.Do(ctx)
+			_, err := bulkRequest.Do(ctx)
 			if err != nil {
 				fmt.Println(err)
-			}
-			if bulkResponse != nil {
-
 			}
 			bulkRequest = elasticClient.Bulk()
 		}
@@ -299,6 +296,9 @@ func ElasticChargeTvEpisodes(elasticClient *elastic.Client, interval int64) {
 
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
 	existentSerieAliases, err := IndexNamesByAlias(elasticSerieEpisodeAliasName, elasticClient)
+	if err != nil {
+		log.Println("Error ao buscar o index no alias: " + elasticSerieEpisodeAliasName)
+	}
 	log.Println(existentSerieAliases)
 
 	// ADICIONA
@@ -356,15 +356,10 @@ func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
 	var newPersonIndexName = elasticPersonAliasName + "_" + currentPersonTime.Format("20060102150401")
 	log.Println(newPersonIndexName)
 
-	createPersonIndex, err := elasticClient.CreateIndex(newPersonIndexName).BodyString(mapping).Do(ctx)
+	_, err := elasticClient.CreateIndex(newPersonIndexName).BodyString(mapping).Do(ctx)
 	if err != nil {
-		// Handle error
-		// panic(err)
 		log.Println("Falha ao criar o índice:", newPersonIndexName)
 		panic(err)
-	}
-	if !createPersonIndex.Acknowledged {
-		// Not acknowledged
 	}
 
 	var bulkRequest = elasticClient.Bulk()
@@ -385,12 +380,9 @@ func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
 				bulkRequest = bulkRequest.Add(req)
 			}
 
-			bulkResponse, err := bulkRequest.Do(ctx)
+			_, err := bulkRequest.Do(ctx)
 			if err != nil {
 				fmt.Println(err)
-			}
-			if bulkResponse != nil {
-
 			}
 			bulkRequest.Reset()
 			// bulkRequest = elasticClient.Bulk()
@@ -400,6 +392,9 @@ func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE PESSOAS
 	existentPersonAliases, err := IndexNamesByAlias(elasticPersonAliasName, elasticClient)
 	log.Println(existentPersonAliases)
+	if err != nil {
+		log.Println("Error ao buscar o index no alias: " + elasticPersonAliasName)
+	}
 
 	// ADICIONA
 	elasticClient.Alias().Add(newPersonIndexName, elasticPersonAliasName).Do(context.TODO())
@@ -434,14 +429,15 @@ func elascitClient(logString string) *elastic.Client {
 }
 
 func ElasticGeneralCharge() {
-	go ElasticChargeTvEpisodes(elascitClient("TV_EPISODES"), 5000)
-	ElasticChargeTv(elascitClient("TV"), 200)
-	go ElasticChargePerson(elascitClient("PERSONS"), 10000)
-	ElasticChargeMovies(elascitClient("MOVIES"), 200)
+	go ElasticChargeTvEpisodes(elascitClient("TV_EPISODES"), 300)
+	ElasticChargeTv(elascitClient("TV"), 100)
+	go ElasticChargePerson(elascitClient("PERSONS"), 5000)
+	ElasticChargeMovies(elascitClient("MOVIES"), 100)
 }
 
 func GeneralCharge() {
-	MongoCharge()
+	CatalogCharge()
+	CatalogUpdates()
 	ElasticGeneralCharge()
 }
 
