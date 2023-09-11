@@ -60,8 +60,8 @@ func CheckAndUpdateCatalogByFile(mediaType string) {
 				tv.PopulateSerieByIdAndLanguage(elementRead.Id, common.LANGUAGE_EN)
 				go tv.PopulateSerieByIdAndLanguage(elementRead.Id, common.LANGUAGE_PTBR)
 			case common.MEDIA_TYPE_PERSON:
-				person.PopulatePersonByIdAndLanguage(elementRead.Id, common.LANGUAGE_EN)
-				go person.PopulatePersonByIdAndLanguage(elementRead.Id, common.LANGUAGE_PTBR)
+				person.PopulatePersonByIdAndLanguage(elementRead.Id, common.LANGUAGE_EN, "N")
+				go person.PopulatePersonByIdAndLanguage(elementRead.Id, common.LANGUAGE_PTBR, "N")
 			}
 		}
 	}
