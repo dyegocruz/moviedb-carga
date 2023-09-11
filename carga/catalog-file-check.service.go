@@ -67,5 +67,5 @@ func CheckAndUpdateCatalogByFile(mediaType string) {
 	}
 
 	util.RemoveFile(fileName + ".json")
-	log.Println("FINISH " + mediaFile)
+	log.Println("====================>FINISH " + mediaType)
 }
