@@ -42,7 +42,7 @@ func GetMovieDetailsOnTMDBApi(id int, language string) Movie {
 
 func PopulateMovieByIdAndLanguage(id int, language string, updateCast string) {
 	itemObj := GetMovieDetailsOnTMDBApi(id, language)
-	PopulateMovieByLanguage(itemObj, language, "Y")
+	PopulateMovieByLanguage(itemObj, language, updateCast)
 }
 
 func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) {
@@ -64,11 +64,11 @@ func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) 
 	if itemFind.Id == 0 {
 
 		for _, cast := range itemObj.MovieCredits.Cast {
-			person.PopulatePersonByIdAndLanguage(cast.Id, language)
+			person.PopulatePersonByIdAndLanguage(cast.Id, language, updateCast)
 		}
 
 		for _, crew := range itemObj.MovieCredits.Crew {
-			person.PopulatePersonByIdAndLanguage(crew.Id, language)
+			person.PopulatePersonByIdAndLanguage(crew.Id, language, updateCast)
 		}
 
 		log.Println("===>INSERT MOVIE: ", itemObj.Id)

@@ -117,11 +117,11 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 	if itemFind.Id == 0 {
 
 		for _, cast := range itemObj.TvCredits.Cast {
-			person.PopulatePersonByIdAndLanguage(cast.Id, language)
+			person.PopulatePersonByIdAndLanguage(cast.Id, language, "Y")
 		}
 
 		for _, crew := range itemObj.TvCredits.Crew {
-			person.PopulatePersonByIdAndLanguage(crew.Id, language)
+			person.PopulatePersonByIdAndLanguage(crew.Id, language, "Y")
 		}
 
 		log.Println("===>INSERT SERIE: ", itemObj.Id)

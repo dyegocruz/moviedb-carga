@@ -23,8 +23,8 @@ func CheckPersonChanges() {
 	personChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_PERSON)
 
 	for _, person := range personChanges.Results {
-		PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_PTBR)
-		go PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_EN)
+		PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_PTBR, "Y")
+		go PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_EN, "Y")
 	}
 }
 
@@ -37,7 +37,7 @@ func GetPersonDetailsOnApiDb(id int, language string) Person {
 	return person
 }
 
-func PopulatePersonByLanguage(itemObj Person, language string) {
+func PopulatePersonByLanguage(itemObj Person, language string, updatePerson string) {
 	t := time.Now()
 	itemObj.UpdatedNew = t.Format("02/01/2006 15:04:05")
 
@@ -55,14 +55,16 @@ func PopulatePersonByLanguage(itemObj Person, language string) {
 		log.Println("INSERT PERSON: ", language, itemObj.Id)
 		InsertPerson(itemObj)
 	} else {
-		log.Println("UPDATE PERSON: ", language, itemObj.Id)
-		UpdatePerson(itemObj, language)
+		if updatePerson == "Y" {
+			log.Println("UPDATE PERSON: ", language, itemObj.Id)
+			UpdatePerson(itemObj, language)
+		}
 	}
 }
 
-func PopulatePersonByIdAndLanguage(id int, language string) {
+func PopulatePersonByIdAndLanguage(id int, language string, updatePerson string) {
 	itemObj := GetPersonDetailsOnApiDb(id, language)
-	PopulatePersonByLanguage(itemObj, language)
+	PopulatePersonByLanguage(itemObj, language, updatePerson)
 }
 
 func PopulatePersons(language string) {
@@ -82,10 +84,10 @@ func PopulatePersons(language string) {
 
 			if item.Id > 0 {
 				itemObj := GetPersonDetailsOnApiDb(item.Id, common.LANGUAGE_PTBR)
-				PopulatePersonByLanguage(itemObj, common.LANGUAGE_PTBR)
+				PopulatePersonByLanguage(itemObj, common.LANGUAGE_PTBR, "N")
 
 				itemObjEn := GetPersonDetailsOnApiDb(item.Id, language)
-				go PopulatePersonByLanguage(itemObjEn, language)
+				go PopulatePersonByLanguage(itemObjEn, language, "N")
 			}
 		}
 	}
