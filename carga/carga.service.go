@@ -429,10 +429,10 @@ func elascitClient(logString string) *elastic.Client {
 }
 
 func ElasticGeneralCharge() {
-	go ElasticChargeTv(elascitClient("TV"), 50)
-	go ElasticChargePerson(elascitClient("PERSONS"), 500)
-	go ElasticChargeMovies(elascitClient("MOVIES"), 50)
-	ElasticChargeTvEpisodes(elascitClient("TV_EPISODES"), 500)
+	go ElasticChargeTv(elascitClient("TV"), 70)
+	go ElasticChargePerson(elascitClient("PERSONS"), 4000)
+	go ElasticChargeMovies(elascitClient("MOVIES"), 70)
+	ElasticChargeTvEpisodes(elascitClient("TV_EPISODES"), 3000)
 }
 
 func GeneralCharge() {
