@@ -94,10 +94,10 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
 		Workers(5).
-		BulkActions(1000).
+		BulkActions(10000).
 		FlushInterval(1 * time.Second).
 		After(after).
-		Do(context.Background())
+		Do(ctx)
 
 	if err != nil {
 		log.Println("bulkProcessor Error", err)
@@ -196,10 +196,10 @@ func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
 		Workers(5).
-		BulkActions(1000).
+		BulkActions(10000).
 		FlushInterval(1 * time.Second).
 		After(after).
-		Do(context.Background())
+		Do(ctx)
 
 	if err != nil {
 		log.Println("bulkProcessor Error", err)
@@ -277,10 +277,10 @@ func ElasticChargeTvEpisodes(elasticClient *elastic.Client, interval int64) {
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
 		Workers(5).
-		BulkActions(1000).
+		BulkActions(10000).
 		FlushInterval(1 * time.Second).
 		After(after).
-		Do(context.Background())
+		Do(ctx)
 
 	if err != nil {
 		log.Println("bulkProcessor Error", err)
@@ -374,10 +374,10 @@ func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
 		Workers(5).
-		BulkActions(1000).
+		BulkActions(10000).
 		FlushInterval(1 * time.Second).
 		After(after).
-		Do(context.Background())
+		Do(ctx)
 
 	if err != nil {
 		log.Println("bulkProcessor Error", err)
@@ -441,15 +441,15 @@ func elascitClient(logString string) *elastic.Client {
 }
 
 func ElasticGeneralCharge() {
-	go ElasticChargeMovies(elascitClient("MOVIES"), 2000)
-	ElasticChargeTv(elascitClient("TV"), 1000)
-	go ElasticChargePerson(elascitClient("PERSONS"), 10000)
-	ElasticChargeTvEpisodes(elascitClient("TV_EPISODES"), 10000)
+	go ElasticChargeMovies(elascitClient("MOVIES"), 1000)
+	ElasticChargeTv(elascitClient("TV"), 10000)
+	go ElasticChargePerson(elascitClient("PERSONS"), 50000)
+	ElasticChargeTvEpisodes(elascitClient("TV_EPISODES"), 50000)
 }
 
 func GeneralCharge() {
-	CatalogCharge()
-	CatalogUpdates()
+	// CatalogCharge()
+	// CatalogUpdates()
 	ElasticGeneralCharge()
 }
 
