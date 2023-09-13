@@ -90,30 +90,32 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 		panic(err)
 	}
 
-	var bulkRequest = elasticClient.Bulk()
 	var m int64
+
+	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+		Workers(5).
+		BulkActions(1000).
+		FlushInterval(1 * time.Second).
+		After(after).
+		Do(context.Background())
+
+	if err != nil {
+		log.Println("bulkProcessor Error", err)
+	}
+
 	for m = 0; m < moviesCount; m++ {
 
 		if m%interval == 0 {
-			// log.Println(m)
 			movies := movie.GetAll(m, interval)
 
 			for _, movie := range movies {
-				// log.Println(m)
 				req := elastic.NewBulkIndexRequest().
 					Index(newMovieIndexName).
-					// Type(elasticIndexType).
 					Id(strconv.Itoa(movie.Id) + "-" + movie.Language).
 					Doc(movie)
 
-				bulkRequest = bulkRequest.Add(req)
+				bulkProcessor.Add(req)
 			}
-
-			_, err := bulkRequest.Do(ctx)
-			if err != nil {
-				fmt.Println(err)
-			}
-			bulkRequest = elasticClient.Bulk()
 		}
 	}
 
@@ -134,6 +136,14 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 	}
 	log.Println("Carga finalizada com sucesso!")
 	log.Println("Filmes carregados length: ", moviesCount)
+}
+
+func after(executionID int64, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
+	if err != nil {
+		log.Printf("bulk commit failed, err: %v\n", err)
+	}
+	// do what ever you want in case bulk commit success
+	log.Printf("commit successfully, len(requests)=%d\n", len(requests))
 }
 
 func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
@@ -180,13 +190,21 @@ func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
 
 	_, err := elasticClient.CreateIndex(newSerieIndexName).BodyString(mapping).Do(ctx)
 	if err != nil {
-		// Handle error
-		// panic(err)
 		log.Println("Falha ao criar o índice:", newSerieIndexName)
 		panic(err)
 	}
 
-	var bulkRequest = elasticClient.Bulk()
+	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+		Workers(5).
+		BulkActions(1000).
+		FlushInterval(1 * time.Second).
+		After(after).
+		Do(context.Background())
+
+	if err != nil {
+		log.Println("bulkProcessor Error", err)
+	}
+
 	var s int64
 	for s = 0; s < seriesCount; s++ {
 
@@ -194,22 +212,13 @@ func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
 			series := tv.GetAll(s, interval)
 
 			for _, serie := range series {
-				// log.Println(m)
 				req := elastic.NewBulkIndexRequest().
 					Index(newSerieIndexName).
-					// Type(elasticIndexType).
 					Id(strconv.Itoa(serie.Id) + "-" + serie.Language).
 					Doc(serie)
 
-				bulkRequest = bulkRequest.Add(req)
+				bulkProcessor.Add(req)
 			}
-
-			_, err := bulkRequest.Do(ctx)
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			bulkRequest = elasticClient.Bulk()
 		}
 	}
 
@@ -262,13 +271,21 @@ func ElasticChargeTvEpisodes(elasticClient *elastic.Client, interval int64) {
 
 	_, err := elasticClient.CreateIndex(newSerieEpisodeIndexName).BodyString(mapping).Do(ctx)
 	if err != nil {
-		// Handle error
-		// panic(err)
 		log.Println("Falha ao criar o índice:", newSerieEpisodeIndexName)
 		panic(err)
 	}
 
-	var bulkRequest = elasticClient.Bulk()
+	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+		Workers(5).
+		BulkActions(1000).
+		FlushInterval(1 * time.Second).
+		After(after).
+		Do(context.Background())
+
+	if err != nil {
+		log.Println("bulkProcessor Error", err)
+	}
+
 	var s int64
 	for s = 0; s < seriesEpisodesCount; s++ {
 
@@ -276,21 +293,14 @@ func ElasticChargeTvEpisodes(elasticClient *elastic.Client, interval int64) {
 			episodes := tv.GetAllEpisodes(s, interval)
 
 			for _, episode := range episodes {
-				// log.Println(m)
 				req := elastic.NewBulkIndexRequest().
 					Index(newSerieEpisodeIndexName).
-					// Type(elasticIndexType).
 					Id(strconv.Itoa(episode.Id) + "-" + episode.Language).
 					Doc(episode)
 
-				bulkRequest = bulkRequest.Add(req)
+				bulkProcessor.Add(req)
 			}
 
-			_, err := bulkRequest.Do(ctx)
-			if err != nil {
-				fmt.Println(err)
-			}
-			bulkRequest = elasticClient.Bulk()
 		}
 	}
 
@@ -362,7 +372,17 @@ func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
 		panic(err)
 	}
 
-	var bulkRequest = elasticClient.Bulk()
+	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+		Workers(5).
+		BulkActions(1000).
+		FlushInterval(1 * time.Second).
+		After(after).
+		Do(context.Background())
+
+	if err != nil {
+		log.Println("bulkProcessor Error", err)
+	}
+
 	var p int64
 	for p = 0; p < personsCount; p++ {
 
@@ -370,22 +390,14 @@ func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
 			persons := person.GetAll(p, interval)
 
 			for _, person := range persons {
-				// log.Println(m)
 				req := elastic.NewBulkIndexRequest().
 					Index(newPersonIndexName).
-					// Type(elasticIndexType).
 					Id(strconv.Itoa(person.Id) + "-" + person.Language).
 					Doc(person)
 
-				bulkRequest = bulkRequest.Add(req)
+				bulkProcessor.Add(req)
 			}
 
-			_, err := bulkRequest.Do(ctx)
-			if err != nil {
-				fmt.Println(err)
-			}
-			bulkRequest.Reset()
-			// bulkRequest = elasticClient.Bulk()
 		}
 	}
 
@@ -429,15 +441,15 @@ func elascitClient(logString string) *elastic.Client {
 }
 
 func ElasticGeneralCharge() {
-	go ElasticChargeTv(elascitClient("TV"), 70)
-	go ElasticChargePerson(elascitClient("PERSONS"), 4000)
-	go ElasticChargeTvEpisodes(elascitClient("TV_EPISODES"), 3000)
-	ElasticChargeMovies(elascitClient("MOVIES"), 60)
+	go ElasticChargeMovies(elascitClient("MOVIES"), 2000)
+	ElasticChargeTv(elascitClient("TV"), 1000)
+	go ElasticChargePerson(elascitClient("PERSONS"), 10000)
+	ElasticChargeTvEpisodes(elascitClient("TV_EPISODES"), 10000)
 }
 
 func GeneralCharge() {
-	CatalogCharge()
-	CatalogUpdates()
+	// CatalogCharge()
+	// CatalogUpdates()
 	ElasticGeneralCharge()
 }
 
