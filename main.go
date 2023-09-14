@@ -35,6 +35,9 @@ func main() {
 
 	carga.GeneralCharge()
 	log.Println("PROCESS CONCLUDED")
+	// log.Println(runtime.NumCPU())
+
+	// log.Println(len(movie.GetAll(0, 10)))
 
 	// c := cron.New()
 	// c.AddFunc("@daily", func() {

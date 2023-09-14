@@ -105,16 +105,7 @@ func GetAll(skip int64, limit int64) []Person {
 	}
 
 	persons := make([]Person, 0)
-	for cur.Next(context.TODO()) {
-		var movie Person
-		err := cur.Decode(&movie)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		persons = append(persons, movie)
-	}
-
+	cur.All(context.TODO(), &persons)
 	cur.Close(context.TODO())
 
 	return persons
