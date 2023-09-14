@@ -169,23 +169,15 @@ func GetAll(skip int64, limit int64) []Serie {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(bson.M{"seasons.episodes": 0})
+	projection := bson.M{"seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0}
+	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
 
 	series := make([]Serie, 0)
-	for cur.Next(context.TODO()) {
-		var serie Serie
-		err := cur.Decode(&serie)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		series = append(series, serie)
-	}
-
+	cur.All(context.TODO(), &series)
 	cur.Close(context.TODO())
 
 	return series
@@ -238,23 +230,15 @@ func GetAllEpisodes(skip int64, limit int64) []Episode {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
+	projection := bson.M{"credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0}
+	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
 
 	episodes := make([]Episode, 0)
-	for cur.Next(context.TODO()) {
-		var episode Episode
-		err := cur.Decode(&episode)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		episodes = append(episodes, episode)
-	}
-
+	cur.All(context.TODO(), &episodes)
 	cur.Close(context.TODO())
 
 	return episodes

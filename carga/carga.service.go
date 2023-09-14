@@ -10,6 +10,7 @@ import (
 	"moviedb/person"
 	"moviedb/tv"
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -43,18 +44,14 @@ func CatalogUpdates() {
 	tv.CheckTvChanges()
 }
 
-func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
-	moviesCount := database.GetCountAllByColletcion(database.COLLECTION_MOVIE)
-	log.Println("Total de filmes: ", moviesCount)
-
-	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
-	mapping := `{
-    "settings":{
-      "number_of_shards":1,
-      "number_of_replicas":0
-    },
-    "mappings":{
-      "properties":{
+const (
+	INDEX_MAPPING_SERIES = `{
+	  "settings":{
+	    "number_of_shards":1,
+	    "number_of_replicas":0
+	  },
+	  "mappings":{
+	    "properties":{
 				"search_field": {
 					"type": "text"
 				},
@@ -70,93 +67,19 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 					"type": "text",
 					"copy_to": "search_field"
 				},
-        "popularity":{
-          "type":"double"
-        }
-      }
-    }
-  }`
-	ctx := context.TODO()
-
-	elasticMovieAliasName := "movies"
-
-	currentMovieTime := time.Now()
-	var newMovieIndexName = elasticMovieAliasName + "_" + currentMovieTime.Format("20060102150401")
-	log.Println(newMovieIndexName)
-
-	_, err := elasticClient.CreateIndex(newMovieIndexName).BodyString(mapping).Do(ctx)
-	if err != nil {
-		log.Println("Falha ao criar o índice:", newMovieIndexName)
-		panic(err)
-	}
-
-	var m int64
-
-	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		Workers(3).
-		BulkActions(10000).
-		FlushInterval(1 * time.Second).
-		After(after).
-		Do(ctx)
-
-	if err != nil {
-		log.Println("bulkProcessor Error", err)
-	}
-
-	for m = 0; m < moviesCount; m++ {
-
-		if m%interval == 0 {
-			movies := movie.GetAll(m, interval)
-
-			for _, movie := range movies {
-				// movie.MovieCredits.Crew = nil
-				// movie.MovieCredits.Cast = nil
-				req := elastic.NewBulkIndexRequest().
-					Index(newMovieIndexName).
-					Id(strconv.Itoa(movie.Id) + "-" + movie.Language).
-					Doc(movie)
-
-				bulkProcessor.Add(req)
-			}
-		}
-	}
-
-	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DOS FILMES
-	existentMovieAliases, err := IndexNamesByAlias(elasticMovieAliasName, elasticClient)
-	log.Println(existentMovieAliases)
-	if err != nil {
-		log.Println("Error ao buscar o index no alias: " + elasticMovieAliasName)
-	}
-
-	// ADICIONA
-	elasticClient.Alias().Add(newMovieIndexName, elasticMovieAliasName).Do(context.TODO())
-
-	if len(existentMovieAliases) > 0 {
-		oldIndex := existentMovieAliases[0]
-		elasticClient.Alias().Remove(oldIndex, elasticMovieAliasName).Do(context.TODO())
-		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
-	}
-	log.Println("Carga finalizada com sucesso!")
-	log.Println("Filmes carregados length: ", moviesCount)
-}
-
-func after(executionID int64, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
-	if err != nil {
-		log.Printf("bulk commit failed, err: %v\n", err)
-	}
-	// do what ever you want in case bulk commit success
-	log.Printf("commit successfully, len(requests)=%d\n", len(requests))
-}
-
-func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
-	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
-	mapping := `{
-    "settings":{
-      "number_of_shards":1,
-      "number_of_replicas":0
-    },
-    "mappings":{
-      "properties":{
+	      "popularity":{
+	        "type":"double"
+	      }
+	    }
+	  }
+	}`
+	INDEX_MAPPING_MOVIES = `{
+	  "settings":{
+	    "number_of_shards":1,
+	    "number_of_replicas":0
+	  },
+	  "mappings":{
+	    "properties":{
 				"search_field": {
 					"type": "text"
 				},
@@ -172,169 +95,19 @@ func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
 					"type": "text",
 					"copy_to": "search_field"
 				},
-        "popularity":{
-          "type":"double"
-        }
-      }
-    }
-  }`
-	ctx := context.TODO()
-
-	// ==========> SÉRIEs
-	seriesCount := database.GetCountAllByColletcion(database.COLLECTION_SERIE)
-	log.Println("Total de séries: ", seriesCount)
-
-	elasticSerieAliasName := "series"
-
-	currentSerieTime := time.Now()
-	var newSerieIndexName = elasticSerieAliasName + "_" + currentSerieTime.Format("20060102150401")
-	log.Println(newSerieIndexName)
-
-	_, err := elasticClient.CreateIndex(newSerieIndexName).BodyString(mapping).Do(ctx)
-	if err != nil {
-		log.Println("Falha ao criar o índice:", newSerieIndexName)
-		panic(err)
-	}
-
-	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		Workers(3).
-		BulkActions(10000).
-		FlushInterval(1 * time.Second).
-		After(after).
-		Do(ctx)
-
-	if err != nil {
-		log.Println("bulkProcessor Error", err)
-	}
-
-	var s int64
-	for s = 0; s < seriesCount; s++ {
-
-		if s%interval == 0 {
-			series := tv.GetAll(s, interval)
-
-			for _, serie := range series {
-				req := elastic.NewBulkIndexRequest().
-					Index(newSerieIndexName).
-					Id(strconv.Itoa(serie.Id) + "-" + serie.Language).
-					Doc(serie)
-
-				bulkProcessor.Add(req)
-			}
-		}
-	}
-
-	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
-	existentSerieAliases, err := IndexNamesByAlias(elasticSerieAliasName, elasticClient)
-	if err != nil {
-		log.Println("Error ao buscar o index no alias: " + elasticSerieAliasName)
-	}
-	log.Println(existentSerieAliases)
-
-	// ADICIONA
-	elasticClient.Alias().Add(newSerieIndexName, elasticSerieAliasName).Do(context.TODO())
-
-	if len(existentSerieAliases) > 0 {
-		oldIndex := existentSerieAliases[0]
-		elasticClient.Alias().Remove(oldIndex, elasticSerieAliasName).Do(context.TODO())
-		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
-	}
-	log.Println("Carga finalizada com sucesso!")
-	log.Println("Séries carregadas length: ", seriesCount)
-}
-
-func ElasticChargeTvEpisodes(elasticClient *elastic.Client, interval int64) {
-
-	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
-	mapping := `{
-    "settings":{
-      "number_of_shards":1,
-      "number_of_replicas":0
-    },
-    "mappings":{
-      "properties":{
-        "language":{
-          "type":"text"
-        }
-      }
-    }
-  }`
-	ctx := context.TODO()
-
-	// ==========> EPISODES
-	seriesEpisodesCount := database.GetCountAllByColletcion(database.COLLECTION_SERIE_EPISODE)
-	log.Println("Total de episódios: ", seriesEpisodesCount)
-
-	elasticSerieEpisodeAliasName := "series-episodes"
-
-	currentSerieTime := time.Now()
-	var newSerieEpisodeIndexName = elasticSerieEpisodeAliasName + "_" + currentSerieTime.Format("20060102150401")
-	log.Println(newSerieEpisodeIndexName)
-
-	_, err := elasticClient.CreateIndex(newSerieEpisodeIndexName).BodyString(mapping).Do(ctx)
-	if err != nil {
-		log.Println("Falha ao criar o índice:", newSerieEpisodeIndexName)
-		panic(err)
-	}
-
-	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		Workers(3).
-		BulkActions(10000).
-		FlushInterval(1 * time.Second).
-		After(after).
-		Do(ctx)
-
-	if err != nil {
-		log.Println("bulkProcessor Error", err)
-	}
-
-	var s int64
-	for s = 0; s < seriesEpisodesCount; s++ {
-
-		if s%interval == 0 {
-			episodes := tv.GetAllEpisodes(s, interval)
-
-			for _, episode := range episodes {
-				req := elastic.NewBulkIndexRequest().
-					Index(newSerieEpisodeIndexName).
-					Id(strconv.Itoa(episode.Id) + "-" + episode.Language).
-					Doc(episode)
-
-				bulkProcessor.Add(req)
-			}
-
-		}
-	}
-
-	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
-	existentSerieAliases, err := IndexNamesByAlias(elasticSerieEpisodeAliasName, elasticClient)
-	if err != nil {
-		log.Println("Error ao buscar o index no alias: " + elasticSerieEpisodeAliasName)
-	}
-	log.Println(existentSerieAliases)
-
-	// ADICIONA
-	elasticClient.Alias().Add(newSerieEpisodeIndexName, elasticSerieEpisodeAliasName).Do(context.TODO())
-
-	if len(existentSerieAliases) > 0 {
-		oldIndex := existentSerieAliases[0]
-		elasticClient.Alias().Remove(oldIndex, elasticSerieEpisodeAliasName).Do(context.TODO())
-		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
-	}
-	log.Println("Carga finalizada com sucesso!")
-	log.Println("Episódios carregadas length: ", seriesEpisodesCount)
-}
-
-func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
-
-	// CONFIGURAÇÃO DO MAPPING DO NOVO INDEX
-	mapping := `{
-    "settings":{
-      "number_of_shards":1,
-      "number_of_replicas":0
-    },
-    "mappings":{
-      "properties":{
+	      "popularity":{
+	        "type":"double"
+	      }
+	    }
+	  }
+	}`
+	INDEX_MAPPING_PERSONS = `{
+	  "settings":{
+	    "number_of_shards":1,
+	    "number_of_replicas":0
+	  },
+	  "mappings":{
+	    "properties":{
 				"search_field": {
 					"type": "text"
 				},
@@ -350,80 +123,29 @@ func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
 					"type": "text",
 					"copy_to": "search_field"
 				},
-        "popularity":{
-          "type":"double"
-        }
-      }
-    }
-  }`
-	ctx := context.TODO()
-
-	// ==========> PESSOAS
-	personsCount := database.GetCountAllByColletcion(database.COLLECTION_PERSON)
-	log.Println("Total de pessoas: ", personsCount)
-
-	elasticPersonAliasName := "persons"
-
-	currentPersonTime := time.Now()
-	var newPersonIndexName = elasticPersonAliasName + "_" + currentPersonTime.Format("20060102150401")
-	log.Println(newPersonIndexName)
-
-	_, err := elasticClient.CreateIndex(newPersonIndexName).BodyString(mapping).Do(ctx)
-	if err != nil {
-		log.Println("Falha ao criar o índice:", newPersonIndexName)
-		panic(err)
-	}
-
-	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		Workers(3).
-		BulkActions(10000).
-		FlushInterval(1 * time.Second).
-		After(after).
-		Do(ctx)
-
-	if err != nil {
-		log.Println("bulkProcessor Error", err)
-	}
-
-	var p int64
-	for p = 0; p < personsCount; p++ {
-
-		if p%interval == 0 {
-			persons := person.GetAll(p, interval)
-
-			for _, person := range persons {
-				req := elastic.NewBulkIndexRequest().
-					Index(newPersonIndexName).
-					Id(strconv.Itoa(person.Id) + "-" + person.Language).
-					Doc(person)
-
-				bulkProcessor.Add(req)
-			}
-
-		}
-	}
-
-	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE PESSOAS
-	existentPersonAliases, err := IndexNamesByAlias(elasticPersonAliasName, elasticClient)
-	log.Println(existentPersonAliases)
-	if err != nil {
-		log.Println("Error ao buscar o index no alias: " + elasticPersonAliasName)
-	}
-
-	// ADICIONA
-	elasticClient.Alias().Add(newPersonIndexName, elasticPersonAliasName).Do(context.TODO())
-
-	if len(existentPersonAliases) > 0 {
-		oldIndex := existentPersonAliases[0]
-		elasticClient.Alias().Remove(oldIndex, elasticPersonAliasName).Do(context.TODO())
-		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
-	}
-	log.Println("Carga finalizada com sucesso!")
-	log.Println("Pessoas carregadas length: ", personsCount)
-}
+	      "popularity":{
+	        "type":"double"
+	      }
+	    }
+	  }
+	}`
+	INDEX_MAPPING_SERIES_EPISODE = `{
+	  "settings":{
+	    "number_of_shards":1,
+	    "number_of_replicas":0
+	  },
+	  "mappings":{
+	    "properties":{
+	      "language":{
+	        "type":"text"
+	      }
+	    }
+	  }
+	}`
+)
 
 func elascitClient(logString string) *elastic.Client {
-	elasticClient, err := elastic.NewSimpleClient(
+	elasticClient, err := elastic.NewClient(
 		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
 		elastic.SetSniff(false),
 		elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
@@ -442,12 +164,131 @@ func elascitClient(logString string) *elastic.Client {
 	return elasticClient
 }
 
-func ElasticGeneralCharge() {
+func after(executionID int64, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err error) {
+	if err != nil {
+		log.Printf("bulk commit failed, err: %v\n", err)
+	}
+	// do what ever you want in case bulk commit success
+	log.Printf("commit successfully, len(requests)=%d\n", len(requests))
+}
 
-	ElasticChargeTv(elascitClient("TV"), 10000)
-	ElasticChargeMovies(elascitClient("MOVIES"), 10000)
-	ElasticChargePerson(elascitClient("PERSONS"), 50000)
-	ElasticChargeTvEpisodes(elascitClient("TV_EPISODES"), 50000)
+// =============>
+func ElasticCharge(indexName string, interval int64, mapping string) {
+	elasticClient := elascitClient(indexName)
+	ctx := context.TODO()
+
+	collectionCount := ""
+
+	switch indexName {
+	case "series":
+		collectionCount = database.COLLECTION_SERIE
+	case "movies":
+		collectionCount = database.COLLECTION_MOVIE
+	case "persons":
+		collectionCount = database.COLLECTION_PERSON
+	case "series-episodes":
+		collectionCount = database.COLLECTION_SERIE_EPISODE
+	}
+
+	// ==========> Elements docs
+	docsCount := database.GetCountAllByColletcion(collectionCount)
+	log.Println("Total de docs: ", docsCount)
+
+	elasticAliasName := indexName
+
+	currentTime := time.Now()
+	var newIndexName = elasticAliasName + "_" + currentTime.Format("20060102150401")
+	log.Println(newIndexName)
+
+	_, err := elasticClient.CreateIndex(newIndexName).BodyString(mapping).Do(ctx)
+	if err != nil {
+		log.Println("Falha ao criar o índice:", newIndexName)
+		panic(err)
+	}
+
+	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+		Workers(runtime.NumCPU()).
+		BulkActions(10000).
+		// FlushInterval(1 * time.Second).
+		After(after).
+		Do(context.Background())
+
+	if err != nil {
+		log.Println("bulkProcessor Error", err)
+	}
+
+	var i int64
+	for i = 0; i < docsCount; i++ {
+
+		if i%interval == 0 {
+
+			switch indexName {
+			case "series":
+				docs := tv.GetAll(i, interval)
+				for _, doc := range docs {
+					req := elastic.NewBulkIndexRequest().
+						Index(newIndexName).
+						Id(strconv.Itoa(doc.Id) + "-" + doc.Language).
+						Doc(doc)
+					bulkProcessor.Add(req)
+				}
+			case "movies":
+				docs := movie.GetAll(i, interval)
+				for _, doc := range docs {
+					req := elastic.NewBulkIndexRequest().
+						Index(newIndexName).
+						Id(strconv.Itoa(doc.Id) + "-" + doc.Language).
+						Doc(doc)
+					bulkProcessor.Add(req)
+				}
+			case "persons":
+				docs := person.GetAll(i, interval)
+				for _, doc := range docs {
+					req := elastic.NewBulkIndexRequest().
+						Index(newIndexName).
+						Id(strconv.Itoa(doc.Id) + "-" + doc.Language).
+						Doc(doc)
+					bulkProcessor.Add(req)
+				}
+			case "series-episodes":
+				docs := tv.GetAllEpisodes(i, interval)
+				for _, doc := range docs {
+					req := elastic.NewBulkIndexRequest().
+						Index(newIndexName).
+						Id(strconv.Itoa(doc.Id) + "-" + doc.Language).
+						Doc(doc)
+					bulkProcessor.Add(req)
+				}
+			}
+		}
+	}
+
+	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
+	existentSerieAliases, err := IndexNamesByAlias(elasticAliasName, elasticClient)
+	if err != nil {
+		log.Println("Error ao buscar o index no alias: " + elasticAliasName)
+	}
+	log.Println(existentSerieAliases)
+
+	// ADICIONA
+	elasticClient.Alias().Add(newIndexName, elasticAliasName).Do(ctx)
+
+	if len(existentSerieAliases) > 0 {
+		oldIndex := existentSerieAliases[0]
+		elasticClient.Alias().Remove(oldIndex, elasticAliasName).Do(ctx)
+		elasticClient.DeleteIndex(oldIndex).Do(ctx)
+	}
+	log.Println("Carga finalizada com sucesso!")
+
+	bulkProcessor.Flush()
+	defer bulkProcessor.Close()
+}
+
+func ElasticGeneralCharge() {
+	ElasticCharge("series", 1000, INDEX_MAPPING_SERIES)
+	ElasticCharge("movies", 1000, INDEX_MAPPING_MOVIES)
+	ElasticCharge("persons", 50000, INDEX_MAPPING_PERSONS)
+	ElasticCharge("series-episodes", 50000, INDEX_MAPPING_SERIES_EPISODE)
 }
 
 func GeneralCharge() {
