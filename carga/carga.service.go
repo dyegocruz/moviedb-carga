@@ -93,7 +93,7 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 	var m int64
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		Workers(5).
+		Workers(3).
 		BulkActions(10000).
 		FlushInterval(1 * time.Second).
 		After(after).
@@ -197,7 +197,7 @@ func ElasticChargeTv(elasticClient *elastic.Client, interval int64) {
 	}
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		Workers(5).
+		Workers(3).
 		BulkActions(10000).
 		FlushInterval(1 * time.Second).
 		After(after).
@@ -278,7 +278,7 @@ func ElasticChargeTvEpisodes(elasticClient *elastic.Client, interval int64) {
 	}
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		Workers(5).
+		Workers(3).
 		BulkActions(10000).
 		FlushInterval(1 * time.Second).
 		After(after).
@@ -375,7 +375,7 @@ func ElasticChargePerson(elasticClient *elastic.Client, interval int64) {
 	}
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		Workers(5).
+		Workers(3).
 		BulkActions(10000).
 		FlushInterval(1 * time.Second).
 		After(after).
@@ -443,8 +443,9 @@ func elascitClient(logString string) *elastic.Client {
 }
 
 func ElasticGeneralCharge() {
-	ElasticChargeMovies(elascitClient("MOVIES"), 10000)
+
 	ElasticChargeTv(elascitClient("TV"), 10000)
+	ElasticChargeMovies(elascitClient("MOVIES"), 10000)
 	ElasticChargePerson(elascitClient("PERSONS"), 50000)
 	ElasticChargeTvEpisodes(elascitClient("TV_EPISODES"), 50000)
 }
