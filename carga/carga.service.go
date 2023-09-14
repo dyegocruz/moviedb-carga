@@ -109,6 +109,8 @@ func ElasticChargeMovies(elasticClient *elastic.Client, interval int64) {
 			movies := movie.GetAll(m, interval)
 
 			for _, movie := range movies {
+				// movie.MovieCredits.Crew = nil
+				// movie.MovieCredits.Cast = nil
 				req := elastic.NewBulkIndexRequest().
 					Index(newMovieIndexName).
 					Id(strconv.Itoa(movie.Id) + "-" + movie.Language).
@@ -441,9 +443,9 @@ func elascitClient(logString string) *elastic.Client {
 }
 
 func ElasticGeneralCharge() {
-	go ElasticChargeMovies(elascitClient("MOVIES"), 1000)
+	ElasticChargeMovies(elascitClient("MOVIES"), 10000)
 	ElasticChargeTv(elascitClient("TV"), 10000)
-	go ElasticChargePerson(elascitClient("PERSONS"), 50000)
+	ElasticChargePerson(elascitClient("PERSONS"), 50000)
 	ElasticChargeTvEpisodes(elascitClient("TV_EPISODES"), 50000)
 }
 
