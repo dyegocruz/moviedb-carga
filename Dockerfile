@@ -1,4 +1,4 @@
-FROM golang:1.18 AS build_stage
+FROM golang:1.20 AS build_stage
 
 ENV PACKAGE_PATH=moviedb-carga
 RUN mkdir -p /go/src/

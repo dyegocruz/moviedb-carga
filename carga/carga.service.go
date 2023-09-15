@@ -10,7 +10,6 @@ import (
 	"moviedb/person"
 	"moviedb/tv"
 	"os"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -148,7 +147,7 @@ func elascitClient(logString string) *elastic.Client {
 	elasticClient, err := elastic.NewClient(
 		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
 		elastic.SetSniff(false),
-		// elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
+		elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
 		elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
 		elastic.SetInfoLog(log.New(os.Stdout, logString+": ", log.LstdFlags)),
 		// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
@@ -174,7 +173,7 @@ func after(executionID int64, requests []elastic.BulkableRequest, response *elas
 
 func ElasticCharge(indexName string, interval int64, mapping string) {
 	elasticClient := elascitClient(indexName)
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	collectionCount := ""
 
@@ -206,12 +205,10 @@ func ElasticCharge(indexName string, interval int64, mapping string) {
 	}
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		Workers(runtime.NumCPU()).
-		BulkActions(1000). // commit if # requests >= 1000
-		BulkSize(2 << 20). // commit if size of requests >= 2 MB
+		Workers(3).
+		BulkActions(10000).
 		// FlushInterval(1 * time.Second).
-		Stats(true).Backoff(elastic.StopBackoff{}).
-		After(after).
+		// After(after).
 		Do(ctx)
 
 	if err != nil {
@@ -220,7 +217,6 @@ func ElasticCharge(indexName string, interval int64, mapping string) {
 
 	var i int64
 	for i = 0; i < docsCount; i++ {
-
 		if i%interval == 0 {
 
 			switch indexName {
@@ -286,10 +282,10 @@ func ElasticCharge(indexName string, interval int64, mapping string) {
 }
 
 func ElasticGeneralCharge() {
-	ElasticCharge("series", 1000, INDEX_MAPPING_SERIES)
-	ElasticCharge("movies", 1000, INDEX_MAPPING_MOVIES)
-	ElasticCharge("persons", 1000, INDEX_MAPPING_PERSONS)
-	ElasticCharge("series-episodes", 1000, INDEX_MAPPING_SERIES_EPISODE)
+	ElasticCharge("series", 10000, INDEX_MAPPING_SERIES)
+	ElasticCharge("movies", 10000, INDEX_MAPPING_MOVIES)
+	ElasticCharge("persons", 50000, INDEX_MAPPING_PERSONS)
+	ElasticCharge("series-episodes", 50000, INDEX_MAPPING_SERIES_EPISODE)
 }
 
 func GeneralCharge() {
