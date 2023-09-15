@@ -205,8 +205,9 @@ func ElasticCharge(indexName string, interval int64, mapping string) {
 	}
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		Workers(3).
-		BulkActions(10000).
+		Workers(2).
+		BulkActions(1000).
+		// BulkSize(100 << 20).
 		// FlushInterval(1 * time.Second).
 		// After(after).
 		Do(ctx)
@@ -282,10 +283,11 @@ func ElasticCharge(indexName string, interval int64, mapping string) {
 }
 
 func ElasticGeneralCharge() {
-	ElasticCharge("series", 10000, INDEX_MAPPING_SERIES)
-	ElasticCharge("movies", 10000, INDEX_MAPPING_MOVIES)
-	ElasticCharge("persons", 50000, INDEX_MAPPING_PERSONS)
-	ElasticCharge("series-episodes", 50000, INDEX_MAPPING_SERIES_EPISODE)
+	go ElasticCharge("movies", 200, INDEX_MAPPING_MOVIES)
+	ElasticCharge("series", 200, INDEX_MAPPING_SERIES)
+
+	go ElasticCharge("persons", 5000, INDEX_MAPPING_PERSONS)
+	ElasticCharge("series-episodes", 5000, INDEX_MAPPING_SERIES_EPISODE)
 }
 
 func GeneralCharge() {
