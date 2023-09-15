@@ -20,8 +20,8 @@ import (
 func CatalogCharge() {
 
 	go CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_TV)
-	go CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_MOVIE)
-	CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_PERSON)
+	CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_MOVIE)
+	// CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_PERSON)
 
 	// go movie.PopulateMovies(common.LANGUAGE_EN, "")
 
@@ -39,9 +39,9 @@ func CatalogCharge() {
 
 func CatalogUpdates() {
 	// Checking changes by data type
-	go movie.CheckMoviesChanges()
-	go person.CheckPersonChanges()
-	tv.CheckTvChanges()
+	go tv.CheckTvChanges()
+	// go person.CheckPersonChanges()
+	movie.CheckMoviesChanges()
 }
 
 const (
@@ -148,7 +148,7 @@ func elascitClient(logString string) *elastic.Client {
 	elasticClient, err := elastic.NewClient(
 		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
 		elastic.SetSniff(false),
-		elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
+		// elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
 		elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
 		elastic.SetInfoLog(log.New(os.Stdout, logString+": ", log.LstdFlags)),
 		// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
@@ -172,10 +172,9 @@ func after(executionID int64, requests []elastic.BulkableRequest, response *elas
 	log.Printf("commit successfully, len(requests)=%d\n", len(requests))
 }
 
-// =============>
 func ElasticCharge(indexName string, interval int64, mapping string) {
 	elasticClient := elascitClient(indexName)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	collectionCount := ""
 
@@ -208,10 +207,12 @@ func ElasticCharge(indexName string, interval int64, mapping string) {
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
 		Workers(runtime.NumCPU()).
-		BulkActions(10000).
+		BulkActions(1000). // commit if # requests >= 1000
+		BulkSize(2 << 20). // commit if size of requests >= 2 MB
 		// FlushInterval(1 * time.Second).
+		Stats(true).Backoff(elastic.StopBackoff{}).
 		After(after).
-		Do(context.Background())
+		Do(ctx)
 
 	if err != nil {
 		log.Println("bulkProcessor Error", err)
@@ -287,8 +288,8 @@ func ElasticCharge(indexName string, interval int64, mapping string) {
 func ElasticGeneralCharge() {
 	ElasticCharge("series", 1000, INDEX_MAPPING_SERIES)
 	ElasticCharge("movies", 1000, INDEX_MAPPING_MOVIES)
-	ElasticCharge("persons", 50000, INDEX_MAPPING_PERSONS)
-	ElasticCharge("series-episodes", 50000, INDEX_MAPPING_SERIES_EPISODE)
+	ElasticCharge("persons", 1000, INDEX_MAPPING_PERSONS)
+	ElasticCharge("series-episodes", 1000, INDEX_MAPPING_SERIES_EPISODE)
 }
 
 func GeneralCharge() {
