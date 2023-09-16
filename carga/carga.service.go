@@ -206,7 +206,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
 		Workers(1).
-		BulkActions(10000).
+		BulkActions(100).
 		// BulkSize(100 << 20).
 		// FlushInterval(1 * time.Second).
 		// After(after).
