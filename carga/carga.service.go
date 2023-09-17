@@ -10,6 +10,7 @@ import (
 	"moviedb/person"
 	"moviedb/tv"
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -205,7 +206,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 	}
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		Workers(1).
+		Workers(runtime.NumCPU()).
 		// BulkActions(100).
 		BulkActions(int(interval)).
 		// BulkSize(100 << 20).
@@ -284,10 +285,10 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 }
 
 func ElasticGeneralCharge() {
-	go ElasticChargeInsert("movies", 500, INDEX_MAPPING_MOVIES)
-	go ElasticChargeInsert("series", 500, INDEX_MAPPING_SERIES)
-	go ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS)
-	ElasticChargeInsert("series-episodes", 5000, INDEX_MAPPING_SERIES_EPISODE)
+	ElasticChargeInsert("series", 200, INDEX_MAPPING_SERIES)
+	ElasticChargeInsert("movies", 200, INDEX_MAPPING_MOVIES)
+	ElasticChargeInsert("persons", 500, INDEX_MAPPING_PERSONS)
+	ElasticChargeInsert("series-episodes", 1000, INDEX_MAPPING_SERIES_EPISODE)
 }
 
 func GeneralCharge() {
