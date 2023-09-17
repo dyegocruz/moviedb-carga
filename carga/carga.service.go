@@ -285,7 +285,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 
 func ElasticGeneralCharge() {
 	go ElasticChargeInsert("series", 1000, INDEX_MAPPING_SERIES)
-	ElasticChargeInsert("movies", 1000, INDEX_MAPPING_MOVIES)
+	go ElasticChargeInsert("movies", 1000, INDEX_MAPPING_MOVIES)
 	go ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS)
 	ElasticChargeInsert("series-episodes", 5000, INDEX_MAPPING_SERIES_EPISODE)
 }
