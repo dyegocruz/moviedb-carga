@@ -169,7 +169,7 @@ func GetAll(skip int64, limit int64) []Serie {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	projection := bson.M{"seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0}
+	projection := bson.M{"seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0}
 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
 	if err != nil {
