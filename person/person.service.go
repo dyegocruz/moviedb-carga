@@ -98,7 +98,8 @@ func GetAll(skip int64, limit int64) []Person {
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
+	projection := bson.M{"updated": 0, "updatedNew": 0}
+	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_PERSON).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
 	if err != nil {
 		log.Println(err)
