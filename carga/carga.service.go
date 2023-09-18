@@ -169,7 +169,7 @@ func after(executionID int64, requests []elastic.BulkableRequest, response *elas
 
 func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 	elasticClient := elascitClient(indexName)
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	collectionCount := ""
 
@@ -202,17 +202,19 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
 		// Workers(runtime.NumCPU()).
-		Workers(4).
-		// BulkActions(100).
-		BulkActions(int(interval) * 2).
-		// BulkSize(50 << 20).
-		// FlushInterval(1 * time.Second).
-		After(after).
+		// Workers(4).
+		BulkActions(10000).
+		// BulkActions(int(interval) * 2).
+		// BulkSize(100 << 20).
+		FlushInterval(1 * time.Second).
+		After(after).Stats(true).
 		Do(ctx)
 
 	if err != nil {
 		log.Println("bulkProcessor Error", err)
 	}
+
+	// var bulkRequest = elasticClient.Bulk()
 
 	var i int64
 	for i = 0; i < docsCount; i++ {
@@ -281,10 +283,10 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 }
 
 func ElasticGeneralCharge() {
-	ElasticChargeInsert("movies", 1000, INDEX_MAPPING_MOVIES)
-	ElasticChargeInsert("series", 1000, INDEX_MAPPING_SERIES)
-	ElasticChargeInsert("persons", 2500, INDEX_MAPPING_PERSONS)
-	ElasticChargeInsert("series-episodes", 2500, INDEX_MAPPING_SERIES_EPISODE)
+	go ElasticChargeInsert("series", 1000, INDEX_MAPPING_SERIES)
+	go ElasticChargeInsert("movies", 1000, INDEX_MAPPING_MOVIES)
+	go ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS)
+	ElasticChargeInsert("series-episodes", 5000, INDEX_MAPPING_SERIES_EPISODE)
 }
 
 func GeneralCharge() {
