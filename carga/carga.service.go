@@ -10,7 +10,6 @@ import (
 	"moviedb/person"
 	"moviedb/tv"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/olivere/elastic"
@@ -202,7 +201,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
 		// Workers(runtime.NumCPU()).
-		// Workers(4).
+		Workers(3).
 		BulkActions(-1).
 		// BulkActions(int(interval) * 2).
 		// BulkSize(50 << 20).
@@ -227,7 +226,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 				for _, doc := range docs {
 					req := elastic.NewBulkIndexRequest().
 						Index(newIndexName).
-						Id(strconv.Itoa(doc.Id) + "-" + doc.Language).
+						// Id(strconv.Itoa(doc.Id) + "-" + doc.Language).
 						Doc(doc)
 					bulkProcessor.Add(req)
 				}
@@ -236,7 +235,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 				for _, doc := range docs {
 					req := elastic.NewBulkIndexRequest().
 						Index(newIndexName).
-						Id(strconv.Itoa(doc.Id) + "-" + doc.Language).
+						// Id(strconv.Itoa(doc.Id) + "-" + doc.Language).
 						Doc(doc)
 					bulkProcessor.Add(req)
 				}
@@ -245,7 +244,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 				for _, doc := range docs {
 					req := elastic.NewBulkIndexRequest().
 						Index(newIndexName).
-						Id(strconv.Itoa(doc.Id) + "-" + doc.Language).
+						// Id(strconv.Itoa(doc.Id) + "-" + doc.Language).
 						Doc(doc)
 					bulkProcessor.Add(req)
 				}
@@ -254,7 +253,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 				for _, doc := range docs {
 					req := elastic.NewBulkIndexRequest().
 						Index(newIndexName).
-						Id(strconv.Itoa(doc.Id) + "-" + doc.Language).
+						// Id(strconv.Itoa(doc.ShowId) + "-" + strconv.Itoa(doc.SeasonNumber) + "-" + doc.Language).
 						Doc(doc)
 					bulkProcessor.Add(req)
 				}
