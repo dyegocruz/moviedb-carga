@@ -45,7 +45,8 @@ func CatalogUpdates() {
 const (
 	INDEX_MAPPING_SERIES = `{
 	  "settings":{
-	    "number_of_replicas":0
+	    "number_of_shards" : 1,
+			"number_of_replicas" : 0
 	  },
 	  "mappings":{
 	    "properties":{
@@ -72,7 +73,8 @@ const (
 	}`
 	INDEX_MAPPING_MOVIES = `{
 	  "settings":{
-	    "number_of_replicas":0
+	    "number_of_shards" : 1,
+			"number_of_replicas" : 0
 	  },
 	  "mappings":{
 	    "properties":{
@@ -87,10 +89,6 @@ const (
 					"type": "text",
 					"copy_to": "search_field"
 				},
-				"slug": {
-					"type": "text",
-					"copy_to": "search_field"
-				},
 	      "popularity":{
 	        "type":"double"
 	      }
@@ -99,7 +97,8 @@ const (
 	}`
 	INDEX_MAPPING_PERSONS = `{
 	  "settings":{
-	    "number_of_replicas":0
+	    "number_of_shards" : 1,
+			"number_of_replicas" : 0
 	  },
 	  "mappings":{
 	    "properties":{
@@ -114,10 +113,6 @@ const (
 					"type": "text",
 					"copy_to": "search_field"
 				},
-				"slug": {
-					"type": "text",
-					"copy_to": "search_field"
-				},
 	      "popularity":{
 	        "type":"double"
 	      }
@@ -126,7 +121,8 @@ const (
 	}`
 	INDEX_MAPPING_SERIES_EPISODE = `{
 	  "settings":{
-	    "number_of_replicas":0
+	    "number_of_shards" : 1,
+			"number_of_replicas" : 0
 	  },
 	  "mappings":{
 	    "properties":{
@@ -202,8 +198,8 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
 		// Workers(runtime.NumCPU()).
 		Workers(3).
-		// BulkActions(-1).
-		BulkActions(1000).
+		BulkActions(-1).
+		// BulkActions(500).
 		// BulkActions(int(interval) * 2).
 		// BulkSize(50 << 20).
 		// FlushInterval(1 * time.Second).
@@ -285,14 +281,14 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 
 func ElasticGeneralCharge() {
 	go ElasticChargeInsert("movies", 5000, INDEX_MAPPING_MOVIES)
-	ElasticChargeInsert("series", 5000, INDEX_MAPPING_SERIES)
+	go ElasticChargeInsert("series", 5000, INDEX_MAPPING_SERIES)
 	go ElasticChargeInsert("persons", 5000, INDEX_MAPPING_PERSONS)
 	ElasticChargeInsert("series-episodes", 5000, INDEX_MAPPING_SERIES_EPISODE)
 }
 
 func GeneralCharge() {
-	CatalogCharge()
-	CatalogUpdates()
+	// CatalogCharge()
+	// CatalogUpdates()
 	ElasticGeneralCharge()
 }
 
