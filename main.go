@@ -4,6 +4,7 @@ import (
 	"log"
 	"moviedb/carga"
 	"moviedb/database"
+	"moviedb/tv"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -32,14 +33,24 @@ func init() {
 }
 
 func main() {
-	// docsTotal := tv.GetCountAll()
-	// log.Println(docsTotal)
+	docsTotal := tv.GetCountAll()
+	log.Println(docsTotal)
 
+	// var interval int64 = 1000
+	// var i int64
+	// series := make([]tv.Serie, 0)
+	// for i = 0; i < docsTotal; i++ {
+	// 	if i%interval == 0 {
+	// 		log.Println(i)
+	// 		series = append(series, tv.GetAll(i, interval)...)
+	// 	}
+	// }
+	// log.Println(len(series))
 	// 	// tv.GetAll(i, 1)
 
 	// 	// log.Println(tv.GetAll(i, 1)[0].Id)
 	// }
-	// series := tv.GetAllTest(10000)
+	// series := tv.GetAllTest(100)
 	// log.Println("FINISH", len(series))
 	// movies := movie.GetAllTest(10000)
 	// log.Println("FINISH", len(movies))

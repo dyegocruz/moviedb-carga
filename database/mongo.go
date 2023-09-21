@@ -25,7 +25,7 @@ const (
 
 const (
 	// Timeout operations after N seconds
-	connectTimeout           = 5
+	connectTimeout           = 10
 	connectionStringTemplate = "mongodb://%s:%s@%s"
 )
 
@@ -34,14 +34,22 @@ func GetConnection() (*mongo.Client, context.Context, context.CancelFunc) {
 
 	var connectionURI = os.Getenv("MONGO_URI")
 
-	client, err := mongo.NewClient(options.Client().ApplyURI(connectionURI))
-	if err != nil {
-		log.Printf("Failed to create client: %v", err)
-	}
+	// client, err := mongo.NewClient(options.Client().ApplyURI(connectionURI))
+	// if err != nil {
+	// 	log.Printf("Failed to create client: %v", err)
+	// }
+
+	// ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
 
 	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
-
-	err = client.Connect(ctx)
+	// defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectionURI))
+	// defer func() {
+	// 	if err = client.Disconnect(ctx); err != nil {
+	// 		panic(err)
+	// 	}
+	// }()
+	// err = client.Connect(ctx)
 	if err != nil {
 		log.Printf("Failed to connect to cluster: %v", err)
 	}
@@ -53,6 +61,7 @@ func GetConnection() (*mongo.Client, context.Context, context.CancelFunc) {
 	}
 
 	// fmt.Println("Connected to MongoDB!")
+	// return client, ctx, cancel
 	return client, ctx, cancel
 }
 
