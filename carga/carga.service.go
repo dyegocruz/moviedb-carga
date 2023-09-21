@@ -256,7 +256,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 	episodes := make([]tv.Episode, 0)
 	for i = 0; i < docsCount; i++ {
 		if i%interval == 0 {
-
+			log.Println(indexName+": ", i)
 			switch indexName {
 			case "series":
 				series = append(series, tv.GetAll(i, interval)...)
@@ -270,7 +270,6 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 				// }
 			case "movies":
 				// docs := movie.GetAll(i, interval)
-				log.Println(i)
 				movies = append(movies, movie.GetAll(i, interval)...)
 				// for _, doc := range docs {
 				// 	req := elastic.NewBulkIndexRequest().
