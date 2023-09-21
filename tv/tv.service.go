@@ -165,7 +165,9 @@ func PopulateSeries(language string, idGenre string) {
 }
 
 func GetAll(skip int64, limit int64) []Serie {
-	client, ctx, _ := database.GetConnection()
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
 
 	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0}
 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
@@ -182,10 +184,12 @@ func GetAll(skip int64, limit int64) []Serie {
 		if err != nil {
 			log.Fatal(err)
 		}
-		series = append(series, serie)
+		if serie.Id > 0 {
+			series = append(series, serie)
+		}
+
 	}
 
-	client.Disconnect(ctx)
 	return series
 }
 
