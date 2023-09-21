@@ -32,7 +32,19 @@ func init() {
 }
 
 func main() {
+	// docsTotal := tv.GetCountAll()
+	// log.Println(docsTotal)
 
+	// 	// tv.GetAll(i, 1)
+
+	// 	// log.Println(tv.GetAll(i, 1)[0].Id)
+	// }
+	// series := tv.GetAllTest(10000)
+	// log.Println("FINISH", len(series))
+	// movies := movie.GetAllTest(10000)
+	// log.Println("FINISH", len(movies))
+
+	// tv.GetAll(0, 100)
 	carga.GeneralCharge()
 	log.Println("PROCESS CONCLUDED")
 	// log.Println(runtime.NumCPU())
