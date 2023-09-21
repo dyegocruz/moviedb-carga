@@ -112,9 +112,8 @@ func PopulateMovies(language string, idGenre string) {
 }
 
 func GetAll(skip int64, limit int64) []Movie {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
+	client, ctx, _ := database.GetConnection()
+
 	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "updated": 0, "updatedNew": 0}
 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
@@ -123,24 +122,7 @@ func GetAll(skip int64, limit int64) []Movie {
 	}
 
 	movies := make([]Movie, 0)
-	cur.All(context.TODO(), &movies)
-	cur.Close(context.TODO())
-
-	return movies
-}
-
-func GetAllTest(batchSize int32) []Movie {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "updated": 0, "updatedNew": 0}
-	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
-	if err != nil {
-		log.Println(err)
-	}
-
-	movies := make([]Movie, 0)
+	defer cur.Close(context.TODO())
 	for cur.Next(context.TODO()) {
 		var movie Movie
 		err := cur.Decode(&movie)
@@ -149,8 +131,34 @@ func GetAllTest(batchSize int32) []Movie {
 		}
 		movies = append(movies, movie)
 	}
-	cur.Close(context.TODO())
 
+	client.Disconnect(ctx)
+
+	return movies
+}
+
+func GetAllTest(batchSize int32) []Movie {
+	client, ctx, _ := database.GetConnection()
+
+	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "updated": 0, "updatedNew": 0}
+	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	movies := make([]Movie, 0)
+	defer cur.Close(context.TODO())
+	for cur.Next(context.TODO()) {
+		var movie Movie
+		err := cur.Decode(&movie)
+		if err != nil {
+			log.Fatal(err)
+		}
+		movies = append(movies, movie)
+	}
+
+	client.Disconnect(ctx)
 	return movies
 }
 
