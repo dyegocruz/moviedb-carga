@@ -171,13 +171,39 @@ func GetAll(skip int64, limit int64) []Serie {
 
 	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0}
 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.Background(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	series := make([]Serie, 0)
+	cur.All(context.Background(), &series)
+	cur.Close(context.Background())
+
+	return series
+}
+
+func GetAllTest(batchSize int32) []Serie {
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0}
+	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
 
 	series := make([]Serie, 0)
-	cur.All(context.TODO(), &series)
+	for cur.Next(context.TODO()) {
+		var serie Serie
+		err := cur.Decode(&serie)
+		if err != nil {
+			log.Fatal(err)
+		}
+		series = append(series, serie)
+	}
 	cur.Close(context.TODO())
 
 	return series
@@ -239,6 +265,32 @@ func GetAllEpisodes(skip int64, limit int64) []Episode {
 
 	episodes := make([]Episode, 0)
 	cur.All(context.TODO(), &episodes)
+	cur.Close(context.TODO())
+
+	return episodes
+}
+
+func GetAllEpisodesTest(batchSize int32) []Episode {
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0}
+	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	episodes := make([]Episode, 0)
+	for cur.Next(context.TODO()) {
+		var episode Episode
+		err := cur.Decode(&episode)
+		if err != nil {
+			log.Fatal(err)
+		}
+		episodes = append(episodes, episode)
+	}
 	cur.Close(context.TODO())
 
 	return episodes
