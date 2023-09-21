@@ -35,7 +35,7 @@ func main() {
 	// docsTotal := tv.GetCountAll()
 	// log.Println(docsTotal)
 
-	// var interval int64 = 1000
+	// var interval int64 = 10000
 	// var i int64
 	// series := make([]tv.Serie, 0)
 	// for i = 0; i < docsTotal; i++ {
