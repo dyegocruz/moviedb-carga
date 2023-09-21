@@ -356,10 +356,10 @@ func ElasticGeneralCharge() {
 	// go ElasticChargeInsert("movies", 1000, INDEX_MAPPING_MOVIES, 50)
 	// go ElasticChargeInsert("persons", 1000, INDEX_MAPPING_PERSONS, 50)
 	// ElasticChargeInsert("series-episodes", 1000, INDEX_MAPPING_SERIES_EPISODE, 50)
-	ElasticChargeInsert("series", 100000, INDEX_MAPPING_SERIES, 1000)
-	ElasticChargeInsert("movies", 100000, INDEX_MAPPING_MOVIES, 1000)
-	ElasticChargeInsert("persons", 100000, INDEX_MAPPING_PERSONS, 1000)
-	ElasticChargeInsert("series-episodes", 100000, INDEX_MAPPING_SERIES_EPISODE, 1000)
+	ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 1000)
+	// ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 1000)
+	// ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 1000)
+	// ElasticChargeInsert("series-episodes", 10000, INDEX_MAPPING_SERIES_EPISODE, 1000)
 }
 
 func GeneralCharge() {

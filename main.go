@@ -4,7 +4,6 @@ import (
 	"log"
 	"moviedb/carga"
 	"moviedb/database"
-	"moviedb/tv"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -33,8 +32,8 @@ func init() {
 }
 
 func main() {
-	docsTotal := tv.GetCountAll()
-	log.Println(docsTotal)
+	// docsTotal := tv.GetCountAll()
+	// log.Println(docsTotal)
 
 	// var interval int64 = 1000
 	// var i int64
