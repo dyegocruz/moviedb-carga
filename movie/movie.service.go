@@ -129,9 +129,7 @@ func GetAll(skip int64, limit int64) []Movie {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if movie.Id > 0 {
-			movies = append(movies, movie)
-		}
+		movies = append(movies, movie)
 	}
 
 	client.Disconnect(ctx)
@@ -141,10 +139,11 @@ func GetAll(skip int64, limit int64) []Movie {
 
 func GetAllTest(batchSize int32) []Movie {
 	client, ctx, _ := database.GetConnection()
+	defer client.Disconnect(ctx)
 
 	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "updated": 0, "updatedNew": 0}
 	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).Find(context.TODO(), bson.D{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -160,7 +159,6 @@ func GetAllTest(batchSize int32) []Movie {
 		movies = append(movies, movie)
 	}
 
-	client.Disconnect(ctx)
 	return movies
 }
 

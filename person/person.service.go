@@ -113,9 +113,33 @@ func GetAll(skip int64, limit int64) []Person {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if person.Id > 0 {
-			persons = append(persons, person)
+		persons = append(persons, person)
+	}
+
+	return persons
+}
+
+func GetByListId(listIds []int) []Person {
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+
+	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
+	optionsFind := options.Find().SetProjection(projection)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.M{"id": bson.M{"$in": listIds}}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	persons := make([]Person, 0)
+	defer cur.Close(context.TODO())
+	for cur.Next(context.TODO()) {
+		var person Person
+		err := cur.Decode(&person)
+		if err != nil {
+			log.Fatal(err)
 		}
+		persons = append(persons, person)
 	}
 
 	return persons
@@ -127,7 +151,7 @@ func GetAllTest(batchSize int32) []Person {
 	defer client.Disconnect(ctx)
 	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
 	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.D{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
