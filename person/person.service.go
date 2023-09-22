@@ -100,14 +100,23 @@ func GetAll(skip int64, limit int64) []Person {
 
 	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.M{"language": bson.M{"$in": []string{common.LANGUAGE_EN, common.LANGUAGE_PTBR}}}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
 
 	persons := make([]Person, 0)
-	cur.All(context.TODO(), &persons)
-	cur.Close(context.TODO())
+	defer cur.Close(context.TODO())
+	for cur.Next(context.TODO()) {
+		var person Person
+		err := cur.Decode(&person)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if person.Id > 0 {
+			persons = append(persons, person)
+		}
+	}
 
 	return persons
 }
