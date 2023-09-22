@@ -184,9 +184,7 @@ func GetAll(skip int64, limit int64) []Serie {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if serie.Id > 0 {
-			series = append(series, serie)
-		}
+		series = append(series, serie)
 	}
 
 	return series
@@ -194,10 +192,11 @@ func GetAll(skip int64, limit int64) []Serie {
 
 func GetAllTest(batchSize int32) []Serie {
 	client, ctx, _ := database.GetConnection()
+	defer client.Disconnect(ctx)
 
 	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0}
 	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.D{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -212,8 +211,6 @@ func GetAllTest(batchSize int32) []Serie {
 		}
 		series = append(series, serie)
 	}
-
-	defer client.Disconnect(ctx)
 	return series
 }
 
@@ -292,7 +289,7 @@ func GetAllEpisodesTest(batchSize int32) []Episode {
 
 	projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "credits.crew.gender": 0}
 	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).Find(context.TODO(), bson.D{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}

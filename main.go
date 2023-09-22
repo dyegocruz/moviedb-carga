@@ -35,6 +35,28 @@ func main() {
 	// docsTotal := tv.GetCountAll()
 	// log.Println(docsTotal)
 
+	// persons := person.GetAllTest(10000)
+	// log.Println(len(persons))
+
+	// persons := person.GeneratePersonCatalogCheck(common.LANGUAGE_EN)
+	// log.Println(len(persons))
+
+	// var i int64 = 0
+	// listIds := make([]int, 0)
+	// for _, personCatalog := range persons {
+
+	// 	listIds = append(listIds, personCatalog.Id)
+
+	// 	if i%5000 == 0 {
+
+	// 		log.Println(len(person.GetByListId(listIds)))
+
+	// 		listIds = make([]int, 0)
+	// 	}
+
+	// 	i++
+	// }
+
 	// var interval int64 = 10000
 	// var i int64
 	// series := make([]tv.Serie, 0)
