@@ -159,8 +159,8 @@ func GenerateCatalogCheck(collection string, language string) map[int]common.Cat
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	filter := bson.M{"id": bson.M{"$gt": 0}, "language": language}
-	opts := options.Find().SetProjection(bson.M{"id": 1, "language": 1})
+	filter := bson.M{"language": language}
+	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0})
 
 	var results []common.CatalogCheck
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).Find(context.TODO(), filter, opts)

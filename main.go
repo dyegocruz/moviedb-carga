@@ -32,51 +32,29 @@ func init() {
 }
 
 func main() {
-	// docsTotal := tv.GetCountAll()
-	// log.Println(docsTotal)
 
-	// persons := person.GetAllTest(10000)
-	// log.Println(len(persons))
-
-	// persons := person.GeneratePersonCatalogCheck(common.LANGUAGE_EN)
-	// log.Println(len(persons))
+	// tvCatalog := tv.GenerateTvCatalogCheck(common.LANGUAGE_EN)
+	// log.Println(len(tvCatalog))
 
 	// var i int64 = 0
-	// listIds := make([]int, 0)
-	// for _, personCatalog := range persons {
+	// var interval int64 = 1000
+	// idsGet := make([]int, 0)
+	// for _, catalog := range tvCatalog {
+	// 	// log.Println(catalog.Id)
 
-	// 	listIds = append(listIds, personCatalog.Id)
+	// 	idsGet = append(idsGet, catalog.Id)
 
-	// 	if i%5000 == 0 {
+	// 	if i%interval == 0 {
+	// 		log.Println(len(idsGet))
 
-	// 		log.Println(len(person.GetByListId(listIds)))
-
-	// 		listIds = make([]int, 0)
+	// 		batch := tv.GetByListId(idsGet)
+	// 		log.Println(len(batch))
+	// 		idsGet = make([]int, 0)
 	// 	}
 
 	// 	i++
 	// }
 
-	// var interval int64 = 10000
-	// var i int64
-	// series := make([]tv.Serie, 0)
-	// for i = 0; i < docsTotal; i++ {
-	// 	if i%interval == 0 {
-	// 		log.Println(i)
-	// 		series = append(series, tv.GetAll(i, interval)...)
-	// 	}
-	// }
-	// log.Println(len(series))
-	// 	// tv.GetAll(i, 1)
-
-	// 	// log.Println(tv.GetAll(i, 1)[0].Id)
-	// }
-	// series := tv.GetAllTest(100)
-	// log.Println("FINISH", len(series))
-	// movies := movie.GetAllTest(10000)
-	// log.Println("FINISH", len(movies))
-
-	// tv.GetAll(0, 100)
 	carga.GeneralCharge()
 	log.Println("PROCESS CONCLUDED")
 	// log.Println(runtime.NumCPU())

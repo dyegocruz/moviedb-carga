@@ -120,8 +120,7 @@ func GetAll(skip int64, limit int64) []Person {
 }
 
 func GetByListId(listIds []int) []Person {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
+	client, ctx, _ := database.GetConnection()
 	defer client.Disconnect(ctx)
 
 	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}

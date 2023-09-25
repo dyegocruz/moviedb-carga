@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"moviedb/common"
-	"moviedb/database"
 	"moviedb/movie"
 	"moviedb/person"
 	"moviedb/tv"
@@ -166,22 +165,22 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 	elasticClient := elascitClient(indexName)
 	ctx := context.TODO()
 
-	collectionCount := ""
+	// collectionCount := ""
 
-	switch indexName {
-	case "series":
-		collectionCount = database.COLLECTION_SERIE
-	case "movies":
-		collectionCount = database.COLLECTION_MOVIE
-	case "persons":
-		collectionCount = database.COLLECTION_PERSON
-	case "series-episodes":
-		collectionCount = database.COLLECTION_SERIE_EPISODE
-	}
+	// switch indexName {
+	// case "series":
+	// 	collectionCount = database.COLLECTION_SERIE
+	// case "movies":
+	// 	collectionCount = database.COLLECTION_MOVIE
+	// case "persons":
+	// 	collectionCount = database.COLLECTION_PERSON
+	// case "series-episodes":
+	// 	collectionCount = database.COLLECTION_SERIE_EPISODE
+	// }
 
-	// ==========> Elements docs
-	docsCount := database.GetCountAllByColletcion(collectionCount)
-	log.Println("Total de docs: ", docsCount)
+	// // ==========> Elements docs
+	// docsCount := database.GetCountAllByColletcion(collectionCount)
+	// log.Println("Total de docs: ", docsCount)
 
 	elasticAliasName := indexName
 
@@ -211,41 +210,116 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 		log.Println("bulkProcessor Error", err)
 	}
 
-	// // var bulkRequest = elasticClient.Bulk()
 	switch indexName {
 	case "series":
-		docs := tv.GetAllTest(1000)
-		log.Println("MONGO QUERY: ", len(docs))
-		for _, doc := range docs {
-			req := elastic.NewBulkIndexRequest().
-				Index(newIndexName).
-				Doc(doc)
-			bulkProcessor.Add(req)
+		tvCatalog := tv.GenerateTvCatalogCheck(common.LANGUAGE_EN)
+
+		var i int64 = 0
+		idsGet := make([]int, 0)
+		for _, catalog := range tvCatalog {
+
+			idsGet = append(idsGet, catalog.Id)
+
+			if i%interval == 0 {
+				docs := tv.GetByListId(idsGet)
+				for _, doc := range docs {
+					req := elastic.NewBulkIndexRequest().
+						Index(newIndexName).
+						Doc(doc)
+					bulkProcessor.Add(req)
+				}
+				idsGet = make([]int, 0)
+			}
+
+			i++
 		}
 	case "movies":
-		docs := movie.GetAllTest(1000)
-		log.Println("MONGO QUERY: ", len(docs))
-		for _, doc := range docs {
-			req := elastic.NewBulkIndexRequest().
-				Index(newIndexName).
-				Doc(doc)
-			bulkProcessor.Add(req)
+		// docs := movie.GetAllTest(1000)
+		// log.Println("MONGO QUERY: ", len(docs))
+		// for _, doc := range docs {
+		// 	req := elastic.NewBulkIndexRequest().
+		// 		Index(newIndexName).
+		// 		Doc(doc)
+		// 	bulkProcessor.Add(req)
+		// }
+		movieCatalog := movie.GenerateMovieCatalogCheck(common.LANGUAGE_EN)
+
+		var i int64 = 0
+		idsGet := make([]int, 0)
+		for _, catalog := range movieCatalog {
+
+			idsGet = append(idsGet, catalog.Id)
+
+			if i%interval == 0 {
+				docs := movie.GetByListId(idsGet)
+				for _, doc := range docs {
+					req := elastic.NewBulkIndexRequest().
+						Index(newIndexName).
+						Doc(doc)
+					bulkProcessor.Add(req)
+				}
+				idsGet = make([]int, 0)
+			}
+
+			i++
 		}
 	case "persons":
-		docs := person.GetAllTest(1000)
-		for _, doc := range docs {
-			req := elastic.NewBulkIndexRequest().
-				Index(newIndexName).
-				Doc(doc)
-			bulkProcessor.Add(req)
+		// docs := person.GetAllTest(1000)
+		// for _, doc := range docs {
+		// 	req := elastic.NewBulkIndexRequest().
+		// 		Index(newIndexName).
+		// 		Doc(doc)
+		// 	bulkProcessor.Add(req)
+		// }
+		personCatalog := person.GeneratePersonCatalogCheck(common.LANGUAGE_EN)
+
+		var i int64 = 0
+		idsGet := make([]int, 0)
+		for _, catalog := range personCatalog {
+
+			idsGet = append(idsGet, catalog.Id)
+
+			if i%interval == 0 {
+				docs := person.GetByListId(idsGet)
+				for _, doc := range docs {
+					req := elastic.NewBulkIndexRequest().
+						Index(newIndexName).
+						Doc(doc)
+					bulkProcessor.Add(req)
+				}
+				idsGet = make([]int, 0)
+			}
+
+			i++
 		}
 	case "series-episodes":
-		docs := tv.GetAllEpisodesTest(1000)
-		for _, doc := range docs {
-			req := elastic.NewBulkIndexRequest().
-				Index(newIndexName).
-				Doc(doc)
-			bulkProcessor.Add(req)
+		// docs := tv.GetAllEpisodesTest(1000)
+		// for _, doc := range docs {
+		// 	req := elastic.NewBulkIndexRequest().
+		// 		Index(newIndexName).
+		// 		Doc(doc)
+		// 	bulkProcessor.Add(req)
+		// }
+		tvEpisodesCatalog := tv.GenerateTvEpisodesCatalogCheck(common.LANGUAGE_EN)
+
+		var i int64 = 0
+		idsGet := make([]int, 0)
+		for _, catalog := range tvEpisodesCatalog {
+
+			idsGet = append(idsGet, catalog.Id)
+
+			if i%interval == 0 {
+				docs := tv.GetEpisodesByListId(idsGet)
+				for _, doc := range docs {
+					req := elastic.NewBulkIndexRequest().
+						Index(newIndexName).
+						Doc(doc)
+					bulkProcessor.Add(req)
+				}
+				idsGet = make([]int, 0)
+			}
+
+			i++
 		}
 	}
 
@@ -341,6 +415,10 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 		elasticClient.Alias().Remove(oldIndex, elasticAliasName).Do(ctx)
 		elasticClient.DeleteIndex(oldIndex).Do(ctx)
 	}
+
+	// this method is called just to update the quantity of docs inserted on elastic search
+	elasticClient.Count(indexName).Do(context.TODO())
+
 	log.Println("Carga finalizada com sucesso!")
 
 	bulkProcessor.Flush()
