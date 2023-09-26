@@ -443,16 +443,16 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 }
 
 func ElasticGeneralCharge() {
-	go ElasticChargeInsert("series", 100, INDEX_MAPPING_SERIES, 100)
-	go ElasticChargeInsert("movies", 100, INDEX_MAPPING_MOVIES, 100)
-	go ElasticChargeInsert("persons", 1000, INDEX_MAPPING_PERSONS, 100)
-	ElasticChargeInsert("series-episodes", 250, INDEX_MAPPING_SERIES_EPISODE, 100)
+	go ElasticChargeInsert("series", 200, INDEX_MAPPING_SERIES, 100)
+	go ElasticChargeInsert("movies", 200, INDEX_MAPPING_MOVIES, 100)
+	ElasticChargeInsert("persons", 5000, INDEX_MAPPING_PERSONS, 100)
+	// ElasticChargeInsert("series-episodes", 2000, INDEX_MAPPING_SERIES_EPISODE, 100)
 }
 
 func GeneralCharge() {
-	// CatalogCharge()
+	CatalogCharge()
 	// CatalogUpdates()
-	ElasticGeneralCharge()
+	// ElasticGeneralCharge()
 }
 
 func IndexNamesByAlias(aliasName string, elasticClient *elastic.Client) ([]string, error) {

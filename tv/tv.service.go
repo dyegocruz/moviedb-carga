@@ -164,38 +164,38 @@ func PopulateSeries(language string, idGenre string) {
 	}
 }
 
-func GetAll(skip int64, limit int64) []Serie {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
+// func GetAll(skip int64, limit int64) []Serie {
+// 	client, ctx, cancel := database.GetConnection()
+// 	defer cancel()
+// 	defer client.Disconnect(ctx)
 
-	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0}
-	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.M{"language": bson.M{"$in": []string{common.LANGUAGE_EN, common.LANGUAGE_PTBR}}}, optionsFind)
-	if err != nil {
-		log.Println(err)
-	}
+// 	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0}
+// 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
+// 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.M{"language": bson.M{"$in": []string{common.LANGUAGE_EN, common.LANGUAGE_PTBR}}}, optionsFind)
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
 
-	series := make([]Serie, 0)
-	defer cur.Close(context.TODO())
-	for cur.Next(context.TODO()) {
-		var serie Serie
-		err := cur.Decode(&serie)
-		if err != nil {
-			log.Fatal(err)
-		}
-		series = append(series, serie)
-	}
+// 	series := make([]Serie, 0)
+// 	defer cur.Close(context.TODO())
+// 	for cur.Next(context.TODO()) {
+// 		var serie Serie
+// 		err := cur.Decode(&serie)
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
+// 		series = append(series, serie)
+// 	}
 
-	return series
-}
+// 	return series
+// }
 
 func GetByListId(listIds []int) []Serie {
 	client, ctx, cancel := database.GetConnection()
 	defer cancel()
 	defer client.Disconnect(ctx)
 
-	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0}
+	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0, "created_by.credit_id": 0, "created_by.gender": 0}
 	optionsFind := options.Find().SetProjection(projection)
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.M{"id": bson.M{"$in": listIds}}, optionsFind)
 	if err != nil {
@@ -216,29 +216,29 @@ func GetByListId(listIds []int) []Serie {
 	return series
 }
 
-func GetAllTest(batchSize int32) []Serie {
-	client, ctx, _ := database.GetConnection()
-	defer client.Disconnect(ctx)
+// func GetAllTest(batchSize int32) []Serie {
+// 	client, ctx, _ := database.GetConnection()
+// 	defer client.Disconnect(ctx)
 
-	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0}
-	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.D{}, optionsFind)
-	if err != nil {
-		log.Println(err)
-	}
+// 	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0}
+// 	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
+// 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.D{}, optionsFind)
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
 
-	series := make([]Serie, 0)
-	defer cur.Close(context.TODO())
-	for cur.Next(context.TODO()) {
-		var serie Serie
-		err := cur.Decode(&serie)
-		if err != nil {
-			log.Fatal(err)
-		}
-		series = append(series, serie)
-	}
-	return series
-}
+// 	series := make([]Serie, 0)
+// 	defer cur.Close(context.TODO())
+// 	for cur.Next(context.TODO()) {
+// 		var serie Serie
+// 		err := cur.Decode(&serie)
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
+// 		series = append(series, serie)
+// 	}
+// 	return series
+// }
 
 func GetSerieByIdAndLanguage(id int, language string) Serie {
 
@@ -282,36 +282,37 @@ func GetCountAllEpisodes() int64 {
 	return database.GetCountAllByColletcion(database.COLLECTION_SERIE_EPISODE)
 }
 
-func GetAllEpisodes(skip int64, limit int64) []Episode {
-	client, ctx, _ := database.GetConnection()
-	defer client.Disconnect(ctx)
+// func GetAllEpisodes(skip int64, limit int64) []Episode {
+// 	client, ctx, _ := database.GetConnection()
+// 	defer client.Disconnect(ctx)
 
-	projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "credits.crew.gender": 0}
-	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).Find(context.TODO(), bson.M{"language": bson.M{"$in": []string{common.LANGUAGE_EN, common.LANGUAGE_PTBR}}}, optionsFind)
-	if err != nil {
-		log.Println(err)
-	}
+// 	projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "credits.crew.gender": 0}
+// 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
+// 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).Find(context.TODO(), bson.M{"language": bson.M{"$in": []string{common.LANGUAGE_EN, common.LANGUAGE_PTBR}}}, optionsFind)
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
 
-	episodes := make([]Episode, 0)
-	defer cur.Close(context.TODO())
-	for cur.Next(context.TODO()) {
-		var episode Episode
-		err := cur.Decode(&episode)
-		if err != nil {
-			log.Fatal(err)
-		}
-		episodes = append(episodes, episode)
-	}
+// 	episodes := make([]Episode, 0)
+// 	defer cur.Close(context.TODO())
+// 	for cur.Next(context.TODO()) {
+// 		var episode Episode
+// 		err := cur.Decode(&episode)
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
+// 		episodes = append(episodes, episode)
+// 	}
 
-	return episodes
-}
+// 	return episodes
+// }
 
 func GetEpisodesByListId(listIds []int) []Episode {
 	client, ctx, _ := database.GetConnection()
 	defer client.Disconnect(ctx)
 
-	projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "credits.crew.gender": 0}
+	// projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "credits.crew.gender": 0}
+	projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "overview": 0, "still_path": 0, "credits": 0}
 	optionsFind := options.Find().SetProjection(projection)
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).Find(context.TODO(), bson.M{"id": bson.M{"$in": listIds}}, optionsFind)
 	if err != nil {
@@ -332,31 +333,31 @@ func GetEpisodesByListId(listIds []int) []Episode {
 	return episodes
 }
 
-func GetAllEpisodesTest(batchSize int32) []Episode {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
+// func GetAllEpisodesTest(batchSize int32) []Episode {
+// 	client, ctx, cancel := database.GetConnection()
+// 	defer cancel()
+// 	defer client.Disconnect(ctx)
 
-	projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "credits.crew.gender": 0}
-	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).Find(context.TODO(), bson.D{}, optionsFind)
-	if err != nil {
-		log.Println(err)
-	}
+// 	projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "credits.crew.gender": 0}
+// 	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
+// 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).Find(context.TODO(), bson.D{}, optionsFind)
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
 
-	episodes := make([]Episode, 0)
-	defer cur.Close(context.TODO())
-	for cur.Next(context.TODO()) {
-		var episode Episode
-		err := cur.Decode(&episode)
-		if err != nil {
-			log.Fatal(err)
-		}
-		episodes = append(episodes, episode)
-	}
+// 	episodes := make([]Episode, 0)
+// 	defer cur.Close(context.TODO())
+// 	for cur.Next(context.TODO()) {
+// 		var episode Episode
+// 		err := cur.Decode(&episode)
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
+// 		episodes = append(episodes, episode)
+// 	}
 
-	return episodes
-}
+// 	return episodes
+// }
 
 func InsertEpisode(itemInsert Episode, language string) interface{} {
 
