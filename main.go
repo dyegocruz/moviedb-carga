@@ -55,7 +55,7 @@ func main() {
 	// 	i++
 	// }
 
-	// series := tv.GetAllTest(10000)
+	// series := tv.GetAllTest(100000)
 	// log.Println(len(series))
 
 	// persons := person.GetAllTest(10000)
