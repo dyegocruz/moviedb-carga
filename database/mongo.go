@@ -155,19 +155,31 @@ func GetCountAllByColletcion(collection string) int64 {
 }
 
 func GenerateCatalogCheck(collection string, language string) map[int]common.CatalogCheck {
-	client, ctx, cancel := GetConnection()
-	defer cancel()
+	client, ctx, _ := GetConnection()
 	defer client.Disconnect(ctx)
 
 	filter := bson.M{"language": language}
 	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0}).SetNoCursorTimeout(true)
 
-	var results []common.CatalogCheck
+	// var results []common.CatalogCheck
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).Find(context.TODO(), filter, opts)
 	if err != nil {
 		log.Println(err)
 	}
-	cur.All(context.TODO(), &results)
+
+	// defer cur.Close(context.TODO())
+	// cur.All(context.TODO(), &results)
+
+	results := make([]common.CatalogCheck, 0)
+	for cur.Next(context.TODO()) {
+		var result common.CatalogCheck
+		err := cur.Decode(&result)
+		if err != nil {
+			log.Fatal(err)
+		}
+		results = append(results, result)
+	}
+	defer cur.Close(context.TODO())
 
 	var resultCatalog = make(map[int]common.CatalogCheck, len(results))
 

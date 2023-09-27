@@ -131,8 +131,35 @@ func GetByListId(listIds []int) []Person {
 	}
 
 	persons := make([]Person, 0)
-	defer cur.Close(context.TODO())
 	for cur.Next(context.TODO()) {
+		var person Person
+		err := cur.Decode(&person)
+		if err != nil {
+			log.Fatal(err)
+		}
+		persons = append(persons, person)
+	}
+
+	defer cur.Close(context.TODO())
+
+	return persons
+}
+
+func GetAllTest(batchSize int32) []Person {
+	client, ctx, _ := database.GetConnection()
+	defer client.Disconnect(ctx)
+
+	ctx2 := context.Background()
+
+	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
+	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(ctx2, bson.D{}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	persons := make([]Person, 0)
+	for cur.Next(ctx2) {
 		var person Person
 		err := cur.Decode(&person)
 		if err != nil {
@@ -143,31 +170,6 @@ func GetByListId(listIds []int) []Person {
 
 	return persons
 }
-
-// func GetAllTest(batchSize int32) []Person {
-// 	client, ctx, cancel := database.GetConnection()
-// 	defer cancel()
-// 	defer client.Disconnect(ctx)
-// 	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
-// 	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
-// 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.D{}, optionsFind)
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
-
-// 	persons := make([]Person, 0)
-// 	for cur.Next(context.TODO()) {
-// 		var person Person
-// 		err := cur.Decode(&person)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		persons = append(persons, person)
-// 	}
-// 	cur.Close(context.TODO())
-
-// 	return persons
-// }
 
 func GetPersonByIdAndLanguage(id int, language string) Person {
 

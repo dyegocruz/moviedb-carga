@@ -164,7 +164,7 @@ func after(executionID int64, requests []elastic.BulkableRequest, response *elas
 
 func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkActions int) {
 	elasticClient := elascitClient(indexName)
-	// ctx := context.TODO()
+	ctx := context.Background()
 
 	collectionCount := ""
 
@@ -207,106 +207,170 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 	// 	Stats(true).
 	// 	Do(ctx)
 
-	if err != nil {
-		log.Println("bulkProcessor Error", err)
-	}
+	// if err != nil {
+	// 	log.Println("bulkProcessor Error", err)
+	// }
 	var bulkRequest *elastic.BulkService
 
 	switch indexName {
 	case "series":
-		bulkRequest = elasticClient.Bulk().Index(newIndexName)
-		tvCatalog := tv.GenerateTvCatalogCheck(common.LANGUAGE_EN)
+		listTv := tv.GetAllTest(10000)
 
-		var i int64 = 0
-		idsGet := make([]int, 0)
-		for _, catalog := range tvCatalog {
+		bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+			Workers(5).
+			BulkActions(bulkActions).
+			After(after).
+			Stats(true).
+			Do(ctx)
 
-			idsGet = append(idsGet, catalog.Id)
-
-			if i%interval == 0 {
-				docs := tv.GetByListId(idsGet)
-
-				for _, doc := range docs {
-					req := elastic.NewBulkIndexRequest().
-						// Index(newIndexName).
-						Doc(doc)
-					bulkRequest = bulkRequest.Add(req)
-				}
-
-				_, err := bulkRequest.Do(context.TODO())
-				if err != nil {
-					fmt.Println("==================>", err)
-					panic("STOP")
-				}
-
-				idsGet = make([]int, 0)
-				bulkRequest = elasticClient.Bulk().Index(newIndexName)
-
-			}
-			i++
+		if err != nil {
+			log.Println("bulkProcessor Error", err)
 		}
+
+		for _, serie := range listTv {
+			bulkProcessor.Add(elastic.NewBulkIndexRequest().
+				Index(newIndexName).
+				Doc(serie))
+		}
+
+		bulkProcessor.Flush()
+		bulkProcessor.Close()
+		// bulkRequest = elasticClient.Bulk().Index(newIndexName)
+		// tvCatalog := tv.GenerateTvCatalogCheck(common.LANGUAGE_EN)
+
+		// var i int64 = 0
+		// idsGet := make([]int, 0)
+		// for _, catalog := range tvCatalog {
+
+		// 	idsGet = append(idsGet, catalog.Id)
+
+		// 	if i%interval == 0 {
+		// 		docs := tv.GetByListId(idsGet)
+
+		// 		for _, doc := range docs {
+		// 			req := elastic.NewBulkIndexRequest().
+		// 				// Index(newIndexName).
+		// 				Doc(doc)
+		// 			bulkRequest = bulkRequest.Add(req)
+		// 		}
+
+		// 		_, err := bulkRequest.Do(context.TODO())
+		// 		if err != nil {
+		// 			fmt.Println("==================>", err)
+		// 			panic("STOP")
+		// 		}
+
+		// 		idsGet = make([]int, 0)
+		// 		bulkRequest = elasticClient.Bulk().Index(newIndexName)
+
+		// 	}
+		// 	i++
+		// }
 	case "movies":
-		bulkRequest = elasticClient.Bulk().Index(newIndexName)
-		moiveCatalog := movie.GenerateMovieCatalogCheck(common.LANGUAGE_EN)
+		listMovies := movie.GetAllTest(10000)
 
-		var i int64 = 0
-		idsGet := make([]int, 0)
-		for _, catalog := range moiveCatalog {
+		bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+			Workers(5).
+			BulkActions(bulkActions).
+			After(after).
+			Stats(true).
+			Do(ctx)
 
-			idsGet = append(idsGet, catalog.Id)
-
-			if i%interval == 0 {
-				docs := movie.GetByListId(idsGet)
-
-				for _, doc := range docs {
-					req := elastic.NewBulkIndexRequest().
-						Doc(doc)
-					bulkRequest = bulkRequest.Add(req)
-				}
-
-				_, err := bulkRequest.Do(context.TODO())
-				if err != nil {
-					fmt.Println("==================>", err)
-					panic("STOP MOVIES")
-				}
-
-				idsGet = make([]int, 0)
-				bulkRequest = elasticClient.Bulk().Index(newIndexName)
-
-			}
-			i++
+		if err != nil {
+			log.Println("bulkProcessor Error", err)
 		}
+
+		for _, mov := range listMovies {
+			bulkProcessor.Add(elastic.NewBulkIndexRequest().
+				Index(newIndexName).
+				Doc(mov))
+		}
+
+		bulkProcessor.Flush()
+		bulkProcessor.Close()
+		// bulkRequest = elasticClient.Bulk().Index(newIndexName)
+		// moiveCatalog := movie.GenerateMovieCatalogCheck(common.LANGUAGE_EN)
+
+		// var i int64 = 0
+		// idsGet := make([]int, 0)
+		// for _, catalog := range moiveCatalog {
+
+		// 	idsGet = append(idsGet, catalog.Id)
+
+		// 	if i%interval == 0 {
+		// 		docs := movie.GetByListId(idsGet)
+
+		// 		for _, doc := range docs {
+		// 			req := elastic.NewBulkIndexRequest().
+		// 				Doc(doc)
+		// 			bulkRequest = bulkRequest.Add(req)
+		// 		}
+
+		// 		_, err := bulkRequest.Do(context.TODO())
+		// 		if err != nil {
+		// 			fmt.Println("==================>", err)
+		// 			panic("STOP MOVIES")
+		// 		}
+
+		// 		idsGet = make([]int, 0)
+		// 		bulkRequest = elasticClient.Bulk().Index(newIndexName)
+
+		// 	}
+		// 	i++
+		// }
 	case "persons":
-		bulkRequest = elasticClient.Bulk().Index(newIndexName)
-		personCatalog := person.GeneratePersonCatalogCheck(common.LANGUAGE_EN)
+		// bulkRequest = elasticClient.Bulk().Index(newIndexName)
+		// personCatalog := person.GeneratePersonCatalogCheck(common.LANGUAGE_EN)
 
-		var i int64 = 0
-		idsGet := make([]int, 0)
-		for _, catalog := range personCatalog {
+		listPersons := person.GetAllTest(10000)
 
-			idsGet = append(idsGet, catalog.Id)
+		bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+			Workers(5).
+			BulkActions(bulkActions).
+			After(after).
+			Stats(true).
+			Do(ctx)
 
-			if i%interval == 0 {
-				docs := person.GetByListId(idsGet)
-
-				for _, doc := range docs {
-					req := elastic.NewBulkIndexRequest().
-						Doc(doc)
-					bulkRequest = bulkRequest.Add(req)
-				}
-
-				_, err := bulkRequest.Do(context.TODO())
-				if err != nil {
-					fmt.Println("==================>", err)
-					panic("STOP PERSONS")
-				}
-
-				idsGet = make([]int, 0)
-				bulkRequest = elasticClient.Bulk().Index(newIndexName)
-
-			}
-			i++
+		if err != nil {
+			log.Println("bulkProcessor Error", err)
 		}
+
+		for _, people := range listPersons {
+			bulkProcessor.Add(elastic.NewBulkIndexRequest().
+				Index(newIndexName).
+				Doc(people))
+		}
+
+		bulkProcessor.Flush()
+		bulkProcessor.Close()
+
+		// var i int64 = 0
+		// idsGet := make([]int, 0)
+		// for _, catalog := range personCatalog {
+
+		// 	idsGet = append(idsGet, catalog.Id)
+
+		// 	if i%interval == 0 {
+		// 		docs := person.GetByListId(idsGet)
+
+		// 		for _, doc := range docs {
+		// 			req := elastic.NewBulkIndexRequest().
+		// 				Doc(doc)
+		// 			bulkRequest = bulkRequest.Add(req)
+		// 		}
+
+		// 		_, err := bulkRequest.Do(context.TODO())
+		// 		if err != nil {
+		// 			fmt.Println("==================>", err)
+		// 			panic("STOP PERSONS")
+		// 		}
+
+		// 		idsGet = make([]int, 0)
+		// 		bulkRequest = elasticClient.Bulk().Index(newIndexName)
+
+		// 	}
+		// 	i++
+		// }
 	case "series-episodes":
 		bulkRequest = elasticClient.Bulk().Index(newIndexName)
 		tvEpisodesCatalog := tv.GenerateTvEpisodesCatalogCheck(common.LANGUAGE_EN)
@@ -425,16 +489,16 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 	log.Println(existentSerieAliases)
 
 	// ADICIONA
-	elasticClient.Alias().Add(newIndexName, elasticAliasName).Do(context.TODO())
+	elasticClient.Alias().Add(newIndexName, elasticAliasName).Do(ctx)
 
 	if len(existentSerieAliases) > 0 {
 		oldIndex := existentSerieAliases[0]
-		elasticClient.Alias().Remove(oldIndex, elasticAliasName).Do(context.TODO())
-		elasticClient.DeleteIndex(oldIndex).Do(context.TODO())
+		elasticClient.Alias().Remove(oldIndex, elasticAliasName).Do(ctx)
+		elasticClient.DeleteIndex(oldIndex).Do(ctx)
 	}
 
 	// this method is called just to update the quantity of docs inserted on elastic search
-	elasticClient.Count(indexName).Do(context.TODO())
+	elasticClient.Count(indexName).Do(ctx)
 
 	log.Println("Carga finalizada com sucesso!")
 
@@ -443,10 +507,10 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 }
 
 func ElasticGeneralCharge() {
-	go ElasticChargeInsert("series", 200, INDEX_MAPPING_SERIES, 100)
-	go ElasticChargeInsert("movies", 200, INDEX_MAPPING_MOVIES, 100)
-	ElasticChargeInsert("persons", 5000, INDEX_MAPPING_PERSONS, 100)
-	// ElasticChargeInsert("series-episodes", 2000, INDEX_MAPPING_SERIES_EPISODE, 100)
+	ElasticChargeInsert("series", 200, INDEX_MAPPING_SERIES, 100)
+	// ElasticChargeInsert("series", 50, INDEX_MAPPING_SERIES, 100)
+	ElasticChargeInsert("movies", 50, INDEX_MAPPING_MOVIES, 100)
+	ElasticChargeInsert("persons", 2500, INDEX_MAPPING_PERSONS, 100)
 }
 
 func GeneralCharge() {
