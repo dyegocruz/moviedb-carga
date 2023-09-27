@@ -55,6 +55,12 @@ func main() {
 	// 	i++
 	// }
 
+	// series := tv.GetAllTest(10000)
+	// log.Println(len(series))
+
+	// persons := person.GetAllTest(10000)
+	// log.Println(len(persons))
+
 	carga.GeneralCharge()
 	log.Println("PROCESS CONCLUDED")
 	// log.Println(runtime.NumCPU())

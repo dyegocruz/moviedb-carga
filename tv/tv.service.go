@@ -203,7 +203,6 @@ func GetByListId(listIds []int) []Serie {
 	}
 
 	series := make([]Serie, 0)
-	defer cur.Close(context.TODO())
 	for cur.Next(context.TODO()) {
 		var serie Serie
 		err := cur.Decode(&serie)
@@ -213,32 +212,35 @@ func GetByListId(listIds []int) []Serie {
 		series = append(series, serie)
 	}
 
+	defer cur.Close(context.TODO())
+
 	return series
 }
 
-// func GetAllTest(batchSize int32) []Serie {
-// 	client, ctx, _ := database.GetConnection()
-// 	defer client.Disconnect(ctx)
+func GetAllTest(batchSize int32) []Serie {
+	client, ctx, _ := database.GetConnection()
+	defer client.Disconnect(ctx)
 
-// 	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0}
-// 	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
-// 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.D{}, optionsFind)
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
+	ctx2 := context.Background()
 
-// 	series := make([]Serie, 0)
-// 	defer cur.Close(context.TODO())
-// 	for cur.Next(context.TODO()) {
-// 		var serie Serie
-// 		err := cur.Decode(&serie)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		series = append(series, serie)
-// 	}
-// 	return series
-// }
+	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0, "created_by.credit_id": 0, "created_by.gender": 0}
+	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(ctx2, bson.D{}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	series := make([]Serie, 0)
+	for cur.Next(ctx2) {
+		var serie Serie
+		err := cur.Decode(&serie)
+		if err != nil {
+			log.Fatal(err)
+		}
+		series = append(series, serie)
+	}
+	return series
+}
 
 func GetSerieByIdAndLanguage(id int, language string) Serie {
 
