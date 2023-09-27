@@ -93,31 +93,33 @@ func PopulatePersons(language string) {
 	}
 }
 
-// func GetAll(skip int64, limit int64) []Person {
-// 	client, ctx, cancel := database.GetConnection()
-// 	defer cancel()
-// 	defer client.Disconnect(ctx)
+func GetAll(skip int64, limit int64) []Person {
+	client, ctx, cancel := database.GetConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
 
-// 	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
-// 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
-// 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.M{"language": bson.M{"$in": []string{common.LANGUAGE_EN, common.LANGUAGE_PTBR}}}, optionsFind)
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
+	ctx2 := context.TODO()
 
-// 	persons := make([]Person, 0)
-// 	defer cur.Close(context.TODO())
-// 	for cur.Next(context.TODO()) {
-// 		var person Person
-// 		err := cur.Decode(&person)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		persons = append(persons, person)
-// 	}
+	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
+	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetLimit(limit).SetSkip(skip).SetProjection(projection)
+	// cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(ctx2, bson.M{"language": bson.M{"$in": []string{common.LANGUAGE_EN, common.LANGUAGE_PTBR}}}, optionsFind)
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(ctx2, bson.D{}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
 
-// 	return persons
-// }
+	persons := make([]Person, 0)
+	for cur.Next(ctx2) {
+		var person Person
+		err := cur.Decode(&person)
+		if err != nil {
+			log.Fatal(err)
+		}
+		persons = append(persons, person)
+	}
+
+	return persons
+}
 
 func GetByListId(listIds []int) []Person {
 	client, ctx, _ := database.GetConnection()
