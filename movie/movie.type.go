@@ -27,7 +27,6 @@ type SpokenLanguages struct {
 }
 
 type MovieCast struct {
-	// Adult              bool    `json:"adult"`
 	Gender             int     `json:"gender,omitempty"`
 	Id                 int     `json:"id" bson:"id"`
 	KnownForDepartment string  `json:"known_for_department,omitempty"`
@@ -37,12 +36,9 @@ type MovieCast struct {
 	ProfilePath        string  `json:"profile_path"`
 	Character          string  `json:"character" bson:"character"`
 	Order              int     `json:"order"`
-	// CastID             int     `json:"cast_id"`
-	// CreditID  string `json:"credit_id"`
 }
 
 type MovieCrew struct {
-	// Adult              bool    `json:"adult"`
 	Gender             int     `json:"gender,omitempty"`
 	Id                 int     `json:"id" bson:"id"`
 	KnownForDepartment string  `json:"known_for_department,omitempty"`
@@ -50,18 +46,13 @@ type MovieCrew struct {
 	OriginalName       string  `json:"original_name,omitempty"`
 	Popularity         float64 `json:"popularity,omitempty"`
 	ProfilePath        string  `json:"profile_path"`
-	Department         string  `json:"department" bson:"department,omitempty"`
+	Department         string  `json:"department,omitempty" bson:"department,omitempty"`
 	Job                string  `json:"job" bson:"job"`
-	// CreditID           string  `json:"credit_id"`
 }
 
 type MovieCredits struct {
-	// Cast    []person.Cast `json:"cast" bson:"cast"`
 	Cast []MovieCast `json:"cast" bson:"cast"`
 	Crew []MovieCrew `json:"crew" bson:"crew"`
-	// CastIds []int       `json:"castIds" bson:"castIds"`
-	// Crew    []person.Crew `json:"crew" bson:"crew"`
-	// CrewIds []int       `json:"crewIds" bson:"crewIds"`
 }
 
 type Movie struct {
@@ -77,7 +68,7 @@ type Movie struct {
 	OriginalTitle       string                `json:"original_title" bson:"original_title"`
 	GenreIds            []int                 `json:"genre_ids,omitempty" bson:"genre_ids"`
 	BackdropPath        string                `json:"backdrop_path" bson:"backdrop_path"`
-	Adult               bool                  `json:"adult" bson:"adult"`
+	Adult               bool                  `json:"adult,omitempty" bson:"adult"`
 	Overview            string                `json:"overview" bson:"overview"`
 	PosterPath          string                `json:"poster_path" bson:"poster_path"`
 	MediaType           string                `json:"media_type" bson:"media_type"`

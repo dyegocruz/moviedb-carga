@@ -33,39 +33,9 @@ func init() {
 
 func main() {
 
-	// tvCatalog := tv.GenerateTvCatalogCheck(common.LANGUAGE_EN)
-	// log.Println(len(tvCatalog))
-
-	// var i int64 = 0
-	// var interval int64 = 1000
-	// idsGet := make([]int, 0)
-	// for _, catalog := range tvCatalog {
-	// 	// log.Println(catalog.Id)
-
-	// 	idsGet = append(idsGet, catalog.Id)
-
-	// 	if i%interval == 0 {
-	// 		log.Println(len(idsGet))
-
-	// 		batch := tv.GetByListId(idsGet)
-	// 		log.Println(len(batch))
-	// 		idsGet = make([]int, 0)
-	// 	}
-
-	// 	i++
-	// }
-
-	// series := tv.GetAllTest(100000)
-	// log.Println(len(series))
-
-	// persons := person.GetAllTest(10000)
-	// log.Println(len(persons))
-
 	carga.GeneralCharge()
 	log.Println("PROCESS CONCLUDED")
 	// log.Println(runtime.NumCPU())
-
-	// log.Println(len(movie.GetAll(0, 10)))
 
 	// c := cron.New()
 	// c.AddFunc("@daily", func() {
