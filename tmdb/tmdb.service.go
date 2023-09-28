@@ -22,12 +22,33 @@ func getApiConfig() (string, string) {
 	return apiKey, apiHost
 }
 
+func setPageOnGetChangesUrl(url string, page int) string {
+	return url + "&page=" + strconv.Itoa(page)
+}
+
 func GetChangesByDataType(dataType string) ChangeResults {
 	apiKey, apiHost := getApiConfig()
-	responseChange := util.HttpGet(apiHost + "/" + dataType + "/changes?api_key=" + apiKey + "&start_date=" + util.GetDateNowByFormatUrl())
+
+	page := 1
+	urlGetChanges := setPageOnGetChangesUrl(apiHost+"/"+dataType+"/changes?api_key="+apiKey+"&start_date="+util.GetDateNowByFormatUrl(), page)
+	responseChange := util.HttpGet(urlGetChanges)
 
 	var changes ChangeResults
 	json.NewDecoder(responseChange.Body).Decode(&changes)
+
+	if changes.TotalPages > 1 {
+		for i := 2; i <= changes.TotalPages; i++ {
+
+			page := i
+			urlGetChanges := setPageOnGetChangesUrl(apiHost+"/"+dataType+"/changes?api_key="+apiKey+"&start_date="+util.GetDateNowByFormatUrl(), page)
+			responseChange := util.HttpGet(urlGetChanges)
+
+			var changesPagination ChangeResults
+			json.NewDecoder(responseChange.Body).Decode(&changesPagination)
+
+			changes.Results = append(changes.Results, changesPagination.Results...)
+		}
+	}
 
 	return changes
 }
