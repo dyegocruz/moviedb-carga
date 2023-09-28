@@ -201,7 +201,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 	case "series":
 
 		bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-			Workers(3).
+			Workers(5).
 			BulkActions(-1).
 			After(after).
 			Stats(true).
@@ -230,7 +230,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 	case "movies":
 
 		bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-			Workers(3).
+			Workers(5).
 			BulkActions(-1).
 			After(after).
 			Stats(true).
@@ -345,8 +345,8 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 }
 
 func ElasticGeneralCharge() {
-	go ElasticChargeInsert("series", 1000, INDEX_MAPPING_SERIES, 100)
-	go ElasticChargeInsert("movies", 1000, INDEX_MAPPING_MOVIES, 100)
+	ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 100)
+	ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 100)
 	ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 100)
 }
 

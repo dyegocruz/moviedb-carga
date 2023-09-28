@@ -26,7 +26,6 @@ type SpokenLanguages struct {
 	Name string `json:"name" bson:"name"`
 }
 
-// type EpisodeToAir struct {
 type Episode struct {
 	AirDate          string            `json:"air_date,omitempty" bson:"air_date"`
 	EpisodeNumber    int               `json:"episode_number,omitempty" bson:"episode_number"`
@@ -89,7 +88,7 @@ type TvCrew struct {
 	OriginalName       string  `json:"original_name,omitempty"`
 	Popularity         float64 `json:"popularity,omitempty"`
 	ProfilePath        string  `json:"profile_path"`
-	Department         string  `json:"department" bson:"department,omitempty"`
+	Department         string  `json:"department,omitempty" bson:"department"`
 	Job                string  `json:"job" bson:"job"`
 }
 
@@ -129,7 +128,7 @@ type Serie struct {
 	Seasons             []Season              `json:"seasons" bson:"seasons"`
 	GenreIds            []int                 `json:"genre_ids,omitempty" bson:"genre_ids"`
 	BackdropPath        string                `json:"backdrop_path" bson:"backdrop_path"`
-	Adult               bool                  `json:"adult" bson:"adult"`
+	Adult               bool                  `json:"adult,omitempty" bson:"adult"`
 	Overview            string                `json:"overview" bson:"overview"`
 	PosterPath          string                `json:"poster_path" bson:"poster_path"`
 	EpisodeRunTime      []int                 `json:"episode_run_time" bson:"episode_run_time"`
