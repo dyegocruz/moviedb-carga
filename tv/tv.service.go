@@ -22,7 +22,7 @@ var serieCollection = database.COLLECTION_SERIE
 
 func CheckTvChanges() {
 	tvChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_TV)
-
+	log.Println("TV WILL BE UPDATED: ", len(tvChanges.Results))
 	for _, serie := range tvChanges.Results {
 		if !serie.Adult {
 			PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_PTBR)

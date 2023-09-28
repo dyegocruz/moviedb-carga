@@ -16,30 +16,15 @@ import (
 )
 
 func CatalogCharge() {
-
 	go CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_TV)
 	CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_MOVIE)
-	// CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_PERSON)
-
-	// go movie.PopulateMovies(common.LANGUAGE_EN, "")
-
-	// // FILTER JUST ANIMATIONS
-	// go movie.PopulateMovies(common.LANGUAGE_EN, "16")
-
-	// go tv.PopulateSeries(common.LANGUAGE_EN, "")
-
-	// // FILTER JUST ANIMATIONS
-	// go tv.PopulateSeries(common.LANGUAGE_EN, "16")
-
-	// go person.PopulatePersons(common.LANGUAGE_EN)
-
 }
 
 func CatalogUpdates() {
 	// Checking changes by data type
-	go tv.CheckTvChanges()
+	tv.CheckTvChanges()
 	// go person.CheckPersonChanges()
-	movie.CheckMoviesChanges()
+	// movie.CheckMoviesChanges()
 }
 
 const (
@@ -201,7 +186,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 	case "series":
 
 		bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-			Workers(5).
+			Workers(3).
 			BulkActions(-1).
 			After(after).
 			Stats(true).
@@ -230,7 +215,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 	case "movies":
 
 		bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-			Workers(5).
+			Workers(3).
 			BulkActions(-1).
 			After(after).
 			Stats(true).
@@ -345,15 +330,15 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 }
 
 func ElasticGeneralCharge() {
-	ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 100)
-	ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 100)
+	go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 100)
+	go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 100)
 	ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 100)
 }
 
 func GeneralCharge() {
-	// CatalogCharge()
+	CatalogCharge()
 	// CatalogUpdates()
-	ElasticGeneralCharge()
+	// ElasticGeneralCharge()
 }
 
 func IndexNamesByAlias(aliasName string, elasticClient *elastic.Client) ([]string, error) {

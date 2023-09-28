@@ -102,7 +102,6 @@ func GetAll(skip int64, limit int64) []Person {
 
 	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
 	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetLimit(limit).SetSkip(skip).SetProjection(projection)
-	// cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(ctx2, bson.M{"language": bson.M{"$in": []string{common.LANGUAGE_EN, common.LANGUAGE_PTBR}}}, optionsFind)
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(ctx2, bson.D{}, optionsFind)
 	if err != nil {
 		log.Println(err)
