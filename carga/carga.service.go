@@ -336,8 +336,8 @@ func ElasticGeneralCharge() {
 }
 
 func GeneralCharge() {
-	CatalogCharge()
-	// CatalogUpdates()
+	// CatalogCharge()
+	CatalogUpdates()
 	// ElasticGeneralCharge()
 }
 

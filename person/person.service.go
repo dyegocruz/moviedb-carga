@@ -20,9 +20,9 @@ import (
 var personCollection = database.COLLECTION_PERSON
 
 func CheckPersonChanges() {
-	personChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_PERSON)
+	personChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_PERSON, 1)
 
-	for _, person := range personChanges.Results {
+	for _, person := range personChanges {
 		PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_PTBR, "Y")
 		go PopulatePersonByIdAndLanguage(person.Id, common.LANGUAGE_EN, "Y")
 	}
