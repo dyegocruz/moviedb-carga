@@ -21,10 +21,8 @@ func CatalogCharge() {
 }
 
 func CatalogUpdates() {
-	// Checking changes by data type
-	tv.CheckTvChanges()
-	// go person.CheckPersonChanges()
-	// movie.CheckMoviesChanges()
+	go tv.CheckTvChanges()
+	movie.CheckMoviesChanges()
 }
 
 const (
@@ -336,9 +334,9 @@ func ElasticGeneralCharge() {
 }
 
 func GeneralCharge() {
-	// CatalogCharge()
+	CatalogCharge()
 	CatalogUpdates()
-	// ElasticGeneralCharge()
+	ElasticGeneralCharge()
 }
 
 func IndexNamesByAlias(aliasName string, elasticClient *elastic.Client) ([]string, error) {
