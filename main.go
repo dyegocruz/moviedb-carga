@@ -4,8 +4,11 @@ import (
 	"log"
 	"moviedb/carga"
 	"moviedb/configs"
+	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron"
 )
 
 // func init() {
@@ -36,27 +39,22 @@ func init() {
 }
 
 func main() {
+	// carga.GeneralCharge()
+	// log.Println("PROCESS COMPLETE")
 
-	// run database
-	// database.ConnectDB()
+	c := cron.New()
+	c.AddFunc("@daily", func() {
+		log.Println("[Job] General Charge")
+		carga.GeneralCharge()
+		log.Println("PROCESS COMPLETE")
+	})
+	log.Println("Start Job")
+	c.Start()
 
-	carga.GeneralCharge()
-	log.Println("PROCESS CONCLUDED")
-	// log.Println(runtime.NumCPU())
+	g := gin.Default()
 
-	// c := cron.New()
-	// c.AddFunc("@daily", func() {
-	// 	log.Println("[Job] General Charge")
-	// 	carga.GeneralCharge()
-	// 	log.Println("PROCESS CONCLUDED")
-	// })
-	// log.Println("Start Job")
-	// c.Start()
-
-	// g := gin.Default()
-
-	// g.GET("/", func(c *gin.Context) {
-	// 	c.JSON(http.StatusOK, gin.H{"appName": "App to make a Charge data", "env": os.Getenv("GO_ENV")})
-	// })
-	// g.Run(":1323")
+	g.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"appName": "App to make a Charge data", "env": os.Getenv("GO_ENV")})
+	})
+	g.Run(":1323")
 }
