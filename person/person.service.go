@@ -8,16 +8,17 @@ import (
 	"moviedb/database"
 	"moviedb/parametro"
 	"moviedb/tmdb"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var personCollection = database.COLLECTION_PERSON
+var personCollectionString = database.COLLECTION_PERSON
+var personCollection *mongo.Collection = database.GetCollection(database.DB, personCollectionString)
 
 func CheckPersonChanges() {
 	personChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_PERSON, 1)
@@ -94,15 +95,12 @@ func PopulatePersons(language string) {
 }
 
 func GetAll(skip int64, limit int64) []Person {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
 
 	ctx2 := context.TODO()
 
 	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
 	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetLimit(limit).SetSkip(skip).SetProjection(projection)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(ctx2, bson.D{}, optionsFind)
+	cur, err := personCollection.Find(ctx2, bson.D{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -121,12 +119,10 @@ func GetAll(skip int64, limit int64) []Person {
 }
 
 func GetByListId(listIds []int) []Person {
-	client, ctx, _ := database.GetConnection()
-	defer client.Disconnect(ctx)
 
 	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
 	optionsFind := options.Find().SetProjection(projection)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.M{"id": bson.M{"$in": listIds}}, optionsFind)
+	cur, err := personCollection.Find(context.TODO(), bson.M{"id": bson.M{"$in": listIds}}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -146,51 +142,18 @@ func GetByListId(listIds []int) []Person {
 	return persons
 }
 
-func GetAllTest(batchSize int32) []Person {
-	client, ctx, _ := database.GetConnection()
-	defer client.Disconnect(ctx)
-
-	ctx2 := context.Background()
-
-	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
-	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(ctx2, bson.D{}, optionsFind)
-	if err != nil {
-		log.Println(err)
-	}
-
-	persons := make([]Person, 0)
-	for cur.Next(ctx2) {
-		var person Person
-		err := cur.Decode(&person)
-		if err != nil {
-			log.Fatal(err)
-		}
-		persons = append(persons, person)
-	}
-
-	return persons
-}
-
 func GetPersonByIdAndLanguage(id int, language string) Person {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
 	var item Person
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
+	personCollection.FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
 
 	return item
 }
 
 func GetPersonsWithCredits(language string) []Person {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
 
 	optionsFind := options.Find()
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.M{"credits.cast": bson.M{"$ne": nil}, "language": language}, optionsFind)
+	cur, err := personCollection.Find(context.TODO(), bson.M{"credits.cast": bson.M{"$ne": nil}, "language": language}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -212,12 +175,9 @@ func GetPersonsWithCredits(language string) []Person {
 }
 
 func GetPersonsWithoutCredits(language string) []Person {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
 
 	optionsFind := options.Find()
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).Find(context.TODO(), bson.M{"credits.cast": nil, "language": language}, optionsFind)
+	cur, err := personCollection.Find(context.TODO(), bson.M{"credits.cast": nil, "language": language}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -240,11 +200,7 @@ func GetPersonsWithoutCredits(language string) []Person {
 
 func InsertPerson(itemInsert Person) interface{} {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).InsertOne(context.TODO(), itemInsert)
+	result, err := personCollection.InsertOne(context.TODO(), itemInsert)
 	if err != nil {
 		log.Println("EERRORRR")
 		log.Println(err)
@@ -255,19 +211,15 @@ func InsertPerson(itemInsert Person) interface{} {
 
 func UpdatePerson(person Person, language string) {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection(personCollection).UpdateOne(context.TODO(), bson.M{"id": person.Id, "language": language}, bson.M{
+	personCollection.UpdateOne(context.TODO(), bson.M{"id": person.Id, "language": language}, bson.M{
 		"$set": person,
 	})
 }
 
 func GetCountAll() int64 {
-	return database.GetCountAllByColletcion(personCollection)
+	return database.GetCountAllByColletcion(personCollectionString)
 }
 
 func GeneratePersonCatalogCheck(language string) map[int]common.CatalogCheck {
-	return database.GenerateCatalogCheck(personCollection, language)
+	return database.GenerateCatalogCheck(personCollectionString, language)
 }

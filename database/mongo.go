@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"moviedb/common"
+	"moviedb/configs"
 	"moviedb/util"
 	"os"
 	"time"
@@ -23,55 +24,82 @@ const (
 	COLLECTION_SERIE_EPISODE = "serie-episode"
 )
 
-const (
-	// Timeout operations after N seconds
-	connectTimeout           = 10
-	connectionStringTemplate = "mongodb://%s:%s@%s"
-)
+// const (
+// 	// Timeout operations after N seconds
+// 	connectTimeout           = 10
+// 	connectionStringTemplate = "mongodb://%s:%s@%s"
+// )
 
-// GetConnection - Retrieves a client to the DocumentDB
-func GetConnection() (*mongo.Client, context.Context, context.CancelFunc) {
+// // GetConnection - Retrieves a client to the DocumentDB
+// func GetConnection() (*mongo.Client, context.Context, context.CancelFunc) {
 
-	var connectionURI = os.Getenv("MONGO_URI")
+// 	var connectionURI = os.Getenv("MONGO_URI")
 
-	// client, err := mongo.NewClient(options.Client().ApplyURI(connectionURI))
-	// if err != nil {
-	// 	log.Printf("Failed to create client: %v", err)
-	// }
+// 	// client, err := mongo.NewClient(options.Client().ApplyURI(connectionURI))
+// 	// if err != nil {
+// 	// 	log.Printf("Failed to create client: %v", err)
+// 	// }
 
-	// ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
+// 	// ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
 
-	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
-	// defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectionURI))
-	// defer func() {
-	// 	if err = client.Disconnect(ctx); err != nil {
-	// 		panic(err)
-	// 	}
-	// }()
-	// err = client.Connect(ctx)
+// 	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
+// 	// defer cancel()
+// 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectionURI))
+// 	// defer func() {
+// 	// 	if err = client.Disconnect(ctx); err != nil {
+// 	// 		panic(err)
+// 	// 	}
+// 	// }()
+// 	// err = client.Connect(ctx)
+// 	if err != nil {
+// 		log.Printf("Failed to connect to cluster: %v", err)
+// 	}
+
+// 	// Force a connection to verify our connection string
+// 	err = client.Ping(ctx, nil)
+// 	if err != nil {
+// 		log.Printf("Failed to ping cluster: %v", err)
+// 	}
+
+// 	// fmt.Println("Connected to MongoDB!")
+// 	// return client, ctx, cancel
+// 	return client, ctx, cancel
+// }
+
+func ConnectDB() *mongo.Client {
+
+	ctx := context.TODO()
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(configs.MongoURI()))
 	if err != nil {
-		log.Printf("Failed to connect to cluster: %v", err)
+		log.Fatal(err)
 	}
 
-	// Force a connection to verify our connection string
 	err = client.Ping(ctx, nil)
 	if err != nil {
-		log.Printf("Failed to ping cluster: %v", err)
+		log.Fatal(err)
 	}
 
-	// fmt.Println("Connected to MongoDB!")
-	// return client, ctx, cancel
-	return client, ctx, cancel
+	log.Println("Connected to MongoDB")
+	return client
+}
+
+// Client instance
+var DB *mongo.Client = ConnectDB()
+
+// getting database collections
+func GetCollection(client *mongo.Client, collectionName string) *mongo.Collection {
+	collection := client.Database(configs.MongoDatabase()).Collection(collectionName)
+	return collection
 }
 
 // Checa e cria as collections defaults da api
 func CheckCreateCollections() {
-	conn, ctx, cancel := GetConnection()
-	defer cancel()
-	defer conn.Disconnect(ctx)
+	conn := DB
+	// defer cancel()
+	// defer conn.Disconnect(ctx)
 
-	names, err := conn.Database(os.Getenv("MONGO_DATABASE")).ListCollectionNames(context.TODO(), bson.M{})
+	names, err := DB.Database(os.Getenv("MONGO_DATABASE")).ListCollectionNames(context.TODO(), bson.M{})
 	if err != nil {
 		// Handle error
 		log.Printf("Failed to get coll names: %v", err)
@@ -142,9 +170,7 @@ func CheckCreateCollections() {
 }
 
 func GetCountAllByColletcion(collection string) int64 {
-	client, ctx, cancel := GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
+	client := DB
 
 	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).CountDocuments(context.TODO(), bson.M{"id": bson.M{"$gt": 0}})
 	if err != nil {
@@ -155,8 +181,7 @@ func GetCountAllByColletcion(collection string) int64 {
 }
 
 func GenerateCatalogCheck(collection string, language string) map[int]common.CatalogCheck {
-	client, ctx, _ := GetConnection()
-	defer client.Disconnect(ctx)
+	client := DB
 
 	filter := bson.M{"language": language}
 	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0}).SetNoCursorTimeout(true)
@@ -166,9 +191,6 @@ func GenerateCatalogCheck(collection string, language string) map[int]common.Cat
 	if err != nil {
 		log.Println(err)
 	}
-
-	// defer cur.Close(context.TODO())
-	// cur.All(context.TODO(), &results)
 
 	results := make([]common.CatalogCheck, 0)
 	for cur.Next(context.TODO()) {

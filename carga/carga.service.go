@@ -178,7 +178,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 		panic(err)
 	}
 
-	var bulkRequest *elastic.BulkService
+	// var bulkRequest *elastic.BulkService
 
 	switch indexName {
 	case "series":
@@ -269,37 +269,37 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, bulkA
 
 		bulkProcessor.Flush()
 		bulkProcessor.Close()
-	case "series-episodes":
-		bulkRequest = elasticClient.Bulk().Index(newIndexName)
-		tvEpisodesCatalog := tv.GenerateTvEpisodesCatalogCheck(common.LANGUAGE_EN)
+		// case "series-episodes":
+		// 	bulkRequest = elasticClient.Bulk().Index(newIndexName)
+		// 	tvEpisodesCatalog := tv.GenerateTvEpisodesCatalogCheck(common.LANGUAGE_EN)
 
-		var i int64 = 0
-		idsGet := make([]int, 0)
-		for _, catalog := range tvEpisodesCatalog {
+		// 	var i int64 = 0
+		// 	idsGet := make([]int, 0)
+		// 	for _, catalog := range tvEpisodesCatalog {
 
-			idsGet = append(idsGet, catalog.Id)
+		// 		idsGet = append(idsGet, catalog.Id)
 
-			if i%interval == 0 {
-				docs := tv.GetEpisodesByListId(idsGet)
+		// 		if i%interval == 0 {
+		// 			docs := tv.GetEpisodesByListId(idsGet)
 
-				for _, doc := range docs {
-					req := elastic.NewBulkIndexRequest().
-						Doc(doc)
-					bulkRequest = bulkRequest.Add(req)
-				}
+		// 			for _, doc := range docs {
+		// 				req := elastic.NewBulkIndexRequest().
+		// 					Doc(doc)
+		// 				bulkRequest = bulkRequest.Add(req)
+		// 			}
 
-				_, err := bulkRequest.Do(context.TODO())
-				if err != nil {
-					fmt.Println("==================>", err)
-					panic("STOP PERSONS")
-				}
+		// 			_, err := bulkRequest.Do(context.TODO())
+		// 			if err != nil {
+		// 				fmt.Println("==================>", err)
+		// 				panic("STOP PERSONS")
+		// 			}
 
-				idsGet = make([]int, 0)
-				bulkRequest = elasticClient.Bulk().Index(newIndexName)
+		// 			idsGet = make([]int, 0)
+		// 			bulkRequest = elasticClient.Bulk().Index(newIndexName)
 
-			}
-			i++
-		}
+		// 		}
+		// 		i++
+		// 	}
 	}
 
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
@@ -335,8 +335,8 @@ func ElasticGeneralCharge() {
 
 func GeneralCharge() {
 	CatalogCharge()
-	CatalogUpdates()
-	ElasticGeneralCharge()
+	// CatalogUpdates()
+	// ElasticGeneralCharge()
 }
 
 func IndexNamesByAlias(aliasName string, elasticClient *elastic.Client) ([]string, error) {
