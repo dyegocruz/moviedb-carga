@@ -9,16 +9,17 @@ import (
 	"moviedb/parametro"
 	"moviedb/person"
 	"moviedb/tmdb"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var movieCollection = database.COLLECTION_MOVIE
+var movieCollectionString = database.COLLECTION_MOVIE
+var movieCollection *mongo.Collection = database.GetCollection(database.DB, movieCollectionString)
 
 func CheckMoviesChanges() {
 	movieChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_MOVIE, 1)
@@ -112,15 +113,12 @@ func PopulateMovies(language string, idGenre string) {
 }
 
 func GetAll(skip int64, limit int64) []Movie {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
 
 	ctx2 := context.TODO()
 
 	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "adult": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "updated": 0, "updatedNew": 0}
 	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetLimit(limit).SetSkip(skip).SetProjection(projection)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).Find(ctx2, bson.D{}, optionsFind)
+	cur, err := movieCollection.Find(ctx2, bson.D{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -139,12 +137,10 @@ func GetAll(skip int64, limit int64) []Movie {
 }
 
 func GetByListId(listIds []int) []Movie {
-	client, ctx, _ := database.GetConnection()
-	defer client.Disconnect(ctx)
 
 	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "updated": 0, "updatedNew": 0}
 	optionsFind := options.Find().SetProjection(projection)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).Find(context.TODO(), bson.M{"id": bson.M{"$in": listIds}}, optionsFind)
+	cur, err := movieCollection.Find(context.TODO(), bson.M{"id": bson.M{"$in": listIds}}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -164,51 +160,17 @@ func GetByListId(listIds []int) []Movie {
 	return movies
 }
 
-func GetAllTest(batchSize int32) []Movie {
-	client, ctx, _ := database.GetConnection()
-	defer client.Disconnect(ctx)
-
-	ctx2 := context.Background()
-
-	projection := bson.M{"_id": 0, "genre_ids": 0, "slug": 0, "slugUrl": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "updated": 0, "updatedNew": 0}
-	optionsFind := options.Find().SetProjection(projection).SetBatchSize(batchSize).SetNoCursorTimeout(true)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).Find(ctx2, bson.D{}, optionsFind)
-	if err != nil {
-		log.Println(err)
-	}
-
-	movies := make([]Movie, 0)
-	for cur.Next(ctx2) {
-		var movie Movie
-		err := cur.Decode(&movie)
-		if err != nil {
-			log.Fatal(err)
-		}
-		movies = append(movies, movie)
-	}
-
-	return movies
-}
-
 func GetMovieByIdAndLanguage(id int, language string) Movie {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
 	var item Movie
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
+	movieCollection.FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
 
 	return item
 }
 
 func InsertMovie(itemInsert Movie, language string) interface{} {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).InsertOne(context.TODO(), itemInsert)
+	result, err := movieCollection.InsertOne(context.TODO(), itemInsert)
 	if err != nil {
 		log.Println("EERRORRR")
 		log.Println(err)
@@ -219,19 +181,15 @@ func InsertMovie(itemInsert Movie, language string) interface{} {
 
 func UpdateMovie(movie Movie, language string) {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).UpdateOne(context.TODO(), bson.M{"id": movie.Id, "language": language}, bson.M{
+	movieCollection.UpdateOne(context.TODO(), bson.M{"id": movie.Id, "language": language}, bson.M{
 		"$set": movie,
 	})
 }
 
 func GetCountAll() int64 {
-	return database.GetCountAllByColletcion(movieCollection)
+	return database.GetCountAllByColletcion(database.COLLECTION_MOVIE)
 }
 
 func GenerateMovieCatalogCheck(language string) map[int]common.CatalogCheck {
-	return database.GenerateCatalogCheck(movieCollection, language)
+	return database.GenerateCatalogCheck(database.COLLECTION_MOVIE, language)
 }
