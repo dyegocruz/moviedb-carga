@@ -244,30 +244,27 @@ func GetCountAllEpisodes() int64 {
 	return database.GetCountAllByColletcion(serieCollectionString)
 }
 
-// func GetAllEpisodes(skip int64, limit int64) []Episode {
-// 	client, ctx, _ := database.GetConnection()
-// 	defer client.Disconnect(ctx)
+func GetAllEpisodes(skip int64, limit int64) []Episode {
 
-// 	projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "credits.crew.gender": 0}
-// 	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
-// 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).Find(context.TODO(), bson.M{"language": bson.M{"$in": []string{common.LANGUAGE_EN, common.LANGUAGE_PTBR}}}, optionsFind)
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
+	projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "credits.crew.gender": 0}
+	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
+	cur, err := serieEpisodeCollection.Find(context.TODO(), bson.D{}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
 
-// 	episodes := make([]Episode, 0)
-// 	defer cur.Close(context.TODO())
-// 	for cur.Next(context.TODO()) {
-// 		var episode Episode
-// 		err := cur.Decode(&episode)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		episodes = append(episodes, episode)
-// 	}
+	episodes := make([]Episode, 0)
+	for cur.Next(context.TODO()) {
+		var episode Episode
+		err := cur.Decode(&episode)
+		if err != nil {
+			log.Fatal(err)
+		}
+		episodes = append(episodes, episode)
+	}
 
-// 	return episodes
-// }
+	return episodes
+}
 
 // func GetEpisodesByListId(listIds []int) []Episode {
 
