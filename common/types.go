@@ -13,5 +13,4 @@ const (
 
 type CatalogCheck struct {
 	Id int `json:"id" bson:"id"`
-	// Language string `json:"language" bson:"language"`
 }

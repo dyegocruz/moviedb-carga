@@ -1,29 +1,23 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"moviedb/carga"
-	"moviedb/configs"
 	"moviedb/database"
-	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron"
 )
 
 func init() {
-	if configs.GetEnv() == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
 	database.CheckCreateCollections()
 }
 
-func main() {
-	// carga.GeneralCharge()
-	// log.Println("PROCESS COMPLETE")
-
+func cronCharge() {
 	c := cron.New()
 	c.AddFunc("@daily", func() {
 		log.Println("[Job] General Charge")
@@ -32,11 +26,18 @@ func main() {
 	})
 	log.Println("Start Job")
 	c.Start()
+}
 
-	g := gin.Default()
+func listen() {
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	<-sig
+	fmt.Println(time.Now().String() + " - Closed")
+}
 
-	g.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"appName": "App to make a Charge data", "env": os.Getenv("GO_ENV")})
-	})
-	g.Run(":1323")
+func main() {
+	// carga.GeneralCharge()
+	// log.Println("PROCESS COMPLETE")
+	cronCharge()
+	listen()
 }
