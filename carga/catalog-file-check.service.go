@@ -16,7 +16,7 @@ import (
 
 func CheckAndUpdateCatalogByFile(mediaType string) {
 	t := time.Now()
-	dateFile := t.Format("01_02_2006")
+	dateFile := t.AddDate(0, 0, -1).Format("01_02_2006")
 	mediaFile := ""
 	var catalogGenerate map[int]common.CatalogCheck
 

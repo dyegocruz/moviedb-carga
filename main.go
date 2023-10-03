@@ -4,6 +4,7 @@ import (
 	"log"
 	"moviedb/carga"
 	"moviedb/configs"
+	"moviedb/database"
 	"net/http"
 	"os"
 
@@ -11,31 +12,12 @@ import (
 	"github.com/robfig/cron"
 )
 
-// func init() {
-// 	env := os.Getenv("GO_ENV")
-
-// 	if env == "production" {
-// 		gin.SetMode(gin.ReleaseMode)
-// 	}
-
-// 	if env == "" {
-// 		env = "development"
-// 	}
-// 	log.Println("=> ENV: " + env)
-
-// 	err := godotenv.Load(env + ".env")
-// 	if err != nil {
-// 		log.Fatal("Error loading .env file")
-// 	}
-
-// 	database.CheckCreateCollections()
-
-// }
-
 func init() {
 	if configs.GetEnv() == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
+
+	database.CheckCreateCollections()
 }
 
 func main() {

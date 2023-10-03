@@ -145,7 +145,7 @@ func after(executionID int64, requests []elastic.BulkableRequest, response *elas
 	log.Printf("commit successfully, len(requests)=%d\n", len(requests))
 }
 
-func ElasticChargeInsert(indexName string, interval int64, mapping string) {
+func ElasticChargeInsert(indexName string, interval int64, mapping string, workers int) {
 	elasticClient := elascitClient(indexName)
 	ctx := context.Background()
 
@@ -178,18 +178,28 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 		panic(err)
 	}
 
+	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+		Workers(workers).
+		BulkActions(-1).
+		After(after).
+		Stats(true).
+		Do(ctx)
+	if err != nil {
+		log.Println("bulkProcessor Error", err)
+	}
+
 	switch indexName {
 	case "series":
 
-		bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-			Workers(3).
-			BulkActions(-1).
-			After(after).
-			Stats(true).
-			Do(ctx)
-		if err != nil {
-			log.Println("bulkProcessor Error", err)
-		}
+		// bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+		// 	Workers(3).
+		// 	BulkActions(-1).
+		// 	After(after).
+		// 	Stats(true).
+		// 	Do(ctx)
+		// if err != nil {
+		// 	log.Println("bulkProcessor Error", err)
+		// }
 
 		var i int64
 		for i = 0; i < docsCount; i++ {
@@ -206,20 +216,20 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 			}
 		}
 
-		bulkProcessor.Flush()
-		bulkProcessor.Close()
+		// bulkProcessor.Flush()
+		// bulkProcessor.Close()
 	case "movies":
 
-		bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-			Workers(3).
-			BulkActions(-1).
-			After(after).
-			Stats(true).
-			Do(ctx)
+		// bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+		// 	Workers(3).
+		// 	BulkActions(-1).
+		// 	After(after).
+		// 	Stats(true).
+		// 	Do(ctx)
 
-		if err != nil {
-			log.Println("bulkProcessor Error", err)
-		}
+		// if err != nil {
+		// 	log.Println("bulkProcessor Error", err)
+		// }
 
 		var i int64
 		for i = 0; i < docsCount; i++ {
@@ -235,16 +245,16 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 				}
 			}
 		}
-		bulkProcessor.Flush()
-		bulkProcessor.Close()
+		// bulkProcessor.Flush()
+		// bulkProcessor.Close()
 	case "persons":
 
-		bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-			Workers(5).
-			BulkActions(-1).
-			After(after).
-			Stats(true).
-			Do(ctx)
+		// bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+		// 	Workers(5).
+		// 	BulkActions(-1).
+		// 	After(after).
+		// 	Stats(true).
+		// 	Do(ctx)
 
 		if err != nil {
 			log.Println("bulkProcessor Error", err)
@@ -265,15 +275,15 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 			}
 		}
 
-		bulkProcessor.Flush()
-		bulkProcessor.Close()
+		// bulkProcessor.Flush()
+		// bulkProcessor.Close()
 	case "series-episodes":
-		bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-			Workers(5).
-			BulkActions(-1).
-			After(after).
-			Stats(true).
-			Do(ctx)
+		// bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+		// 	Workers(5).
+		// BulkActions(-1).
+		// After(after).
+		// Stats(true).
+		// Do(ctx)
 
 		if err != nil {
 			log.Println("bulkProcessor Error", err)
@@ -293,8 +303,8 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 				}
 			}
 		}
-		bulkProcessor.Flush()
-		bulkProcessor.Close()
+		// bulkProcessor.Flush()
+		// bulkProcessor.Close()
 	}
 
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
@@ -318,14 +328,14 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string) {
 
 	log.Println("Carga finalizada com sucesso!")
 
-	// bulkProcessor.Flush()
-	// bulkProcessor.Close()
+	bulkProcessor.Flush()
+	bulkProcessor.Close()
 }
 
 func ElasticGeneralCharge() {
-	go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES)
-	go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES)
-	ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS)
+	go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 3)
+	go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 3)
+	ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 5)
 	// ElasticChargeInsert("series-episodes", 10000, INDEX_MAPPING_PERSONS)
 }
 
