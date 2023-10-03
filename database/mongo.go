@@ -24,48 +24,6 @@ const (
 	COLLECTION_SERIE_EPISODE = "serie-episode"
 )
 
-// const (
-// 	// Timeout operations after N seconds
-// 	connectTimeout           = 10
-// 	connectionStringTemplate = "mongodb://%s:%s@%s"
-// )
-
-// // GetConnection - Retrieves a client to the DocumentDB
-// func GetConnection() (*mongo.Client, context.Context, context.CancelFunc) {
-
-// 	var connectionURI = os.Getenv("MONGO_URI")
-
-// 	// client, err := mongo.NewClient(options.Client().ApplyURI(connectionURI))
-// 	// if err != nil {
-// 	// 	log.Printf("Failed to create client: %v", err)
-// 	// }
-
-// 	// ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
-
-// 	ctx, cancel := context.WithTimeout(context.TODO(), connectTimeout*time.Second)
-// 	// defer cancel()
-// 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectionURI))
-// 	// defer func() {
-// 	// 	if err = client.Disconnect(ctx); err != nil {
-// 	// 		panic(err)
-// 	// 	}
-// 	// }()
-// 	// err = client.Connect(ctx)
-// 	if err != nil {
-// 		log.Printf("Failed to connect to cluster: %v", err)
-// 	}
-
-// 	// Force a connection to verify our connection string
-// 	err = client.Ping(ctx, nil)
-// 	if err != nil {
-// 		log.Printf("Failed to ping cluster: %v", err)
-// 	}
-
-// 	// fmt.Println("Connected to MongoDB!")
-// 	// return client, ctx, cancel
-// 	return client, ctx, cancel
-// }
-
 func ConnectDB() *mongo.Client {
 
 	ctx := context.TODO()
@@ -96,8 +54,6 @@ func GetCollection(client *mongo.Client, collectionName string) *mongo.Collectio
 // Checa e cria as collections defaults da api
 func CheckCreateCollections() {
 	conn := DB
-	// defer cancel()
-	// defer conn.Disconnect(ctx)
 
 	names, err := DB.Database(os.Getenv("MONGO_DATABASE")).ListCollectionNames(context.TODO(), bson.M{})
 	if err != nil {
@@ -186,7 +142,6 @@ func GenerateCatalogCheck(collection string, language string) map[int]common.Cat
 	filter := bson.M{"language": language}
 	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0}).SetNoCursorTimeout(true)
 
-	// var results []common.CatalogCheck
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).Find(context.TODO(), filter, opts)
 	if err != nil {
 		log.Println(err)
