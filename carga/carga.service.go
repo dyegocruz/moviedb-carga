@@ -188,23 +188,12 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 		log.Println("bulkProcessor Error", err)
 	}
 
-	switch indexName {
-	case "series":
+	var i int64
+	for i = 0; i < docsCount; i++ {
 
-		// bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		// 	Workers(3).
-		// 	BulkActions(-1).
-		// 	After(after).
-		// 	Stats(true).
-		// 	Do(ctx)
-		// if err != nil {
-		// 	log.Println("bulkProcessor Error", err)
-		// }
-
-		var i int64
-		for i = 0; i < docsCount; i++ {
-
-			if i%interval == 0 {
+		if i%interval == 0 {
+			switch indexName {
+			case "series":
 				docs := tv.GetAll(i, interval)
 				log.Println(i, len(docs))
 				for _, doc := range docs {
@@ -213,28 +202,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 						Doc(doc)
 					bulkProcessor.Add(req)
 				}
-			}
-		}
-
-		// bulkProcessor.Flush()
-		// bulkProcessor.Close()
-	case "movies":
-
-		// bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		// 	Workers(3).
-		// 	BulkActions(-1).
-		// 	After(after).
-		// 	Stats(true).
-		// 	Do(ctx)
-
-		// if err != nil {
-		// 	log.Println("bulkProcessor Error", err)
-		// }
-
-		var i int64
-		for i = 0; i < docsCount; i++ {
-
-			if i%interval == 0 {
+			case "movies":
 				docs := movie.GetAll(i, interval)
 				log.Println(i, len(docs))
 				for _, doc := range docs {
@@ -243,27 +211,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 						Doc(doc)
 					bulkProcessor.Add(req)
 				}
-			}
-		}
-		// bulkProcessor.Flush()
-		// bulkProcessor.Close()
-	case "persons":
-
-		// bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		// 	Workers(5).
-		// 	BulkActions(-1).
-		// 	After(after).
-		// 	Stats(true).
-		// 	Do(ctx)
-
-		if err != nil {
-			log.Println("bulkProcessor Error", err)
-		}
-
-		var i int64
-		for i = 0; i < docsCount; i++ {
-
-			if i%interval == 0 {
+			case "persons":
 				docs := person.GetAll(i, interval)
 				log.Println(i, len(docs))
 				for _, doc := range docs {
@@ -272,27 +220,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 						Doc(doc)
 					bulkProcessor.Add(req)
 				}
-			}
-		}
-
-		// bulkProcessor.Flush()
-		// bulkProcessor.Close()
-	case "series-episodes":
-		// bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		// 	Workers(5).
-		// BulkActions(-1).
-		// After(after).
-		// Stats(true).
-		// Do(ctx)
-
-		if err != nil {
-			log.Println("bulkProcessor Error", err)
-		}
-
-		var i int64
-		for i = 0; i < docsCount; i++ {
-
-			if i%interval == 0 {
+			case "series-episodes":
 				docs := tv.GetAllEpisodes(i, interval)
 				log.Println(i, len(docs))
 				for _, doc := range docs {
@@ -303,9 +231,70 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 				}
 			}
 		}
-		// bulkProcessor.Flush()
-		// bulkProcessor.Close()
 	}
+
+	// switch indexName {
+	// case "series":
+
+	// 	var i int64
+	// 	for i = 0; i < docsCount; i++ {
+	// 		if i%interval == 0 {
+	// 			docs := tv.GetAll(i, interval)
+	// 			log.Println(i, len(docs))
+	// 			for _, doc := range docs {
+	// 				req := elastic.NewBulkIndexRequest().
+	// 					Index(newIndexName).
+	// 					Doc(doc)
+	// 				bulkProcessor.Add(req)
+	// 			}
+	// 		}
+	// 	}
+	// case "movies":
+
+	// 	var i int64
+	// 	for i = 0; i < docsCount; i++ {
+	// 		if i%interval == 0 {
+	// 			docs := movie.GetAll(i, interval)
+	// 			log.Println(i, len(docs))
+	// 			for _, doc := range docs {
+	// 				req := elastic.NewBulkIndexRequest().
+	// 					Index(newIndexName).
+	// 					Doc(doc)
+	// 				bulkProcessor.Add(req)
+	// 			}
+	// 		}
+	// 	}
+	// case "persons":
+
+	// 	var i int64
+	// 	for i = 0; i < docsCount; i++ {
+	// 		if i%interval == 0 {
+	// 			docs := person.GetAll(i, interval)
+	// 			log.Println(i, len(docs))
+	// 			for _, doc := range docs {
+	// 				req := elastic.NewBulkIndexRequest().
+	// 					Index(newIndexName).
+	// 					Doc(doc)
+	// 				bulkProcessor.Add(req)
+	// 			}
+	// 		}
+	// 	}
+	// case "series-episodes":
+
+	// 	var i int64
+	// 	for i = 0; i < docsCount; i++ {
+	// 		if i%interval == 0 {
+	// 			docs := tv.GetAllEpisodes(i, interval)
+	// 			log.Println(i, len(docs))
+	// 			for _, doc := range docs {
+	// 				req := elastic.NewBulkIndexRequest().
+	// 					Index(newIndexName).
+	// 					Doc(doc)
+	// 				bulkProcessor.Add(req)
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
 	existentSerieAliases, err := IndexNamesByAlias(elasticAliasName, elasticClient)
