@@ -18,11 +18,13 @@ import (
 func CatalogCharge() {
 	go CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_TV)
 	CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_MOVIE)
+	log.Println("FINISH CatalogCharge")
 }
 
 func CatalogUpdates() {
 	go tv.CheckTvChanges()
 	movie.CheckMoviesChanges()
+	log.Println("FINISH CatalogUpdates")
 }
 
 const (
@@ -326,6 +328,7 @@ func ElasticGeneralCharge() {
 	go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 3)
 	ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 5)
 	// ElasticChargeInsert("series-episodes", 10000, INDEX_MAPPING_PERSONS)
+	log.Println("FINISH ElasticGeneralCharge")
 }
 
 func GeneralCharge() {
