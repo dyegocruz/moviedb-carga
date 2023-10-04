@@ -53,8 +53,10 @@ func PopulatePersonByLanguage(itemObj Person, language string, updatePerson stri
 	itemFind := GetPersonByIdAndLanguage(itemObj.Id, language)
 
 	if itemFind.Id == 0 {
-		log.Println("INSERT PERSON: ", language, itemObj.Id)
-		InsertPerson(itemObj)
+		if itemObj.Id > 0 {
+			log.Println("INSERT PERSON: ", language, itemObj.Id)
+			InsertPerson(itemObj)
+		}
 	} else {
 		if updatePerson == "Y" {
 			log.Println("UPDATE PERSON: ", language, itemObj.Id)
