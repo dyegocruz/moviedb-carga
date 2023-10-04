@@ -36,8 +36,8 @@ func listen() {
 }
 
 func main() {
-	// carga.GeneralCharge()
-	// log.Println("PROCESS COMPLETE")
-	cronCharge()
-	listen()
+	carga.GeneralCharge()
+	log.Println("PROCESS COMPLETE")
+	// cronCharge()
+	// listen()
 }
