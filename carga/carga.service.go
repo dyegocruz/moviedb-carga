@@ -331,7 +331,7 @@ func ElasticGeneralCharge() {
 func GeneralCharge() {
 	CatalogCharge()
 	CatalogUpdates()
-	ElasticGeneralCharge()
+	// ElasticGeneralCharge()
 }
 
 func IndexNamesByAlias(aliasName string, elasticClient *elastic.Client) ([]string, error) {

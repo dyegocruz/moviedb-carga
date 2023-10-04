@@ -127,8 +127,11 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 			person.PopulatePersonByIdAndLanguage(crew.Id, language, "Y")
 		}
 
-		log.Println("===>INSERT SERIE: ", itemObj.Id)
-		InsertSerie(itemObj, language)
+		if itemObj.Id > 0 {
+			log.Println("===>INSERT SERIE: ", itemObj.Id)
+			InsertSerie(itemObj, language)
+		}
+
 	} else {
 		log.Println("===>UPDATE SERIE: ", itemObj.Id)
 		UpdateSerie(itemObj, language)

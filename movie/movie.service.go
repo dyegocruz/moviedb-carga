@@ -72,8 +72,10 @@ func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) 
 			person.PopulatePersonByIdAndLanguage(crew.Id, language, updateCast)
 		}
 
-		log.Println("===>INSERT MOVIE: ", itemObj.Id)
-		InsertMovie(itemObj, language)
+		if itemObj.Id > 0 {
+			log.Println("===>INSERT MOVIE: ", itemObj.Id)
+			InsertMovie(itemObj, language)
+		}
 	} else {
 		log.Println("===>UPDATE MOVIE: ", itemObj.Id)
 		UpdateMovie(itemObj, language)
