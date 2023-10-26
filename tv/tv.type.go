@@ -126,7 +126,6 @@ type Serie struct {
 	NumberOfEpisodes    int                   `json:"number_of_episodes" bson:"number_of_episodes"`
 	NumberOfSeasons     int                   `json:"number_of_seasons" bson:"number_of_seasons"`
 	Seasons             []Season              `json:"seasons" bson:"seasons"`
-	GenreIds            []int                 `json:"genre_ids,omitempty" bson:"genre_ids"`
 	BackdropPath        string                `json:"backdrop_path" bson:"backdrop_path"`
 	Adult               bool                  `json:"adult,omitempty" bson:"adult"`
 	Overview            string                `json:"overview" bson:"overview"`

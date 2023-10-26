@@ -66,7 +66,6 @@ type Movie struct {
 	Runtime             int                   `json:"runtime,omitempty" bson:"runtime"`
 	OriginalLanguage    string                `json:"original_language" bson:"original_language"`
 	OriginalTitle       string                `json:"original_title" bson:"original_title"`
-	GenreIds            []int                 `json:"genre_ids,omitempty" bson:"genre_ids"`
 	BackdropPath        string                `json:"backdrop_path" bson:"backdrop_path"`
 	Adult               bool                  `json:"adult,omitempty" bson:"adult"`
 	Overview            string                `json:"overview" bson:"overview"`
