@@ -6,7 +6,8 @@ import (
 	"log"
 	"moviedb/common"
 	"moviedb/database"
-	"moviedb/parametro"
+	"moviedb/parameter"
+
 	"moviedb/person"
 	"moviedb/tmdb"
 	"strconv"
@@ -58,13 +59,9 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 	itemObj.Slug = slug.Make(itemObj.Title)
 	itemObj.SlugUrl = "serie-" + strconv.Itoa(itemObj.Id)
 
-	// INÍCIO TRATAMENTO DAS PESSOAS DO CAST E CREW
-	// reqCredits := tmdb.GetTvCreditsByIdAndLanguage(itemObj.Id, language)
-	// json.NewDecoder(reqCredits.Body).Decode(&itemObj.TvCredits)
-	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
 	itemFind := GetSerieByIdAndLanguage(itemObj.Id, language)
 
-	// Início tratamento para episódios de uma série
+	// INIT treatment of tv's episodes
 	var seasonsDetails []Season
 	for _, season := range itemObj.Seasons {
 		reqSeasonEpisodes := tmdb.GetTvSeason(itemObj.Id, season.SeasonNumber, language)
@@ -115,7 +112,7 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 		seasonsDetails = append(seasonsDetails, seasonReq)
 	}
 	itemObj.Seasons = seasonsDetails
-	// FINAL tratamento para episódios de uma série
+	// FINAL treatment of tv's episodes
 
 	if itemFind.Id == 0 {
 
@@ -128,24 +125,23 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 		}
 
 		if itemObj.Id > 0 {
-			log.Println("===>INSERT SERIE: ", itemObj.Id)
+			log.Println("===>INSERT TV: ", itemObj.Id)
 			InsertSerie(itemObj, language)
 		}
 
 	} else {
-		log.Println("===>UPDATE SERIE: ", itemObj.Id)
+		log.Println("===>UPDATE TV: ", itemObj.Id)
 		UpdateSerie(itemObj, language)
 	}
 }
 
 func PopulateSeries(language string, idGenre string) {
 
-	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
+	parametro := parameter.GetByType("CHARGE_TMDB_CONFIG")
 	apiMaxPage := parametro.Options.TmdbMaxPageLoad
 
 	for i := 1; i < apiMaxPage+1; i++ {
-		// for i := 1; i < 2; i++ {
-		log.Println("======> SERIE PAGE: ", language, i)
+		log.Println("======> TV PAGE: ", language, i)
 		page := strconv.Itoa(i)
 		response := tmdb.GetDiscoverTvByLanguageGenreAndPage(language, idGenre, page)
 
@@ -153,7 +149,6 @@ func PopulateSeries(language string, idGenre string) {
 		json.NewDecoder(response.Body).Decode(&result)
 
 		for _, item := range result.Results {
-
 			if item.Id > 0 {
 				checkTvExist := GetSerieByIdAndLanguage(item.Id, common.LANGUAGE_PTBR)
 
@@ -165,7 +160,6 @@ func PopulateSeries(language string, idGenre string) {
 					go PopulateSerieByLanguage(itemObj, language)
 				}
 			}
-
 		}
 	}
 }
@@ -190,30 +184,6 @@ func GetAll(skip int64, limit int64) []Serie {
 		}
 		series = append(series, serie)
 	}
-
-	return series
-}
-
-func GetByListId(listIds []int) []Serie {
-
-	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0, "created_by.credit_id": 0, "created_by.gender": 0}
-	optionsFind := options.Find().SetProjection(projection)
-	cur, err := serieCollection.Find(context.TODO(), bson.M{"id": bson.M{"$in": listIds}}, optionsFind)
-	if err != nil {
-		log.Println(err)
-	}
-
-	series := make([]Serie, 0)
-	for cur.Next(context.TODO()) {
-		var serie Serie
-		err := cur.Decode(&serie)
-		if err != nil {
-			log.Fatal(err)
-		}
-		series = append(series, serie)
-	}
-
-	defer cur.Close(context.TODO())
 
 	return series
 }

@@ -6,7 +6,8 @@ import (
 	"log"
 	"moviedb/common"
 	"moviedb/database"
-	"moviedb/parametro"
+	"moviedb/parameter"
+
 	"moviedb/tmdb"
 	"strconv"
 	"time"
@@ -46,10 +47,6 @@ func PopulatePersonByLanguage(itemObj Person, language string, updatePerson stri
 	itemObj.Slug = slug.Make(itemObj.Name)
 	itemObj.SlugUrl = "person-" + strconv.Itoa(itemObj.Id)
 
-	// reqCredit := tmdb.GetPersonCreditsByIdAndLanguage(itemObj.Id, language)
-
-	// json.NewDecoder(reqCredit.Body).Decode(&itemObj.Credits)
-
 	itemFind := GetPersonByIdAndLanguage(itemObj.Id, language)
 
 	if itemFind.Id == 0 {
@@ -72,7 +69,7 @@ func PopulatePersonByIdAndLanguage(id int, language string, updatePerson string)
 
 func PopulatePersons(language string) {
 
-	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
+	parametro := parameter.GetByType("CHARGE_TMDB_CONFIG")
 	apiMaxPage := parametro.Options.TmdbMaxPageLoad
 
 	for i := 1; i < apiMaxPage+1; i++ {
@@ -116,30 +113,6 @@ func GetAll(skip int64, limit int64) []Person {
 		}
 		persons = append(persons, person)
 	}
-
-	return persons
-}
-
-func GetByListId(listIds []int) []Person {
-
-	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
-	optionsFind := options.Find().SetProjection(projection)
-	cur, err := personCollection.Find(context.TODO(), bson.M{"id": bson.M{"$in": listIds}}, optionsFind)
-	if err != nil {
-		log.Println(err)
-	}
-
-	persons := make([]Person, 0)
-	for cur.Next(context.TODO()) {
-		var person Person
-		err := cur.Decode(&person)
-		if err != nil {
-			log.Fatal(err)
-		}
-		persons = append(persons, person)
-	}
-
-	defer cur.Close(context.TODO())
 
 	return persons
 }

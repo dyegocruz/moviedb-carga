@@ -28,3 +28,7 @@ func MongoDatabase() string {
 
 	return os.Getenv("MONGO_DATABASE")
 }
+
+func IsProduction() bool {
+	return GetEnv() == "production"
+}

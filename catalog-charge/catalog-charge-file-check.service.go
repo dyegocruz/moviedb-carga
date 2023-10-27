@@ -1,4 +1,4 @@
-package carga
+package catalogCharge
 
 import (
 	"bufio"

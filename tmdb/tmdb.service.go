@@ -2,7 +2,7 @@ package tmdb
 
 import (
 	"encoding/json"
-	"moviedb/parametro"
+	"moviedb/parameter"
 	"moviedb/util"
 	"net/http"
 	"strconv"
@@ -15,9 +15,9 @@ const (
 )
 
 func getApiConfig() (string, string) {
-	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
-	apiKey := parametro.Options.TmdbApiKey
-	apiHost := parametro.Options.TmdbHost
+	param := parameter.GetByType("CHARGE_TMDB_CONFIG")
+	apiKey := param.Options.TmdbApiKey
+	apiHost := param.Options.TmdbHost
 
 	return apiKey, apiHost
 }
@@ -51,21 +51,6 @@ func GetDetailsByIdLanguageAndDataType(id int, language string, dataType string)
 	return response
 }
 
-// func GetMovieCreditsByIdAndLanguage(id int, language string) *http.Response {
-// 	apiKey, apiHost := getApiConfig()
-// 	return util.HttpGet(apiHost + "/movie/" + strconv.Itoa(id) + "/credits?api_key=" + apiKey + "&language=" + language)
-// }
-
-// func GetTvCreditsByIdAndLanguage(id int, language string) *http.Response {
-// 	apiKey, apiHost := getApiConfig()
-// 	return util.HttpGet(apiHost + "/tv/" + strconv.Itoa(id) + "/credits?api_key=" + apiKey + "&language=" + language)
-// }
-
-// func GetPersonCreditsByIdAndLanguage(id int, language string) *http.Response {
-// 	apiKey, apiHost := getApiConfig()
-// 	return util.HttpGet(apiHost + "/person/" + strconv.Itoa(id) + "/combined_credits?api_key=" + apiKey + "&language=" + language)
-// }
-
 func GetDiscoverMoviesByLanguageGenreAndPage(language string, idGenre string, page string) *http.Response {
 	apiKey, apiHost := getApiConfig()
 	return util.HttpGet(apiHost + "/discover/movie?api_key=" + apiKey + "&language=" + language + "&sort_by=popularity.desc&include_adult=false&include_video=false&page=" + page + "&with_genres=" + idGenre)
@@ -90,11 +75,6 @@ func GetTvSeasonEpisodeCredits(id int, seasonNumber int, episode int, language s
 	apiKey, apiHost := getApiConfig()
 	return util.HttpGet(apiHost + "/tv/" + strconv.Itoa(id) + "/season/" + strconv.Itoa(seasonNumber) + "/episode/" + strconv.Itoa(episode) + "/credits?api_key=" + apiKey + "&language=" + language)
 }
-
-// func GetTvSeasonEpisode(id int, seasonNumber int, episode int, language string) *http.Response {
-// 	apiKey, apiHost := getApiConfig()
-// 	return util.HttpGet(apiHost + "/tv/" + strconv.Itoa(id) + "/season/" + strconv.Itoa(seasonNumber) + "/episode/" + strconv.Itoa(episode) + "?api_key=" + apiKey + "&language=" + language + "&append_to_response=credits")
-// }
 
 func GetTvSeasonEpisode(id int, seasonNumber int, episode int, language string) *http.Response {
 	apiKey, apiHost := getApiConfig()

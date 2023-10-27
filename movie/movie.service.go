@@ -6,7 +6,8 @@ import (
 	"log"
 	"moviedb/common"
 	"moviedb/database"
-	"moviedb/parametro"
+	"moviedb/parameter"
+
 	"moviedb/person"
 	"moviedb/tmdb"
 	"strconv"
@@ -55,11 +56,6 @@ func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) 
 	itemObj.Slug = slug.Make(itemObj.Title)
 	itemObj.SlugUrl = "movie-" + strconv.Itoa(itemObj.Id)
 
-	// INÍCIO TRATAMENTO DAS PESSOAS DO CAST E CREW
-	// reqCredits := tmdb.GetMovieCreditsByIdAndLanguage(itemObj.Id, language)
-	// json.NewDecoder(reqCredits.Body).Decode(&itemObj.MovieCredits)
-	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
-
 	itemFind := GetMovieByIdAndLanguage(itemObj.Id, language)
 
 	if itemFind.Id == 0 {
@@ -84,7 +80,7 @@ func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) 
 
 func PopulateMovies(language string, idGenre string) {
 
-	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
+	parametro := parameter.GetByType("CHARGE_TMDB_CONFIG")
 	apiMaxPage := parametro.Options.TmdbMaxPageLoad
 
 	for i := 1; i < apiMaxPage+1; i++ {
@@ -134,30 +130,6 @@ func GetAll(skip int64, limit int64) []Movie {
 		}
 		movies = append(movies, movie)
 	}
-
-	return movies
-}
-
-func GetByListId(listIds []int) []Movie {
-
-	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "updated": 0, "updatedNew": 0}
-	optionsFind := options.Find().SetProjection(projection)
-	cur, err := movieCollection.Find(context.TODO(), bson.M{"id": bson.M{"$in": listIds}}, optionsFind)
-	if err != nil {
-		log.Println(err)
-	}
-
-	movies := make([]Movie, 0)
-	for cur.Next(context.TODO()) {
-		var movie Movie
-		err := cur.Decode(&movie)
-		if err != nil {
-			log.Fatal(err)
-		}
-		movies = append(movies, movie)
-	}
-
-	defer cur.Close(context.TODO())
 
 	return movies
 }
