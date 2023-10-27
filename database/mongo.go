@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	COLLECTION_PARAMETRO     = "parametro"
+	COLLECTION_PARAMETER     = "parameter"
 	COLLECTION_MOVIE         = "movie"
 	COLLECTION_PERSON        = "person"
 	COLLECTION_SERIE         = "serie"
@@ -51,7 +51,7 @@ func GetCollection(client *mongo.Client, collectionName string) *mongo.Collectio
 	return collection
 }
 
-// Checa e cria as collections defaults da api
+// check and create the default collections
 func CheckCreateCollections() {
 	conn := DB
 
@@ -74,7 +74,7 @@ func CheckCreateCollections() {
 
 	// Movies
 	if !util.ArrayContainsString(names, COLLECTION_MOVIE) {
-		log.Println("criar collection " + COLLECTION_MOVIE)
+		log.Println("create collection " + COLLECTION_MOVIE)
 		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), COLLECTION_MOVIE)
 		collMovies := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(COLLECTION_MOVIE)
 
@@ -83,7 +83,7 @@ func CheckCreateCollections() {
 
 	// Series
 	if !util.ArrayContainsString(names, COLLECTION_SERIE) {
-		log.Println("criar collection " + COLLECTION_SERIE)
+		log.Println("create collection " + COLLECTION_SERIE)
 		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), COLLECTION_SERIE)
 		collSeries := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(COLLECTION_SERIE)
 
@@ -92,7 +92,7 @@ func CheckCreateCollections() {
 
 	// Series Episodes
 	if !util.ArrayContainsString(names, COLLECTION_SERIE_EPISODE) {
-		log.Println("criar collection " + COLLECTION_SERIE_EPISODE)
+		log.Println("create collection " + COLLECTION_SERIE_EPISODE)
 		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), COLLECTION_SERIE_EPISODE)
 		collSeries := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(COLLECTION_SERIE_EPISODE)
 
@@ -101,18 +101,18 @@ func CheckCreateCollections() {
 
 	// Persons
 	if !util.ArrayContainsString(names, COLLECTION_PERSON) {
-		log.Println("criar collection " + COLLECTION_PERSON)
+		log.Println("create collection " + COLLECTION_PERSON)
 		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), COLLECTION_PERSON)
 		collPerson := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(COLLECTION_PERSON)
 
 		collPerson.Indexes().CreateMany(context.TODO(), index, opts)
 	}
 
-	// Parametro
-	if !util.ArrayContainsString(names, COLLECTION_PARAMETRO) {
-		log.Println("criar collection " + COLLECTION_PARAMETRO)
-		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), COLLECTION_PARAMETRO)
-		collParametro := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(COLLECTION_PARAMETRO)
+	// Parameter
+	if !util.ArrayContainsString(names, COLLECTION_PARAMETER) {
+		log.Println("create collection " + COLLECTION_PARAMETER)
+		conn.Database(os.Getenv("MONGO_DATABASE")).CreateCollection(context.TODO(), COLLECTION_PARAMETER)
+		collParametro := conn.Database(os.Getenv("MONGO_DATABASE")).Collection(COLLECTION_PARAMETER)
 
 		index := []mongo.IndexModel{
 			{
@@ -142,6 +142,8 @@ func GenerateCatalogCheck(collection string, language string) map[int]common.Cat
 	filter := bson.M{"language": language}
 	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0}).SetNoCursorTimeout(true)
 
+	log.Print("STARTING Generate Catalog check for ", collection)
+
 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).Find(context.TODO(), filter, opts)
 	if err != nil {
 		log.Println(err)
@@ -163,6 +165,8 @@ func GenerateCatalogCheck(collection string, language string) map[int]common.Cat
 	for _, result := range results {
 		resultCatalog[result.Id] = result
 	}
+
+	log.Printf("Generate Catalog check for %s completed", collection)
 
 	return resultCatalog
 }

@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
-	"moviedb/carga"
+
+	catalogCharge "moviedb/catalog-charge"
+	"moviedb/configs"
 	"moviedb/database"
 	"os"
 	"os/signal"
@@ -21,7 +23,7 @@ func cronCharge() {
 	c := cron.New()
 	c.AddFunc("@daily", func() {
 		log.Println("[Job] General Charge")
-		carga.GeneralCharge()
+		catalogCharge.GeneralCharge()
 		log.Println("PROCESS COMPLETE")
 	})
 	log.Println("Start Job")
@@ -36,8 +38,11 @@ func listen() {
 }
 
 func main() {
-	// carga.GeneralCharge()
-	// log.Println("PROCESS COMPLETE")
-	cronCharge()
-	listen()
+	if configs.IsProduction() {
+		cronCharge()
+		listen()
+	} else {
+		catalogCharge.GeneralCharge()
+		log.Println("PROCESS COMPLETE")
+	}
 }
