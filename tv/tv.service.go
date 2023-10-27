@@ -239,30 +239,6 @@ func GetAllEpisodes(skip int64, limit int64) []Episode {
 	return episodes
 }
 
-// func GetEpisodesByListId(listIds []int) []Episode {
-
-// 	// projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "credits.crew.gender": 0}
-// 	projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "overview": 0, "still_path": 0, "credits": 0}
-// 	optionsFind := options.Find().SetProjection(projection)
-// 	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).Find(context.TODO(), bson.M{"id": bson.M{"$in": listIds}}, optionsFind)
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
-
-// 	episodes := make([]Episode, 0)
-// 	defer cur.Close(context.TODO())
-// 	for cur.Next(context.TODO()) {
-// 		var episode Episode
-// 		err := cur.Decode(&episode)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		episodes = append(episodes, episode)
-// 	}
-
-// 	return episodes
-// }
-
 func InsertEpisode(itemInsert Episode, language string) interface{} {
 
 	result, err := serieEpisodeCollection.InsertOne(context.TODO(), itemInsert)
