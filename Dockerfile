@@ -1,5 +1,7 @@
 FROM golang:1.20-alpine
 
+RUN apk update && apk upgrade --no-cache
+
 ENV PACKAGE_PATH=moviedb-charge
 RUN mkdir -p /go/src/
 WORKDIR /go/src/$PACKAGE_PATH
