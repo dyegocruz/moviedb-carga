@@ -235,69 +235,6 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 		}
 	}
 
-	// switch indexName {
-	// case "series":
-
-	// 	var i int64
-	// 	for i = 0; i < docsCount; i++ {
-	// 		if i%interval == 0 {
-	// 			docs := tv.GetAll(i, interval)
-	// 			log.Println(i, len(docs))
-	// 			for _, doc := range docs {
-	// 				req := elastic.NewBulkIndexRequest().
-	// 					Index(newIndexName).
-	// 					Doc(doc)
-	// 				bulkProcessor.Add(req)
-	// 			}
-	// 		}
-	// 	}
-	// case "movies":
-
-	// 	var i int64
-	// 	for i = 0; i < docsCount; i++ {
-	// 		if i%interval == 0 {
-	// 			docs := movie.GetAll(i, interval)
-	// 			log.Println(i, len(docs))
-	// 			for _, doc := range docs {
-	// 				req := elastic.NewBulkIndexRequest().
-	// 					Index(newIndexName).
-	// 					Doc(doc)
-	// 				bulkProcessor.Add(req)
-	// 			}
-	// 		}
-	// 	}
-	// case "persons":
-
-	// 	var i int64
-	// 	for i = 0; i < docsCount; i++ {
-	// 		if i%interval == 0 {
-	// 			docs := person.GetAll(i, interval)
-	// 			log.Println(i, len(docs))
-	// 			for _, doc := range docs {
-	// 				req := elastic.NewBulkIndexRequest().
-	// 					Index(newIndexName).
-	// 					Doc(doc)
-	// 				bulkProcessor.Add(req)
-	// 			}
-	// 		}
-	// 	}
-	// case "series-episodes":
-
-	// 	var i int64
-	// 	for i = 0; i < docsCount; i++ {
-	// 		if i%interval == 0 {
-	// 			docs := tv.GetAllEpisodes(i, interval)
-	// 			log.Println(i, len(docs))
-	// 			for _, doc := range docs {
-	// 				req := elastic.NewBulkIndexRequest().
-	// 					Index(newIndexName).
-	// 					Doc(doc)
-	// 				bulkProcessor.Add(req)
-	// 			}
-	// 		}
-	// 	}
-	// }
-
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
 	existentSerieAliases, err := IndexNamesByAlias(elasticAliasName, elasticClient)
 	if err != nil {
@@ -327,7 +264,6 @@ func ElasticGeneralCharge() {
 	go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 3)
 	go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 3)
 	ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 5)
-	// ElasticChargeInsert("series-episodes", 10000, INDEX_MAPPING_PERSONS)
 	log.Println("FINISH ElasticGeneralCharge")
 }
 
