@@ -25,5 +25,6 @@ jobs:
         script: |
           export GO_ENV=$GO_ENV
           cd docker/moviedb-carga
+          git checkout main
           git pull
           ./start.server.sh
