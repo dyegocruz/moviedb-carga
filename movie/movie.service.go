@@ -6,23 +6,25 @@ import (
 	"log"
 	"moviedb/common"
 	"moviedb/database"
-	"moviedb/parametro"
+	"moviedb/parameter"
+
 	"moviedb/person"
 	"moviedb/tmdb"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var movieCollection = database.COLLECTION_MOVIE
+var movieCollectionString = database.COLLECTION_MOVIE
+var movieCollection *mongo.Collection = database.GetCollection(database.DB, movieCollectionString)
 
 func CheckMoviesChanges() {
-	movieChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_MOVIE)
-	for _, movie := range movieChanges.Results {
+	movieChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_MOVIE, 1)
+	for _, movie := range movieChanges {
 
 		if !movie.Adult {
 			PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_PTBR, "Y")
@@ -42,11 +44,10 @@ func GetMovieDetailsOnTMDBApi(id int, language string) Movie {
 
 func PopulateMovieByIdAndLanguage(id int, language string, updateCast string) {
 	itemObj := GetMovieDetailsOnTMDBApi(id, language)
-	PopulateMovieByLanguage(itemObj, language, "Y")
+	PopulateMovieByLanguage(itemObj, language, updateCast)
 }
 
 func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) {
-	log.Println("RUNTIME: ", itemObj.Runtime)
 	t := time.Now()
 	itemObj.UpdatedNew = t.Format("02/01/2006 15:04:05")
 
@@ -55,25 +56,22 @@ func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) 
 	itemObj.Slug = slug.Make(itemObj.Title)
 	itemObj.SlugUrl = "movie-" + strconv.Itoa(itemObj.Id)
 
-	// INÍCIO TRATAMENTO DAS PESSOAS DO CAST E CREW
-	// reqCredits := tmdb.GetMovieCreditsByIdAndLanguage(itemObj.Id, language)
-	// json.NewDecoder(reqCredits.Body).Decode(&itemObj.MovieCredits)
-	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
-
 	itemFind := GetMovieByIdAndLanguage(itemObj.Id, language)
 
 	if itemFind.Id == 0 {
 
 		for _, cast := range itemObj.MovieCredits.Cast {
-			person.PopulatePersonByIdAndLanguage(cast.Id, language)
+			person.PopulatePersonByIdAndLanguage(cast.Id, language, updateCast)
 		}
 
 		for _, crew := range itemObj.MovieCredits.Crew {
-			person.PopulatePersonByIdAndLanguage(crew.Id, language)
+			person.PopulatePersonByIdAndLanguage(crew.Id, language, updateCast)
 		}
 
-		log.Println("===>INSERT MOVIE: ", itemObj.Id)
-		InsertMovie(itemObj, language)
+		if itemObj.Id > 0 {
+			log.Println("===>INSERT MOVIE: ", itemObj.Id)
+			InsertMovie(itemObj, language)
+		}
 	} else {
 		log.Println("===>UPDATE MOVIE: ", itemObj.Id)
 		UpdateMovie(itemObj, language)
@@ -82,7 +80,7 @@ func PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) 
 
 func PopulateMovies(language string, idGenre string) {
 
-	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
+	parametro := parameter.GetByType("CHARGE_TMDB_CONFIG")
 	apiMaxPage := parametro.Options.TmdbMaxPageLoad
 
 	for i := 1; i < apiMaxPage+1; i++ {
@@ -112,56 +110,41 @@ func PopulateMovies(language string, idGenre string) {
 	}
 }
 
-func GetCountAll() int64 {
-	return database.GetCountAllByColletcion(movieCollection)
-}
-
 func GetAll(skip int64, limit int64) []Movie {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
 
-	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
+	ctx2 := context.TODO()
+
+	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "adult": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "updated": 0, "updatedNew": 0}
+	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetLimit(limit).SetSkip(skip).SetProjection(projection)
+	cur, err := movieCollection.Find(ctx2, bson.D{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
 
 	movies := make([]Movie, 0)
-	for cur.Next(context.TODO()) {
+	for cur.Next(ctx2) {
 		var movie Movie
 		err := cur.Decode(&movie)
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		movies = append(movies, movie)
 	}
-
-	cur.Close(context.TODO())
 
 	return movies
 }
 
 func GetMovieByIdAndLanguage(id int, language string) Movie {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
 	var item Movie
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
+	movieCollection.FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
 
 	return item
 }
 
 func InsertMovie(itemInsert Movie, language string) interface{} {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).InsertOne(context.TODO(), itemInsert)
+	result, err := movieCollection.InsertOne(context.TODO(), itemInsert)
 	if err != nil {
 		log.Println("EERRORRR")
 		log.Println(err)
@@ -172,11 +155,15 @@ func InsertMovie(itemInsert Movie, language string) interface{} {
 
 func UpdateMovie(movie Movie, language string) {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-	log.Println("RUNTIME: ", movie.Runtime)
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection(movieCollection).UpdateOne(context.TODO(), bson.M{"id": movie.Id, "language": language}, bson.M{
+	movieCollection.UpdateOne(context.TODO(), bson.M{"id": movie.Id, "language": language}, bson.M{
 		"$set": movie,
 	})
+}
+
+func GetCountAll() int64 {
+	return database.GetCountAllByColletcion(database.COLLECTION_MOVIE)
+}
+
+func GenerateMovieCatalogCheck(language string) map[int]common.CatalogCheck {
+	return database.GenerateCatalogCheck(database.COLLECTION_MOVIE, language)
 }

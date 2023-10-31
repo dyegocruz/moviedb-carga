@@ -6,27 +6,31 @@ import (
 	"log"
 	"moviedb/common"
 	"moviedb/database"
-	"moviedb/parametro"
+	"moviedb/parameter"
+
 	"moviedb/person"
 	"moviedb/tmdb"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var serieCollection = database.COLLECTION_SERIE
+var serieCollectionString = database.COLLECTION_SERIE
+var serieCollection *mongo.Collection = database.GetCollection(database.DB, serieCollectionString)
+
+var serieEpisodeCollectionString = database.COLLECTION_SERIE_EPISODE
+var serieEpisodeCollection *mongo.Collection = database.GetCollection(database.DB, serieEpisodeCollectionString)
 
 func CheckTvChanges() {
-	tvChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_TV)
-
-	for _, serie := range tvChanges.Results {
+	tvChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_TV, 1)
+	for _, serie := range tvChanges {
 		if !serie.Adult {
-			PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_PTBR)
 			go PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_EN)
+			PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_PTBR)
 		}
 	}
 }
@@ -55,13 +59,9 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 	itemObj.Slug = slug.Make(itemObj.Title)
 	itemObj.SlugUrl = "serie-" + strconv.Itoa(itemObj.Id)
 
-	// INÍCIO TRATAMENTO DAS PESSOAS DO CAST E CREW
-	// reqCredits := tmdb.GetTvCreditsByIdAndLanguage(itemObj.Id, language)
-	// json.NewDecoder(reqCredits.Body).Decode(&itemObj.TvCredits)
-	// FINAL TRATAMENTO DAS PESSOAS DO CAST E CREW
 	itemFind := GetSerieByIdAndLanguage(itemObj.Id, language)
 
-	// Início tratamento para episódios de uma série
+	// INIT treatment of tv's episodes
 	var seasonsDetails []Season
 	for _, season := range itemObj.Seasons {
 		reqSeasonEpisodes := tmdb.GetTvSeason(itemObj.Id, season.SeasonNumber, language)
@@ -112,34 +112,36 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 		seasonsDetails = append(seasonsDetails, seasonReq)
 	}
 	itemObj.Seasons = seasonsDetails
-	// FINAL tratamento para episódios de uma série
+	// FINAL treatment of tv's episodes
 
 	if itemFind.Id == 0 {
 
 		for _, cast := range itemObj.TvCredits.Cast {
-			person.PopulatePersonByIdAndLanguage(cast.Id, language)
+			person.PopulatePersonByIdAndLanguage(cast.Id, language, "Y")
 		}
 
 		for _, crew := range itemObj.TvCredits.Crew {
-			person.PopulatePersonByIdAndLanguage(crew.Id, language)
+			person.PopulatePersonByIdAndLanguage(crew.Id, language, "Y")
 		}
 
-		log.Println("===>INSERT SERIE: ", itemObj.Id)
-		InsertSerie(itemObj, language)
+		if itemObj.Id > 0 {
+			log.Println("===>INSERT TV: ", itemObj.Id)
+			InsertSerie(itemObj, language)
+		}
+
 	} else {
-		log.Println("===>UPDATE SERIE: ", itemObj.Id)
+		log.Println("===>UPDATE TV: ", itemObj.Id)
 		UpdateSerie(itemObj, language)
 	}
 }
 
 func PopulateSeries(language string, idGenre string) {
 
-	parametro := parametro.GetByTipo("CARGA_TMDB_CONFIG")
+	parametro := parameter.GetByType("CHARGE_TMDB_CONFIG")
 	apiMaxPage := parametro.Options.TmdbMaxPageLoad
 
 	for i := 1; i < apiMaxPage+1; i++ {
-		// for i := 1; i < 2; i++ {
-		log.Println("======> SERIE PAGE: ", language, i)
+		log.Println("======> TV PAGE: ", language, i)
 		page := strconv.Itoa(i)
 		response := tmdb.GetDiscoverTvByLanguageGenreAndPage(language, idGenre, page)
 
@@ -147,7 +149,6 @@ func PopulateSeries(language string, idGenre string) {
 		json.NewDecoder(response.Body).Decode(&result)
 
 		for _, item := range result.Results {
-
 			if item.Id > 0 {
 				checkTvExist := GetSerieByIdAndLanguage(item.Id, common.LANGUAGE_PTBR)
 
@@ -159,61 +160,45 @@ func PopulateSeries(language string, idGenre string) {
 					go PopulateSerieByLanguage(itemObj, language)
 				}
 			}
-
 		}
 	}
 }
 
-func GetCountAll() int64 {
-	return database.GetCountAllByColletcion(serieCollection)
-}
-
 func GetAll(skip int64, limit int64) []Serie {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
 
-	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(bson.M{"seasons.episodes": 0})
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
+	ctx2 := context.Background()
+
+	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "adult": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0, "created_by.credit_id": 0, "created_by.gender": 0}
+	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetSkip(skip).SetLimit(limit).SetProjection(projection)
+	cur, err := serieCollection.Find(ctx2, bson.D{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
 
 	series := make([]Serie, 0)
-	for cur.Next(context.TODO()) {
+	for cur.Next(ctx2) {
 		var serie Serie
 		err := cur.Decode(&serie)
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		series = append(series, serie)
 	}
-
-	cur.Close(context.TODO())
 
 	return series
 }
 
 func GetSerieByIdAndLanguage(id int, language string) Serie {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
 	var item Serie
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection(serieCollection).FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
+	serieCollection.FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
 
 	return item
 }
 
 func InsertSerie(itemInsert Serie, language string) interface{} {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(serieCollection).InsertOne(context.TODO(), itemInsert)
+	result, err := serieCollection.InsertOne(context.TODO(), itemInsert)
 	if err != nil {
 		log.Println("EERRORRR")
 		log.Println(err)
@@ -223,27 +208,20 @@ func InsertSerie(itemInsert Serie, language string) interface{} {
 }
 
 func UpdateSerie(serie Serie, language string) {
-
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection(serieCollection).UpdateOne(context.TODO(), bson.M{"id": serie.Id, "language": language}, bson.M{
+	serieCollection.UpdateOne(context.TODO(), bson.M{"id": serie.Id, "language": language}, bson.M{
 		"$set": serie,
 	})
 }
 
 func GetCountAllEpisodes() int64 {
-	return database.GetCountAllByColletcion(database.COLLECTION_SERIE_EPISODE)
+	return database.GetCountAllByColletcion(serieCollectionString)
 }
 
 func GetAllEpisodes(skip int64, limit int64) []Episode {
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
 
-	optionsFind := options.Find().SetLimit(limit).SetSkip(skip)
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).Find(context.TODO(), bson.M{"id": bson.M{"$gt": 0}}, optionsFind)
+	projection := bson.M{"_id": 0, "id": 0, "production_code": 0, "vote_average": 0, "vote_count": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "credits.crew.gender": 0}
+	optionsFind := options.Find().SetLimit(limit).SetSkip(skip).SetProjection(projection)
+	cur, err := serieEpisodeCollection.Find(context.TODO(), bson.D{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
@@ -255,22 +233,15 @@ func GetAllEpisodes(skip int64, limit int64) []Episode {
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		episodes = append(episodes, episode)
 	}
-
-	cur.Close(context.TODO())
 
 	return episodes
 }
 
 func InsertEpisode(itemInsert Episode, language string) interface{} {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	result, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).InsertOne(context.TODO(), itemInsert)
+	result, err := serieEpisodeCollection.InsertOne(context.TODO(), itemInsert)
 	if err != nil {
 		log.Println("EERRORRR")
 		log.Println(err)
@@ -281,23 +252,41 @@ func InsertEpisode(itemInsert Episode, language string) interface{} {
 
 func GetEpisodeByIdAndLanguage(id int, language string) Episode {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
 	var item Episode
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
+	serieEpisodeCollection.FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
 
 	return item
 }
 
+func GetEpisodeBySerieSeasonAndLanguage(showId int, seasonNumber int, language string) []Episode {
+
+	cur, err := serieEpisodeCollection.Find(context.TODO(), bson.M{"show_id": showId, "season_number": seasonNumber, "language": language})
+	if err != nil {
+		log.Println(err)
+	}
+
+	episodes := make([]Episode, 0)
+	cur.All(context.TODO(), &episodes)
+	cur.Close(context.TODO())
+
+	return episodes
+}
+
 func UpdateEpisode(espisode Episode, language string) {
 
-	client, ctx, cancel := database.GetConnection()
-	defer cancel()
-	defer client.Disconnect(ctx)
-
-	client.Database(os.Getenv("MONGO_DATABASE")).Collection(database.COLLECTION_SERIE_EPISODE).UpdateOne(context.TODO(), bson.M{"id": espisode.Id, "language": language}, bson.M{
+	serieEpisodeCollection.UpdateOne(context.TODO(), bson.M{"id": espisode.Id, "language": language}, bson.M{
 		"$set": espisode,
 	})
+}
+
+func GetCountAll() int64 {
+	return database.GetCountAllByColletcion(serieCollectionString)
+}
+
+func GenerateTvCatalogCheck(language string) map[int]common.CatalogCheck {
+	return database.GenerateCatalogCheck(serieCollectionString, language)
+}
+
+func GenerateTvEpisodesCatalogCheck(language string) map[int]common.CatalogCheck {
+	return database.GenerateCatalogCheck(serieEpisodeCollectionString, language)
 }
