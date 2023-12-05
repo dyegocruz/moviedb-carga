@@ -11,10 +11,18 @@ import (
 
 func DownloadExportFile(urlFile string, name string) {
 	url := fmt.Sprintf(urlFile+"/%s.json.gz", name)
-	resp, _ := http.Get(url)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Println("DownloadExportFile resp ERROR")
+		log.Fatal(err)
+	}
 	defer resp.Body.Close()
 	filename := fmt.Sprintf("%s.json.gz", name)
-	out, _ := os.Create(filename)
+	out, err := os.Create(filename)
+	if err != nil {
+		log.Println("DownloadExportFile out ERROR")
+		log.Fatal(err)
+	}
 	defer out.Close()
 	io.Copy(out, resp.Body)
 }
@@ -23,6 +31,7 @@ func Unzip(name string) {
 	// Open compressed file
 	gzipFile, err := os.Open(name + ".json.gz")
 	if err != nil {
+		log.Println("Unzip ERROR")
 		log.Fatal(err)
 	}
 
