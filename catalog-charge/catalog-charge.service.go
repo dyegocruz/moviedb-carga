@@ -2,12 +2,15 @@ package catalogCharge
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"moviedb/common"
+	"moviedb/configs"
 	"moviedb/database"
 	"moviedb/movie"
 	"moviedb/person"
+	"moviedb/queue"
 	"moviedb/tv"
 	"os"
 	"time"
@@ -270,7 +273,30 @@ func ElasticGeneralCharge() {
 func GeneralCharge() {
 	CatalogCharge()
 	CatalogUpdates()
-	ElasticGeneralCharge()
+	// ElasticGeneralCharge()
+	SendMessageProcessCatalogConcluded()
+}
+
+func SendMessageProcessCatalogConcluded() {
+	bytes, err := json.Marshal(queue.EsChargeMessage{
+		UpdatesCompleted: true,
+		Text:             "The update process was completed. Starting ES charge.",
+		Env:              configs.GetEnv(),
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(bytes))
+
+	messageBody := string(bytes)
+	err = queue.SendMessage(configs.GetQueueUrl(), messageBody)
+	if err != nil {
+		fmt.Printf("Got an error while trying to send message to queue: %v", err)
+		return
+	}
+
+	fmt.Println("Message sent successfully")
 }
 
 func IndexNamesByAlias(aliasName string, elasticClient *elastic.Client) ([]string, error) {
