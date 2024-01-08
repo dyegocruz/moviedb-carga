@@ -97,7 +97,7 @@ func GetAll(skip int64, limit int64) []Person {
 
 	ctx2 := context.TODO()
 
-	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "popularity": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
+	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "languages": 0, "updated": 0, "updatedNew": 0, "also_known_as": 0, "credits.cast.credit_id": 0, "credits.crew.department": 0}
 	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetLimit(limit).SetSkip(skip).SetProjection(projection)
 	cur, err := personCollection.Find(ctx2, bson.D{}, optionsFind)
 	if err != nil {
