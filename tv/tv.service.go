@@ -83,24 +83,13 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 			} else {
 
 				if episode.AirDate != "" {
-					air_date, err := time.Parse("2006-01-02", episode.AirDate)
-					if err != nil {
-						log.Println("Date converter error: ", err)
-					}
+					reqTvEpisode := tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
+					json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
 
-					var now = time.Now()
+					episode.Language = language
 
-					if air_date.After(now.AddDate(0, 0, -7)) {
-						reqTvEpisode := tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
-						json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
-
-						episode.Language = language
-
-						log.Println("UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
-						UpdateEpisode(episode, language)
-					} else {
-						log.Println("BYPASS UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
-					}
+					log.Println("UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
+					UpdateEpisode(episode, language)
 				} else {
 					log.Println("BYPASS UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
 				}
