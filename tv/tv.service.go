@@ -182,7 +182,7 @@ func GetCatalogSearch() []Serie {
 
 	ctx2 := context.Background()
 
-	projection := bson.M{"_id": 0, "id": 1, "language": 1, "original_title": 1, "original_language": 1, "title": 1, "poster_path": 1, "first_air_date": 1}
+	projection := bson.M{"_id": 0, "id": 1, "language": 1, "original_title": 1, "original_language": 1, "title": 1, "poster_path": 1, "first_air_date": 1, "popularity": 1}
 	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetProjection(projection)
 	cur, err := serieCollection.Find(ctx2, bson.M{}, optionsFind)
 	if err != nil {
