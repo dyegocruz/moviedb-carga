@@ -33,6 +33,7 @@ func CheckTvChanges() {
 			PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_PTBR)
 		}
 	}
+	log.Println("CheckTvChanges CONCLUDED")
 }
 
 func PopulateSerieByIdAndLanguage(id int, language string) {
@@ -160,6 +161,30 @@ func GetAll(skip int64, limit int64) []Serie {
 	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "adult": 0, "seasons.episodes": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.department": 0, "credits.crew.popularity": 0, "credits.crew.gender": 0, "updated": 0, "updatedNew": 0, "created_by.credit_id": 0, "created_by.gender": 0}
 	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetSkip(skip).SetLimit(limit).SetProjection(projection)
 	cur, err := serieCollection.Find(ctx2, bson.D{}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	series := make([]Serie, 0)
+	for cur.Next(ctx2) {
+		var serie Serie
+		err := cur.Decode(&serie)
+		if err != nil {
+			log.Fatal(err)
+		}
+		series = append(series, serie)
+	}
+
+	return series
+}
+
+func GetCatalogSearch() []Serie {
+
+	ctx2 := context.Background()
+
+	projection := bson.M{"_id": 0, "id": 1, "language": 1, "original_title": 1, "original_language": 1, "title": 1, "poster_path": 1, "first_air_date": 1}
+	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetProjection(projection)
+	cur, err := serieCollection.Find(ctx2, bson.M{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
