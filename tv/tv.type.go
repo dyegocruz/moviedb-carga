@@ -29,6 +29,7 @@ type SpokenLanguages struct {
 type Episode struct {
 	AirDate          string            `json:"air_date,omitempty" bson:"air_date"`
 	EpisodeNumber    int               `json:"episode_number,omitempty" bson:"episode_number"`
+	EpisodeType      string            `json:"episode_type,omitempty" bson:"episode_type"`
 	Id               int               `json:"id,omitempty" bson:"id"`
 	Language         string            `json:"language,omitempty" bson:"language"`
 	Name             string            `json:"name,omitempty" bson:"name"`

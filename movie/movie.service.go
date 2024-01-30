@@ -31,6 +31,7 @@ func CheckMoviesChanges() {
 			go PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN, "Y")
 		}
 	}
+	log.Println("CheckMoviesChanges CONCLUDED")
 }
 
 func GetMovieDetailsOnTMDBApi(id int, language string) Movie {
@@ -117,6 +118,30 @@ func GetAll(skip int64, limit int64) []Movie {
 	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "adult": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "updated": 0, "updatedNew": 0}
 	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetLimit(limit).SetSkip(skip).SetProjection(projection)
 	cur, err := movieCollection.Find(ctx2, bson.D{}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	movies := make([]Movie, 0)
+	for cur.Next(ctx2) {
+		var movie Movie
+		err := cur.Decode(&movie)
+		if err != nil {
+			log.Fatal(err)
+		}
+		movies = append(movies, movie)
+	}
+
+	return movies
+}
+
+func GetCatalogSearch() []Movie {
+
+	ctx2 := context.Background()
+
+	projection := bson.M{"_id": 0, "id": 1, "language": 1, "original_title": 1, "original_language": 1, "title": 1, "poster_path": 1, "release_date": 1}
+	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetProjection(projection)
+	cur, err := movieCollection.Find(ctx2, bson.M{}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}

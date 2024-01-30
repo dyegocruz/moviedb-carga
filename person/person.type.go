@@ -30,7 +30,7 @@ type Person struct {
 	KnowForDepartment string     `json:"known_for_department" bson:"known_for_department"`
 	Name              string     `json:"name" bson:"name"`
 	AlsoKnowAs        []string   `json:"also_known_as,omitempty" bson:"also_known_as"`
-	ProfilepPath      string     `json:"profile_path" bson:"profile_path"`
+	ProfilePath       string     `json:"profile_path" bson:"profile_path"`
 	Biography         string     `json:"biography" bson:"biography"`
 	Birthday          string     `json:"birthday,omitempty" bson:"birthday"`
 	Deathday          string     `json:"deathday,omitempty" bson:"deathday"`

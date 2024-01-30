@@ -31,6 +31,34 @@ func CatalogUpdates() {
 }
 
 const (
+	INDEX_MAPPING_CATALOG_SEARCH = `{
+	  "settings":{
+	    "number_of_shards" : 1,
+			"number_of_replicas" : 0
+	  },
+	  "mappings":{
+	    "properties":{
+				"search_field": {
+					"type": "text"
+				},
+				"locations.title": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"name": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+				"originalTitle": {
+					"type": "text",
+					"copy_to": "search_field"
+				},
+	      "popularity":{
+	        "type":"double"
+	      }
+	    }
+	  }
+	}`
 	INDEX_MAPPING_SERIES = `{
 	  "settings":{
 	    "number_of_shards" : 1,
@@ -150,6 +178,136 @@ func after(executionID int64, requests []elastic.BulkableRequest, response *elas
 	log.Printf("commit successfully, len(requests)=%d\n", len(requests))
 }
 
+func CatalogSearchCharge() {
+	indexName := "catalog_search"
+	elasticClient := elascitClient(indexName)
+	ctx := context.Background()
+
+	elasticAliasName := indexName
+	currentTime := time.Now()
+	var newIndexName = elasticAliasName + "_" + currentTime.Format("20060102150401")
+	log.Println(newIndexName)
+
+	_, err := elasticClient.CreateIndex(newIndexName).BodyString(INDEX_MAPPING_CATALOG_SEARCH).Do(ctx)
+	if err != nil {
+		log.Println("Falha ao criar o índice:", newIndexName)
+		panic(err)
+	}
+
+	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
+		Workers(3).
+		BulkActions(-1).
+		After(after).
+		Stats(true).
+		Do(ctx)
+	if err != nil {
+		log.Println("bulkProcessor Error", err)
+	}
+
+	// CATALOG SEARCH TV
+	catalogTv := tv.GetCatalogSearch()
+	catalogTvLocalizated := make(map[int]CatalogSearch, 0)
+	for _, item := range catalogTv {
+		var catalog CatalogSearch
+		if catalogTvLocalizated[item.Id].Id == 0 {
+			catalog.Id = item.Id
+			catalog.CatalogType = common.MEDIA_TYPE_TV
+			catalog.FirstAirDate = item.FirstAirDate
+			catalog.OriginalLanguage = item.OriginalLanguage
+			catalog.OriginalTitle = item.OriginalTitle
+			catalog.Popularity = item.Popularity
+			catalogTvLocalizated[item.Id] = catalog
+		}
+
+		var location Location
+		location.Language = item.Language
+		location.Title = item.Title
+		location.PosterPath = item.PosterPath
+
+		loc := catalogTvLocalizated[item.Id]
+		loc.Locations = append(loc.Locations, location)
+		catalogTvLocalizated[item.Id] = loc
+	}
+
+	for _, item := range catalogTvLocalizated {
+		req := elastic.NewBulkIndexRequest().
+			Index(newIndexName).
+			Doc(item)
+		bulkProcessor.Add(req)
+	}
+
+	// CATALOG SEARCH MOVIE
+	catalogMovie := movie.GetCatalogSearch()
+	catalogMovieLocalizated := make(map[int]CatalogSearch, 0)
+	for _, item := range catalogMovie {
+		var catalog CatalogSearch
+		if catalogMovieLocalizated[item.Id].Id == 0 {
+			catalog.Id = item.Id
+			catalog.CatalogType = common.MEDIA_TYPE_MOVIE
+			catalog.ReleaseDate = item.ReleaseDate
+			catalog.OriginalLanguage = item.OriginalLanguage
+			catalog.OriginalTitle = item.OriginalTitle
+			catalog.Popularity = item.Popularity
+			catalogMovieLocalizated[item.Id] = catalog
+		}
+
+		var location Location
+		location.Language = item.Language
+		location.Title = item.Title
+		location.PosterPath = item.PosterPath
+
+		loc := catalogMovieLocalizated[item.Id]
+		loc.Locations = append(loc.Locations, location)
+		catalogMovieLocalizated[item.Id] = loc
+	}
+	log.Println(len(catalogMovieLocalizated))
+	for _, item := range catalogMovieLocalizated {
+		req := elastic.NewBulkIndexRequest().
+			Index(newIndexName).
+			Doc(item)
+		bulkProcessor.Add(req)
+	}
+
+	// CATALOG SEARCH PERSON
+	catalogPerson := person.GetCatalogSearch()
+	for _, item := range catalogPerson {
+		var catalog CatalogSearch
+		catalog.Id = item.Id
+		catalog.Name = item.Name
+		catalog.CatalogType = common.MEDIA_TYPE_PERSON
+		catalog.ProfilePath = item.ProfilePath
+		catalog.Popularity = item.Popularity
+		req := elastic.NewBulkIndexRequest().
+			Index(newIndexName).
+			Doc(catalog)
+		bulkProcessor.Add(req)
+	}
+
+	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
+	existentSerieAliases, err := IndexNamesByAlias(elasticAliasName, elasticClient)
+	if err != nil {
+		log.Println("Error ao buscar o index no alias: " + elasticAliasName)
+	}
+	log.Println(existentSerieAliases)
+
+	// ADICIONA
+	elasticClient.Alias().Add(newIndexName, elasticAliasName).Do(ctx)
+
+	if len(existentSerieAliases) > 0 {
+		oldIndex := existentSerieAliases[0]
+		elasticClient.Alias().Remove(oldIndex, elasticAliasName).Do(ctx)
+		elasticClient.DeleteIndex(oldIndex).Do(ctx)
+	}
+
+	// this method is called just to update the quantity of docs inserted on elastic search
+	elasticClient.Count(indexName).Do(ctx)
+
+	log.Println("Carga finalizada com sucesso!")
+
+	bulkProcessor.Flush()
+	bulkProcessor.Close()
+}
+
 func ElasticChargeInsert(indexName string, interval int64, mapping string, workers int) {
 	elasticClient := elascitClient(indexName)
 	ctx := context.Background()
@@ -264,6 +422,7 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 }
 
 func ElasticGeneralCharge() {
+	CatalogSearchCharge()
 	go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 3)
 	go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 3)
 	ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 5)
