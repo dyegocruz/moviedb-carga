@@ -260,7 +260,7 @@ func CatalogSearchCharge() {
 		loc.Locations = append(loc.Locations, location)
 		catalogMovieLocalizated[item.Id] = loc
 	}
-	log.Println(len(catalogMovieLocalizated))
+
 	for _, item := range catalogMovieLocalizated {
 		req := elastic.NewBulkIndexRequest().
 			Index(newIndexName).
@@ -422,10 +422,10 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 }
 
 func ElasticGeneralCharge() {
-	CatalogSearchCharge()
 	go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 3)
 	go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 3)
 	ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 5)
+	CatalogSearchCharge()
 	log.Println("FINISH ElasticGeneralCharge")
 }
 
