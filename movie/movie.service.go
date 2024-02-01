@@ -135,13 +135,13 @@ func GetAll(skip int64, limit int64) []Movie {
 	return movies
 }
 
-func GetCatalogSearch() []Movie {
+func GetCatalogSearchIn(ids []int) []Movie {
 
-	ctx2 := context.Background()
+	ctx2 := context.TODO()
 
 	projection := bson.M{"_id": 0, "id": 1, "language": 1, "original_title": 1, "original_language": 1, "title": 1, "poster_path": 1, "release_date": 1, "popularity": 1}
-	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetProjection(projection)
-	cur, err := movieCollection.Find(ctx2, bson.M{}, optionsFind)
+	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}}).SetProjection(projection)
+	cur, err := movieCollection.Find(ctx2, bson.M{"id": bson.M{"$in": ids}}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}

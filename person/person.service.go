@@ -117,13 +117,13 @@ func GetAll(skip int64, limit int64) []Person {
 	return persons
 }
 
-func GetCatalogSearch() []Person {
+func GetCatalogSearchIn(language string, ids []int) []Person {
 
 	ctx2 := context.TODO()
 
 	projection := bson.M{"_id": 0, "id": 1, "name": 1, "profile_path": 1, "language": 1, "popularity": 1}
-	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetProjection(projection)
-	cur, err := personCollection.Find(ctx2, bson.M{"language": common.LANGUAGE_EN}, optionsFind)
+	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}}).SetProjection(projection)
+	cur, err := personCollection.Find(ctx2, bson.M{"language": language, "id": bson.M{"$in": ids}}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}

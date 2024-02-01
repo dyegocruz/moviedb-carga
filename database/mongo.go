@@ -128,12 +128,74 @@ func CheckCreateCollections() {
 func GetCountAllByColletcion(collection string) int64 {
 	client := DB
 
-	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).CountDocuments(context.TODO(), bson.M{"id": bson.M{"$gt": 0}})
+	// count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).CountDocuments(context.TODO(), bson.M{"id": bson.M{"$gt": 0}})
+	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).CountDocuments(context.TODO(), bson.M{"_id": bson.M{"$ne": ""}})
 	if err != nil {
 		log.Println(err)
 	}
 
 	return count
+}
+
+func GetCountAllByColletcionAndLanguage(collection string, language string) int64 {
+	client := DB
+
+	count, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).CountDocuments(context.TODO(), bson.M{"language": language})
+	if err != nil {
+		log.Println(err)
+	}
+
+	return count
+}
+
+func GetAllIds(collection string) []int {
+	client := DB
+
+	filter := bson.M{}
+	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0}).SetNoCursorTimeout(true)
+
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).Find(context.TODO(), filter, opts)
+	if err != nil {
+		log.Println(err)
+	}
+
+	results := make([]int, 0)
+	for cur.Next(context.TODO()) {
+		var result common.CatalogCheck
+		err := cur.Decode(&result)
+		if err != nil {
+			log.Fatal(err)
+		}
+		results = append(results, result.Id)
+	}
+	defer cur.Close(context.TODO())
+
+	return results
+}
+
+func GetAllIdsByLanguage(collection string, language string) []int {
+	client := DB
+
+	filter := bson.M{"language": language}
+	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0}).SetNoCursorTimeout(true)
+
+	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).Find(context.TODO(), filter, opts)
+	if err != nil {
+		log.Println(err)
+	}
+
+	results := make([]int, 0)
+	for cur.Next(context.TODO()) {
+		var result common.CatalogCheck
+		err := cur.Decode(&result)
+		if err != nil {
+			log.Fatal(err)
+		}
+		results = append(results, result.Id)
+	}
+	defer cur.Close(context.TODO())
+
+	return results
 }
 
 func GenerateCatalogCheck(collection string, language string) map[int]common.CatalogCheck {
