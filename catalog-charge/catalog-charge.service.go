@@ -179,6 +179,8 @@ func after(executionID int64, requests []elastic.BulkableRequest, response *elas
 }
 
 func CatalogSearchCharge() {
+	workers := 3
+	bulkActions := 1000
 	indexName := "catalog_search"
 	elasticClient := elascitClient(indexName)
 	ctx := context.Background()
@@ -195,8 +197,8 @@ func CatalogSearchCharge() {
 	}
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
-		Workers(3).
-		BulkActions(1000).
+		Workers(workers).
+		BulkActions(bulkActions).
 		After(after).
 		Stats(true).
 		Do(ctx)
@@ -236,6 +238,19 @@ func CatalogSearchCharge() {
 		bulkProcessor.Add(req)
 	}
 
+	bulkProcessor.Flush()
+	bulkProcessor.Close()
+
+	bulkProcessor, err = elastic.NewBulkProcessorService(elasticClient).
+		Workers(workers).
+		BulkActions(bulkActions).
+		After(after).
+		Stats(true).
+		Do(ctx)
+	if err != nil {
+		log.Println("bulkProcessor Error", err)
+	}
+
 	// CATALOG SEARCH MOVIE
 	catalogMovie := movie.GetCatalogSearch()
 	catalogMovieLocalizated := make(map[int]CatalogSearch, 0)
@@ -268,6 +283,19 @@ func CatalogSearchCharge() {
 		bulkProcessor.Add(req)
 	}
 
+	bulkProcessor.Flush()
+	bulkProcessor.Close()
+
+	bulkProcessor, err = elastic.NewBulkProcessorService(elasticClient).
+		Workers(workers).
+		BulkActions(bulkActions).
+		After(after).
+		Stats(true).
+		Do(ctx)
+	if err != nil {
+		log.Println("bulkProcessor Error", err)
+	}
+
 	// CATALOG SEARCH PERSON
 	catalogPerson := person.GetCatalogSearch()
 	for _, item := range catalogPerson {
@@ -282,6 +310,9 @@ func CatalogSearchCharge() {
 			Doc(catalog)
 		bulkProcessor.Add(req)
 	}
+
+	bulkProcessor.Flush()
+	bulkProcessor.Close()
 
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
 	existentSerieAliases, err := IndexNamesByAlias(elasticAliasName, elasticClient)
@@ -303,9 +334,6 @@ func CatalogSearchCharge() {
 	elasticClient.Count(indexName).Do(ctx)
 
 	log.Println("Carga finalizada com sucesso!")
-
-	bulkProcessor.Flush()
-	bulkProcessor.Close()
 }
 
 func ElasticChargeInsert(indexName string, interval int64, mapping string, workers int) {

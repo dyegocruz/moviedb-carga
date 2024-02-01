@@ -60,6 +60,41 @@ func pollMessages(chn chan<- *sqs.Message) {
 func main() {
 
 	catalogCharge.CatalogSearchCharge()
+	// CATALOG SEARCH TV
+	// catalogTv := tv.GetCatalogSearch()
+	// log.Println(len(catalogTv))
+	// catalogTvLocalizated := make(map[int]catalogCharge.CatalogSearch, 0)
+	// for _, item := range catalogTv {
+	// 	var catalog catalogCharge.CatalogSearch
+	// 	if catalogTvLocalizated[item.Id].Id == 0 {
+	// 		catalog.Id = item.Id
+	// 		catalog.CatalogType = common.MEDIA_TYPE_TV
+	// 		catalog.FirstAirDate = item.FirstAirDate
+	// 		catalog.OriginalLanguage = item.OriginalLanguage
+	// 		catalog.OriginalTitle = item.OriginalTitle
+	// 		catalog.Popularity = item.Popularity
+	// 		catalogTvLocalizated[item.Id] = catalog
+	// 	}
+
+	// 	var location catalogCharge.Location
+	// 	location.Language = item.Language
+	// 	location.Title = item.Title
+	// 	location.PosterPath = item.PosterPath
+
+	// 	loc := catalogTvLocalizated[item.Id]
+	// 	loc.Locations = append(loc.Locations, location)
+	// 	catalogTvLocalizated[item.Id] = loc
+	// }
+
+	// for _, item := range catalogTvLocalizated {
+	// 	log.Println(item)
+	// 	// req := elastic.NewBulkIndexRequest().
+	// 	// 	Index(newIndexName).
+	// 	// 	Doc(item)
+	// 	// bulkProcessor.Add(req)
+	// }
+
+	log.Println("PROCESS COMPLETE")
 
 	// if configs.IsProduction() {
 	// 	cronCharge()
