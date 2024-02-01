@@ -243,7 +243,7 @@ func CatalogSearchCharge() {
 
 	bulkProcessor, err = elastic.NewBulkProcessorService(elasticClient).
 		Workers(workers).
-		BulkActions(bulkActions).
+		BulkActions(-1).
 		After(after).
 		Stats(true).
 		Do(ctx)
@@ -252,43 +252,88 @@ func CatalogSearchCharge() {
 	}
 
 	// CATALOG SEARCH MOVIE
-	catalogMovie := movie.GetCatalogSearch()
-	catalogMovieLocalizated := make(map[int]CatalogSearch, 0)
-	for _, item := range catalogMovie {
-		var catalog CatalogSearch
-		if catalogMovieLocalizated[item.Id].Id == 0 {
-			catalog.Id = item.Id
-			catalog.CatalogType = common.MEDIA_TYPE_MOVIE
-			catalog.ReleaseDate = item.ReleaseDate
-			catalog.OriginalLanguage = item.OriginalLanguage
-			catalog.OriginalTitle = item.OriginalTitle
-			catalog.Popularity = item.Popularity
-			catalogMovieLocalizated[item.Id] = catalog
+	// catalogMovie := movie.GetCatalogSearch()
+	// catalogMovieLocalizated := make(map[int]CatalogSearch, 0)
+	// for _, item := range catalogMovie {
+	// 	var catalog CatalogSearch
+	// 	if catalogMovieLocalizated[item.Id].Id == 0 {
+	// 		catalog.Id = item.Id
+	// 		catalog.CatalogType = common.MEDIA_TYPE_MOVIE
+	// 		catalog.ReleaseDate = item.ReleaseDate
+	// 		catalog.OriginalLanguage = item.OriginalLanguage
+	// 		catalog.OriginalTitle = item.OriginalTitle
+	// 		catalog.Popularity = item.Popularity
+	// 		catalogMovieLocalizated[item.Id] = catalog
+	// 	}
+
+	// 	var location Location
+	// 	location.Language = item.Language
+	// 	location.Title = item.Title
+	// 	location.PosterPath = item.PosterPath
+
+	// 	loc := catalogMovieLocalizated[item.Id]
+	// 	loc.Locations = append(loc.Locations, location)
+	// 	catalogMovieLocalizated[item.Id] = loc
+	// }
+
+	// for _, item := range catalogMovieLocalizated {
+	// 	req := elastic.NewBulkIndexRequest().
+	// 		Index(newIndexName).
+	// 		Doc(item)
+	// 	bulkProcessor.Add(req)
+	// }
+
+	idsMovies := database.GetAllIdsByLanguage(database.COLLECTION_MOVIE, "en")
+	log.Println(len(idsMovies))
+
+	var iMovie int64 = 0
+	var intervalMovies = int64(1000)
+	var listMovieIdsIn []int = []int{}
+	for iMovie = 0; iMovie < int64(len(idsMovies)); iMovie++ {
+		listMovieIdsIn = append(listMovieIdsIn, idsMovies[iMovie])
+		if iMovie%intervalMovies == 0 {
+			docs := movie.GetCatalogSearchIn(listMovieIdsIn)
+
+			catalogMovieLocalizated := make(map[int]CatalogSearch, 0)
+			for _, item := range docs {
+				var catalog CatalogSearch
+				if catalogMovieLocalizated[item.Id].Id == 0 {
+					catalog.Id = item.Id
+					catalog.CatalogType = common.MEDIA_TYPE_MOVIE
+					catalog.ReleaseDate = item.ReleaseDate
+					catalog.OriginalLanguage = item.OriginalLanguage
+					catalog.OriginalTitle = item.OriginalTitle
+					catalog.Popularity = item.Popularity
+					catalogMovieLocalizated[item.Id] = catalog
+				}
+
+				var location Location
+				location.Language = item.Language
+				location.Title = item.Title
+				location.PosterPath = item.PosterPath
+
+				loc := catalogMovieLocalizated[item.Id]
+				loc.Locations = append(loc.Locations, location)
+				catalogMovieLocalizated[item.Id] = loc
+			}
+
+			for _, item := range catalogMovieLocalizated {
+				req := elastic.NewBulkIndexRequest().
+					Index(newIndexName).
+					Doc(item)
+				bulkProcessor.Add(req)
+			}
+
+			listMovieIdsIn = []int{}
 		}
-
-		var location Location
-		location.Language = item.Language
-		location.Title = item.Title
-		location.PosterPath = item.PosterPath
-
-		loc := catalogMovieLocalizated[item.Id]
-		loc.Locations = append(loc.Locations, location)
-		catalogMovieLocalizated[item.Id] = loc
-	}
-
-	for _, item := range catalogMovieLocalizated {
-		req := elastic.NewBulkIndexRequest().
-			Index(newIndexName).
-			Doc(item)
-		bulkProcessor.Add(req)
 	}
 
 	bulkProcessor.Flush()
 	bulkProcessor.Close()
 
 	bulkProcessor, err = elastic.NewBulkProcessorService(elasticClient).
-		Workers(workers).
-		BulkActions(bulkActions).
+		Workers(5).
+		BulkActions(-1).
 		After(after).
 		Stats(true).
 		Do(ctx)
@@ -296,19 +341,30 @@ func CatalogSearchCharge() {
 		log.Println("bulkProcessor Error", err)
 	}
 
-	// CATALOG SEARCH PERSON
-	catalogPerson := person.GetCatalogSearch()
-	for _, item := range catalogPerson {
-		var catalog CatalogSearch
-		catalog.Id = item.Id
-		catalog.Name = item.Name
-		catalog.CatalogType = common.MEDIA_TYPE_PERSON
-		catalog.ProfilePath = item.ProfilePath
-		catalog.Popularity = item.Popularity
-		req := elastic.NewBulkIndexRequest().
-			Index(newIndexName).
-			Doc(catalog)
-		bulkProcessor.Add(req)
+	idsPersons := database.GetAllIdsByLanguage(database.COLLECTION_PERSON, "en")
+	log.Println(len(idsPersons))
+
+	var iPerson int64 = 0
+	var intervalPerson = int64(1000)
+	var listPersonIdsIn []int = []int{}
+	for iPerson = 0; iPerson < int64(len(idsPersons)); iPerson++ {
+		listPersonIdsIn = append(listPersonIdsIn, idsPersons[iPerson])
+		if iPerson%intervalPerson == 0 {
+			docs := person.GetCatalogSearchIn("en", listPersonIdsIn)
+			for _, item := range docs {
+				var catalog CatalogSearch
+				catalog.Id = item.Id
+				catalog.Name = item.Name
+				catalog.CatalogType = common.MEDIA_TYPE_PERSON
+				catalog.ProfilePath = item.ProfilePath
+				catalog.Popularity = item.Popularity
+				req := elastic.NewBulkIndexRequest().
+					Index(newIndexName).
+					Doc(catalog)
+				bulkProcessor.Add(req)
+			}
+			listPersonIdsIn = []int{}
+		}
 	}
 
 	bulkProcessor.Flush()

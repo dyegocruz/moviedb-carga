@@ -59,39 +59,51 @@ func pollMessages(chn chan<- *sqs.Message) {
 
 func main() {
 
-	catalogCharge.CatalogSearchCharge()
-	// CATALOG SEARCH TV
-	// catalogTv := tv.GetCatalogSearch()
-	// log.Println(len(catalogTv))
-	// catalogTvLocalizated := make(map[int]catalogCharge.CatalogSearch, 0)
-	// for _, item := range catalogTv {
-	// 	var catalog catalogCharge.CatalogSearch
-	// 	if catalogTvLocalizated[item.Id].Id == 0 {
-	// 		catalog.Id = item.Id
-	// 		catalog.CatalogType = common.MEDIA_TYPE_TV
-	// 		catalog.FirstAirDate = item.FirstAirDate
-	// 		catalog.OriginalLanguage = item.OriginalLanguage
-	// 		catalog.OriginalTitle = item.OriginalTitle
-	// 		catalog.Popularity = item.Popularity
-	// 		catalogTvLocalizated[item.Id] = catalog
+	// idsMovies := database.GetAllIdsByLanguage(database.COLLECTION_MOVIE, "en")
+	// log.Println(len(idsMovies))
+
+	// var i int64 = 0
+	// var interval = int64(1000)
+	// var listIdsIn []int = []int{}
+	// for i = 0; i < int64(len(idsMovies)); i++ {
+	// 	listIdsIn = append(listIdsIn, idsMovies[i])
+	// 	if i%interval == 0 {
+	// 		log.Println(len(listIdsIn))
+	// 		docs := movie.GetCatalogSearchIn(listIdsIn)
+	// 		log.Println(i, len(docs))
+	// 		listIdsIn = []int{}
 	// 	}
-
-	// 	var location catalogCharge.Location
-	// 	location.Language = item.Language
-	// 	location.Title = item.Title
-	// 	location.PosterPath = item.PosterPath
-
-	// 	loc := catalogTvLocalizated[item.Id]
-	// 	loc.Locations = append(loc.Locations, location)
-	// 	catalogTvLocalizated[item.Id] = loc
 	// }
 
-	// for _, item := range catalogTvLocalizated {
-	// 	log.Println(item)
-	// 	// req := elastic.NewBulkIndexRequest().
-	// 	// 	Index(newIndexName).
-	// 	// 	Doc(item)
-	// 	// bulkProcessor.Add(req)
+	catalogCharge.CatalogSearchCharge()
+
+	// docsCount := database.GetCountAllByColletcionAndLanguage(database.COLLECTION_PERSON, "en")
+	// log.Println(docsCount)
+
+	// var i int64
+	// var interval = int64(1000)
+	// for i = 0; i < docsCount; i++ {
+
+	// 	if i%interval == 0 {
+	// 		docs := person.GetCatalogSearchTest(i, interval)
+	// 		log.Println(i, len(docs))
+	// 		for _, doc := range docs {
+	// 			// req := elastic.NewBulkIndexRequest().
+	// 			// 	Index(newIndexName).
+	// 			// 	Doc(doc)
+	// 			// bulkProcessor.Add(req)
+	// 		}
+	// 	}
+	// }
+
+	// catalogPerson := person.GetCatalogSearch()
+	// for _, item := range catalogPerson {
+	// 	var catalog catalogCharge.CatalogSearch
+	// 	catalog.Id = item.Id
+	// 	catalog.Name = item.Name
+	// 	catalog.CatalogType = common.MEDIA_TYPE_PERSON
+	// 	catalog.ProfilePath = item.ProfilePath
+	// 	catalog.Popularity = item.Popularity
 	// }
 
 	log.Println("PROCESS COMPLETE")

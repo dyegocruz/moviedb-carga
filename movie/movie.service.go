@@ -159,6 +159,54 @@ func GetCatalogSearch() []Movie {
 	return movies
 }
 
+func GetCatalogSearchTest(skip int64, limit int64) []Movie {
+
+	ctx2 := context.Background()
+
+	projection := bson.M{"_id": 0, "id": 1, "language": 1, "original_title": 1, "original_language": 1, "title": 1, "poster_path": 1, "release_date": 1, "popularity": 1}
+	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetLimit(limit).SetSkip(skip).SetProjection(projection)
+	cur, err := movieCollection.Find(ctx2, bson.M{}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	movies := make([]Movie, 0)
+	for cur.Next(ctx2) {
+		var movie Movie
+		err := cur.Decode(&movie)
+		if err != nil {
+			log.Fatal(err)
+		}
+		movies = append(movies, movie)
+	}
+
+	return movies
+}
+
+func GetCatalogSearchIn(ids []int) []Movie {
+
+	ctx2 := context.TODO()
+
+	projection := bson.M{"_id": 0, "id": 1, "language": 1, "original_title": 1, "original_language": 1, "title": 1, "poster_path": 1, "release_date": 1, "popularity": 1}
+	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}}).SetProjection(projection)
+	cur, err := movieCollection.Find(ctx2, bson.M{"id": bson.M{"$in": ids}}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	movies := make([]Movie, 0)
+	for cur.Next(ctx2) {
+		var movie Movie
+		err := cur.Decode(&movie)
+		if err != nil {
+			log.Fatal(err)
+		}
+		movies = append(movies, movie)
+	}
+
+	return movies
+}
+
 func GetMovieByIdAndLanguage(id int, language string) Movie {
 
 	var item Movie
