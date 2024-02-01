@@ -196,7 +196,7 @@ func CatalogSearchCharge() {
 
 	bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).
 		Workers(3).
-		BulkActions(-1).
+		BulkActions(1000).
 		After(after).
 		Stats(true).
 		Do(ctx)
