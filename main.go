@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -60,32 +59,34 @@ func pollMessages(chn chan<- *sqs.Message) {
 
 func main() {
 
-	if configs.IsProduction() {
-		cronCharge()
-	} else {
-		catalogCharge.GeneralCharge()
-		log.Println("PROCESS COMPLETE")
-	}
+	catalogCharge.CatalogSearchCharge()
 
-	chnMessages := make(chan *sqs.Message, 1)
-	go pollMessages(chnMessages)
+	// if configs.IsProduction() {
+	// 	cronCharge()
+	// } else {
+	// 	catalogCharge.GeneralCharge()
+	// 	log.Println("PROCESS COMPLETE")
+	// }
 
-	for message := range chnMessages {
-		var esChargeMessage queue.EsChargeMessage
-		json.Unmarshal([]byte(*message.Body), &esChargeMessage)
+	// chnMessages := make(chan *sqs.Message, 1)
+	// go pollMessages(chnMessages)
 
-		if esChargeMessage.Env == configs.GetEnv() {
-			receiptHandle := message.ReceiptHandle
-			err := queue.DeleteMessage(configs.GetQueueUrl(), receiptHandle)
-			if err != nil {
-				fmt.Printf("Got an error while trying to delete message: %v", err)
-				return
-			}
+	// for message := range chnMessages {
+	// 	var esChargeMessage queue.EsChargeMessage
+	// 	json.Unmarshal([]byte(*message.Body), &esChargeMessage)
 
-			catalogCharge.ElasticGeneralCharge()
-		} else {
-			log.Println("No messages for this environment")
-		}
-	}
+	// 	if esChargeMessage.Env == configs.GetEnv() {
+	// 		receiptHandle := message.ReceiptHandle
+	// 		err := queue.DeleteMessage(configs.GetQueueUrl(), receiptHandle)
+	// 		if err != nil {
+	// 			fmt.Printf("Got an error while trying to delete message: %v", err)
+	// 			return
+	// 		}
+
+	// 		catalogCharge.ElasticGeneralCharge()
+	// 	} else {
+	// 		log.Println("No messages for this environment")
+	// 	}
+	// }
 
 }
