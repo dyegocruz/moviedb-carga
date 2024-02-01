@@ -202,6 +202,30 @@ func GetCatalogSearch() []Serie {
 	return series
 }
 
+func GetCatalogSearchIn(ids []int) []Serie {
+
+	ctx2 := context.TODO()
+
+	projection := bson.M{"_id": 0, "id": 1, "language": 1, "original_title": 1, "original_language": 1, "title": 1, "poster_path": 1, "first_air_date": 1, "popularity": 1}
+	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}}).SetProjection(projection)
+	cur, err := serieCollection.Find(ctx2, bson.M{"id": bson.M{"$in": ids}}, optionsFind)
+	if err != nil {
+		log.Println(err)
+	}
+
+	series := make([]Serie, 0)
+	for cur.Next(ctx2) {
+		var serie Serie
+		err := cur.Decode(&serie)
+		if err != nil {
+			log.Fatal(err)
+		}
+		series = append(series, serie)
+	}
+
+	return series
+}
+
 func GetSerieByIdAndLanguage(id int, language string) Serie {
 
 	var item Serie

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -59,81 +60,32 @@ func pollMessages(chn chan<- *sqs.Message) {
 
 func main() {
 
-	// idsMovies := database.GetAllIdsByLanguage(database.COLLECTION_MOVIE, "en")
-	// log.Println(len(idsMovies))
+	if configs.IsProduction() {
+		cronCharge()
+	} else {
+		catalogCharge.GeneralCharge()
+		log.Println("PROCESS COMPLETE")
+	}
 
-	// var i int64 = 0
-	// var interval = int64(1000)
-	// var listIdsIn []int = []int{}
-	// for i = 0; i < int64(len(idsMovies)); i++ {
-	// 	listIdsIn = append(listIdsIn, idsMovies[i])
-	// 	if i%interval == 0 {
-	// 		log.Println(len(listIdsIn))
-	// 		docs := movie.GetCatalogSearchIn(listIdsIn)
-	// 		log.Println(i, len(docs))
-	// 		listIdsIn = []int{}
-	// 	}
-	// }
+	chnMessages := make(chan *sqs.Message, 1)
+	go pollMessages(chnMessages)
 
-	catalogCharge.CatalogSearchCharge()
+	for message := range chnMessages {
+		var esChargeMessage queue.EsChargeMessage
+		json.Unmarshal([]byte(*message.Body), &esChargeMessage)
 
-	// docsCount := database.GetCountAllByColletcionAndLanguage(database.COLLECTION_PERSON, "en")
-	// log.Println(docsCount)
+		if esChargeMessage.Env == configs.GetEnv() {
+			receiptHandle := message.ReceiptHandle
+			err := queue.DeleteMessage(configs.GetQueueUrl(), receiptHandle)
+			if err != nil {
+				fmt.Printf("Got an error while trying to delete message: %v", err)
+				return
+			}
 
-	// var i int64
-	// var interval = int64(1000)
-	// for i = 0; i < docsCount; i++ {
-
-	// 	if i%interval == 0 {
-	// 		docs := person.GetCatalogSearchTest(i, interval)
-	// 		log.Println(i, len(docs))
-	// 		for _, doc := range docs {
-	// 			// req := elastic.NewBulkIndexRequest().
-	// 			// 	Index(newIndexName).
-	// 			// 	Doc(doc)
-	// 			// bulkProcessor.Add(req)
-	// 		}
-	// 	}
-	// }
-
-	// catalogPerson := person.GetCatalogSearch()
-	// for _, item := range catalogPerson {
-	// 	var catalog catalogCharge.CatalogSearch
-	// 	catalog.Id = item.Id
-	// 	catalog.Name = item.Name
-	// 	catalog.CatalogType = common.MEDIA_TYPE_PERSON
-	// 	catalog.ProfilePath = item.ProfilePath
-	// 	catalog.Popularity = item.Popularity
-	// }
-
-	log.Println("PROCESS COMPLETE")
-
-	// if configs.IsProduction() {
-	// 	cronCharge()
-	// } else {
-	// 	catalogCharge.GeneralCharge()
-	// 	log.Println("PROCESS COMPLETE")
-	// }
-
-	// chnMessages := make(chan *sqs.Message, 1)
-	// go pollMessages(chnMessages)
-
-	// for message := range chnMessages {
-	// 	var esChargeMessage queue.EsChargeMessage
-	// 	json.Unmarshal([]byte(*message.Body), &esChargeMessage)
-
-	// 	if esChargeMessage.Env == configs.GetEnv() {
-	// 		receiptHandle := message.ReceiptHandle
-	// 		err := queue.DeleteMessage(configs.GetQueueUrl(), receiptHandle)
-	// 		if err != nil {
-	// 			fmt.Printf("Got an error while trying to delete message: %v", err)
-	// 			return
-	// 		}
-
-	// 		catalogCharge.ElasticGeneralCharge()
-	// 	} else {
-	// 		log.Println("No messages for this environment")
-	// 	}
-	// }
+			catalogCharge.ElasticGeneralCharge()
+		} else {
+			log.Println("No messages for this environment")
+		}
+	}
 
 }
