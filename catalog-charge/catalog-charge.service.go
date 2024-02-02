@@ -178,6 +178,90 @@ func after(executionID int64, requests []elastic.BulkableRequest, response *elas
 	log.Printf("commit successfully, len(requests)=%d\n", len(requests))
 }
 
+func handleCatalogTv(listTvIdsIn []int, newIndexName string, bulkProcessor *elastic.BulkProcessor) {
+	docs := tv.GetCatalogSearchIn(listTvIdsIn)
+
+	catalogTvLocalizated := make(map[int]CatalogSearch, 0)
+	for _, item := range docs {
+		var catalog CatalogSearch
+		if catalogTvLocalizated[item.Id].Id == 0 {
+			catalog.Id = item.Id
+			catalog.CatalogType = common.MEDIA_TYPE_TV
+			catalog.FirstAirDate = item.FirstAirDate
+			catalog.OriginalLanguage = item.OriginalLanguage
+			catalog.OriginalTitle = item.OriginalTitle
+			catalog.Popularity = item.Popularity
+			catalogTvLocalizated[item.Id] = catalog
+		}
+
+		var location Location
+		location.Language = item.Language
+		location.Title = item.Title
+		location.PosterPath = item.PosterPath
+
+		loc := catalogTvLocalizated[item.Id]
+		loc.Locations = append(loc.Locations, location)
+		catalogTvLocalizated[item.Id] = loc
+	}
+
+	for _, item := range catalogTvLocalizated {
+		req := elastic.NewBulkIndexRequest().
+			Index(newIndexName).
+			Doc(item)
+		bulkProcessor.Add(req)
+	}
+}
+
+func handleCatalogMovie(listMovieIdsIn []int, newIndexName string, bulkProcessor *elastic.BulkProcessor) {
+	docs := movie.GetCatalogSearchIn(listMovieIdsIn)
+
+	catalogMovieLocalizated := make(map[int]CatalogSearch, 0)
+	for _, item := range docs {
+		var catalog CatalogSearch
+		if catalogMovieLocalizated[item.Id].Id == 0 {
+			catalog.Id = item.Id
+			catalog.CatalogType = common.MEDIA_TYPE_MOVIE
+			catalog.ReleaseDate = item.ReleaseDate
+			catalog.OriginalLanguage = item.OriginalLanguage
+			catalog.OriginalTitle = item.OriginalTitle
+			catalog.Popularity = item.Popularity
+			catalogMovieLocalizated[item.Id] = catalog
+		}
+
+		var location Location
+		location.Language = item.Language
+		location.Title = item.Title
+		location.PosterPath = item.PosterPath
+
+		loc := catalogMovieLocalizated[item.Id]
+		loc.Locations = append(loc.Locations, location)
+		catalogMovieLocalizated[item.Id] = loc
+	}
+
+	for _, item := range catalogMovieLocalizated {
+		req := elastic.NewBulkIndexRequest().
+			Index(newIndexName).
+			Doc(item)
+		bulkProcessor.Add(req)
+	}
+}
+
+func handleCatalogPerson(listPersonIdsIn []int, newIndexName string, bulkProcessor *elastic.BulkProcessor) {
+	docs := person.GetCatalogSearchIn("en", listPersonIdsIn)
+	for _, item := range docs {
+		var catalog CatalogSearch
+		catalog.Id = item.Id
+		catalog.Name = item.Name
+		catalog.CatalogType = common.MEDIA_TYPE_PERSON
+		catalog.ProfilePath = item.ProfilePath
+		catalog.Popularity = item.Popularity
+		req := elastic.NewBulkIndexRequest().
+			Index(newIndexName).
+			Doc(catalog)
+		bulkProcessor.Add(req)
+	}
+}
+
 func CatalogSearchCharge() {
 	workers := 3
 	indexName := "catalog_search"
@@ -215,40 +299,12 @@ func CatalogSearchCharge() {
 	for iTv = 0; iTv < int64(len(idsTv)); iTv++ {
 		listTvIdsIn = append(listTvIdsIn, idsTv[iTv])
 		if iTv%intervalTv == 0 {
-			docs := tv.GetCatalogSearchIn(listTvIdsIn)
-
-			catalogTvLocalizated := make(map[int]CatalogSearch, 0)
-			for _, item := range docs {
-				var catalog CatalogSearch
-				if catalogTvLocalizated[item.Id].Id == 0 {
-					catalog.Id = item.Id
-					catalog.CatalogType = common.MEDIA_TYPE_TV
-					catalog.FirstAirDate = item.FirstAirDate
-					catalog.OriginalLanguage = item.OriginalLanguage
-					catalog.OriginalTitle = item.OriginalTitle
-					catalog.Popularity = item.Popularity
-					catalogTvLocalizated[item.Id] = catalog
-				}
-
-				var location Location
-				location.Language = item.Language
-				location.Title = item.Title
-				location.PosterPath = item.PosterPath
-
-				loc := catalogTvLocalizated[item.Id]
-				loc.Locations = append(loc.Locations, location)
-				catalogTvLocalizated[item.Id] = loc
-			}
-
-			for _, item := range catalogTvLocalizated {
-				req := elastic.NewBulkIndexRequest().
-					Index(newIndexName).
-					Doc(item)
-				bulkProcessor.Add(req)
-			}
-
+			handleCatalogTv(listTvIdsIn, newIndexName, bulkProcessor)
 			listTvIdsIn = []int{}
 		}
+	}
+	if len(listTvIdsIn) > 0 {
+		handleCatalogTv(listTvIdsIn, newIndexName, bulkProcessor)
 	}
 
 	bulkProcessor.Flush()
@@ -274,40 +330,13 @@ func CatalogSearchCharge() {
 	for iMovie = 0; iMovie < int64(len(idsMovies)); iMovie++ {
 		listMovieIdsIn = append(listMovieIdsIn, idsMovies[iMovie])
 		if iMovie%intervalMovies == 0 {
-			docs := movie.GetCatalogSearchIn(listMovieIdsIn)
-
-			catalogMovieLocalizated := make(map[int]CatalogSearch, 0)
-			for _, item := range docs {
-				var catalog CatalogSearch
-				if catalogMovieLocalizated[item.Id].Id == 0 {
-					catalog.Id = item.Id
-					catalog.CatalogType = common.MEDIA_TYPE_MOVIE
-					catalog.ReleaseDate = item.ReleaseDate
-					catalog.OriginalLanguage = item.OriginalLanguage
-					catalog.OriginalTitle = item.OriginalTitle
-					catalog.Popularity = item.Popularity
-					catalogMovieLocalizated[item.Id] = catalog
-				}
-
-				var location Location
-				location.Language = item.Language
-				location.Title = item.Title
-				location.PosterPath = item.PosterPath
-
-				loc := catalogMovieLocalizated[item.Id]
-				loc.Locations = append(loc.Locations, location)
-				catalogMovieLocalizated[item.Id] = loc
-			}
-
-			for _, item := range catalogMovieLocalizated {
-				req := elastic.NewBulkIndexRequest().
-					Index(newIndexName).
-					Doc(item)
-				bulkProcessor.Add(req)
-			}
-
+			handleCatalogMovie(listMovieIdsIn, newIndexName, bulkProcessor)
 			listMovieIdsIn = []int{}
 		}
+	}
+
+	if len(listMovieIdsIn) > 0 {
+		handleCatalogMovie(listMovieIdsIn, newIndexName, bulkProcessor)
 	}
 
 	bulkProcessor.Flush()
@@ -332,21 +361,13 @@ func CatalogSearchCharge() {
 	for iPerson = 0; iPerson < int64(len(idsPersons)); iPerson++ {
 		listPersonIdsIn = append(listPersonIdsIn, idsPersons[iPerson])
 		if iPerson%intervalPerson == 0 {
-			docs := person.GetCatalogSearchIn("en", listPersonIdsIn)
-			for _, item := range docs {
-				var catalog CatalogSearch
-				catalog.Id = item.Id
-				catalog.Name = item.Name
-				catalog.CatalogType = common.MEDIA_TYPE_PERSON
-				catalog.ProfilePath = item.ProfilePath
-				catalog.Popularity = item.Popularity
-				req := elastic.NewBulkIndexRequest().
-					Index(newIndexName).
-					Doc(catalog)
-				bulkProcessor.Add(req)
-			}
+			handleCatalogPerson(listPersonIdsIn, newIndexName, bulkProcessor)
 			listPersonIdsIn = []int{}
 		}
+	}
+
+	if len(listPersonIdsIn) > 0 {
+		handleCatalogPerson(listPersonIdsIn, newIndexName, bulkProcessor)
 	}
 
 	bulkProcessor.Flush()
@@ -374,6 +395,26 @@ func CatalogSearchCharge() {
 	log.Println("Carga finalizada com sucesso!")
 }
 
+func handleElasticChargeInsertDocs(indexName string, listIdsIn []int, newIndexName string, bulkProcessor *elastic.BulkProcessor) {
+	var docs []interface{}
+
+	switch indexName {
+	case "series":
+		docs = tv.GetAllByIds(listIdsIn)
+	case "movies":
+		docs = movie.GetAllByIds(listIdsIn)
+	case "persons":
+		docs = person.GetAllByIds(listIdsIn)
+	}
+
+	for _, doc := range docs {
+		req := elastic.NewBulkIndexRequest().
+			Index(newIndexName).
+			Doc(doc)
+		bulkProcessor.Add(req)
+	}
+}
+
 func ElasticChargeInsert(indexName string, interval int64, mapping string, workers int) {
 	elasticClient := elascitClient(indexName)
 	ctx := context.Background()
@@ -387,13 +428,9 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 		collectionCount = database.COLLECTION_MOVIE
 	case "persons":
 		collectionCount = database.COLLECTION_PERSON
-	case "series-episodes":
-		collectionCount = database.COLLECTION_SERIE_EPISODE
 	}
 
-	// ==========> Elements docs
-	docsCount := database.GetCountAllByColletcion(collectionCount)
-	log.Println("Total de docs: ", docsCount)
+	docsIds := database.GetAllIdsByLanguage(collectionCount, "en")
 
 	elasticAliasName := indexName
 
@@ -418,48 +455,17 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 	}
 
 	var i int64
-	for i = 0; i < docsCount; i++ {
-
+	var listIdsIn []int = []int{}
+	for i = 0; i < int64(len(docsIds)); i++ {
+		listIdsIn = append(listIdsIn, docsIds[i])
 		if i%interval == 0 {
-			switch indexName {
-			case "series":
-				docs := tv.GetAll(i, interval)
-				log.Println(i, len(docs))
-				for _, doc := range docs {
-					req := elastic.NewBulkIndexRequest().
-						Index(newIndexName).
-						Doc(doc)
-					bulkProcessor.Add(req)
-				}
-			case "movies":
-				docs := movie.GetAll(i, interval)
-				log.Println(i, len(docs))
-				for _, doc := range docs {
-					req := elastic.NewBulkIndexRequest().
-						Index(newIndexName).
-						Doc(doc)
-					bulkProcessor.Add(req)
-				}
-			case "persons":
-				docs := person.GetAll(i, interval)
-				log.Println(i, len(docs))
-				for _, doc := range docs {
-					req := elastic.NewBulkIndexRequest().
-						Index(newIndexName).
-						Doc(doc)
-					bulkProcessor.Add(req)
-				}
-			case "series-episodes":
-				docs := tv.GetAllEpisodes(i, interval)
-				log.Println(i, len(docs))
-				for _, doc := range docs {
-					req := elastic.NewBulkIndexRequest().
-						Index(newIndexName).
-						Doc(doc)
-					bulkProcessor.Add(req)
-				}
-			}
+			handleElasticChargeInsertDocs(indexName, listIdsIn, newIndexName, bulkProcessor)
+			listIdsIn = []int{}
 		}
+	}
+
+	if len(listIdsIn) > 0 {
+		handleElasticChargeInsertDocs(indexName, listIdsIn, newIndexName, bulkProcessor)
 	}
 
 	// BUSCA SE JÁ EXISTE ALGUM ÍNDICE NO ALIAS DE SÉRIES
@@ -488,17 +494,17 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 }
 
 func ElasticGeneralCharge() {
+	CatalogSearchCharge()
 	go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 3)
 	go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 3)
 	ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 5)
-	CatalogSearchCharge()
+
 	log.Println("FINISH ElasticGeneralCharge")
 }
 
 func GeneralCharge() {
 	CatalogCharge()
 	CatalogUpdates()
-	// ElasticGeneralCharge()
 	SendMessageProcessCatalogConcluded()
 }
 

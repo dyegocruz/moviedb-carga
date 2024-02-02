@@ -111,18 +111,18 @@ func PopulateMovies(language string, idGenre string) {
 	}
 }
 
-func GetAll(skip int64, limit int64) []Movie {
+func GetAllByIds(ids []int) []interface{} {
 
 	ctx2 := context.TODO()
 
 	projection := bson.M{"_id": 0, "slug": 0, "slugUrl": 0, "adult": 0, "credits.cast.gender": 0, "credits.cast.knownfordepartment": 0, "credits.cast.popularity": 0, "credits.cast.originalname": 0, "credits.crew.originalname": 0, "credits.crew.knownfordepartment": 0, "credits.crew.gender": 0, "credits.crew.popularity": 0, "credits.crew.department": 0, "updated": 0, "updatedNew": 0}
-	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetLimit(limit).SetSkip(skip).SetProjection(projection)
-	cur, err := movieCollection.Find(ctx2, bson.D{}, optionsFind)
+	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}, {Key: "language", Value: 1}}).SetProjection(projection)
+	cur, err := movieCollection.Find(ctx2, bson.M{"id": bson.M{"$in": ids}}, optionsFind)
 	if err != nil {
 		log.Println(err)
 	}
 
-	movies := make([]Movie, 0)
+	movies := make([]interface{}, 0)
 	for cur.Next(ctx2) {
 		var movie Movie
 		err := cur.Decode(&movie)
