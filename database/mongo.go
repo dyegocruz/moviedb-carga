@@ -148,31 +148,6 @@ func GetCountAllByColletcionAndLanguage(collection string, language string) int6
 	return count
 }
 
-func GetAllIds(collection string) []int {
-	client := DB
-
-	filter := bson.M{}
-	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0}).SetNoCursorTimeout(true)
-
-	cur, err := client.Database(os.Getenv("MONGO_DATABASE")).Collection(collection).Find(context.TODO(), filter, opts)
-	if err != nil {
-		log.Println(err)
-	}
-
-	results := make([]int, 0)
-	for cur.Next(context.TODO()) {
-		var result common.CatalogCheck
-		err := cur.Decode(&result)
-		if err != nil {
-			log.Fatal(err)
-		}
-		results = append(results, result.Id)
-	}
-	defer cur.Close(context.TODO())
-
-	return results
-}
-
 func GetAllIdsByLanguage(collection string, language string) []int {
 	client := DB
 
