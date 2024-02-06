@@ -50,6 +50,9 @@ func pollMessages(chn chan<- *sqs.Message) {
 			fmt.Printf("failed to fetch sqs message %v", err)
 		}
 
+		// Reduce the quanitity of requests to check the messages
+		time.Sleep(10 * time.Minute)
+
 		for _, message := range output.Messages {
 			chn <- message
 		}
