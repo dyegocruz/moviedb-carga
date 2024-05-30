@@ -31,18 +31,32 @@ func CatalogUpdates() {
 }
 
 const (
-	INDEX_MAPPING_CATALOG_SEARCH = `{
-	  "settings":{
-	    "number_of_shards" : 1,
-			"number_of_replicas" : 0
-	  },
+	INDEX_MAPPING_CATALOG_SEARCH = `{	  
+    "settings": {
+      "number_of_shards" : 1,
+			"number_of_replicas" : 0,
+      "analysis": {
+        "analyzer": {
+          "default": { 
+            "type": "custom",
+            "tokenizer": "standard",
+            "filter": [
+              "lowercase",
+              "asciifolding"
+            ]
+          }
+        }
+      }
+    },
 	  "mappings":{
-	    "properties":{
+	    "properties":{        
 				"search_field": {
-					"type": "text"
+					"type": "text",
+          "analyzer": "default"
 				},
 				"locations.title": {
 					"type": "text",
+          "analyzer": "default", 
 					"copy_to": "search_field"
 				},
 				"name": {
@@ -187,7 +201,7 @@ func handleCatalogTv(listTvIdsIn []int, newIndexName string, bulkProcessor *elas
 		if catalogTvLocalizated[item.Id].Id == 0 {
 			catalog.Id = item.Id
 			catalog.CatalogType = common.MEDIA_TYPE_TV
-			catalog.FirstAirDate = item.FirstAirDate
+			catalog.ReleaseDate = item.FirstAirDate
 			catalog.OriginalLanguage = item.OriginalLanguage
 			catalog.OriginalTitle = item.OriginalTitle
 			catalog.Popularity = item.Popularity
