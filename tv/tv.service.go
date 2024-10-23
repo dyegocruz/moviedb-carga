@@ -81,20 +81,22 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 
 				log.Println("INSERT TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
 				InsertEpisode(episode, language)
-			} else {
-
-				if episode.AirDate != "" {
-					reqTvEpisode := tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
-					json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
-
-					episode.Language = language
-
-					log.Println("UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
-					UpdateEpisode(episode, language)
-				} else {
-					log.Println("BYPASS UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
-				}
 			}
+		}
+
+    // Updating just the last five episodes by season
+    if len(seasonReq.Episodes) > 5 {
+      seasonReq.Episodes = seasonReq.Episodes[len(seasonReq.Episodes)-5:]
+    }
+
+    for _, episode := range seasonReq.Episodes {
+			reqTvEpisode := tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
+      json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
+
+      episode.Language = language
+
+      log.Println("UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
+      UpdateEpisode(episode, language)
 		}
 
 		seasonReq.EpisodeCount = season.EpisodeCount
