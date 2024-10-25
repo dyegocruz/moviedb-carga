@@ -25,8 +25,8 @@ func CatalogCharge() {
 }
 
 func CatalogUpdates() {
-	go tv.CheckTvChanges()
-	movie.CheckMoviesChanges()
+  go movie.CheckMoviesChanges()
+	tv.CheckTvChanges()	
 	log.Println("FINISH CatalogUpdates")
 }
 
@@ -277,7 +277,7 @@ func handleCatalogPerson(listPersonIdsIn []int, newIndexName string, bulkProcess
 }
 
 func CatalogSearchCharge() {
-	workers := 3
+	workers := 5
 	indexName := "catalog_search"
 	elasticClient := elascitClient(indexName)
 	ctx := context.Background()
@@ -508,10 +508,10 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 }
 
 func ElasticGeneralCharge() {
+  go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 3)
+  go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 3)
+  go ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 5)
 	CatalogSearchCharge()
-	go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 3)
-	go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 3)
-	ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 5)
 
 	log.Println("FINISH ElasticGeneralCharge")
 }

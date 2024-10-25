@@ -84,9 +84,9 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 			}
 		}
 
-    // Updating just the last five episodes by season
-    if len(seasonReq.Episodes) > 5 {
-      seasonReq.Episodes = seasonReq.Episodes[len(seasonReq.Episodes)-5:]
+    // Updating just the last twenty episodes by season in case of more than 20 episodes
+    if len(seasonReq.Episodes) > 20 {
+      seasonReq.Episodes = seasonReq.Episodes[len(seasonReq.Episodes)-20:]
     }
 
     for _, episode := range seasonReq.Episodes {
