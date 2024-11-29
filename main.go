@@ -82,10 +82,11 @@ func main() {
 			err := queue.DeleteMessage(configs.GetQueueUrl(), receiptHandle)
 			if err != nil {
 				fmt.Printf("Got an error while trying to delete message: %v", err)
-				return
+				log.Println("Error to proceed with the ElasticGeneralCharge now, please wait the next call")
+			} else {
+				log.Println("Calling: ElasticGeneralCharge process")
+				catalogCharge.ElasticGeneralCharge()
 			}
-
-			catalogCharge.ElasticGeneralCharge()
 		} else {
 			log.Println("No messages for this environment")
 		}
