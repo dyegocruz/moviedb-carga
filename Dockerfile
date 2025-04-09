@@ -1,4 +1,4 @@
-FROM golang:1.20-alpine
+FROM golang:1.24.2-alpine
 
 RUN apk update && apk upgrade --no-cache
 
@@ -10,10 +10,10 @@ RUN go mod download
 RUN go build -o moviedb-charge
 
 ARG GO_ENV
-ENV GO_ENV $GO_ENV
+ENV GO_ENV=$GO_ENV
 
 ENV TZ=America/Fortaleza
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 WORKDIR /go/src/$PACKAGE_PATH/
-ENTRYPOINT ./moviedb-charge
+ENTRYPOINT ["./moviedb-charge"]
