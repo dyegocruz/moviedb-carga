@@ -1,0 +1,29 @@
+# Use uma imagem base do Go
+FROM golang:1.24.2-alpine
+
+RUN apk update && apk upgrade --no-cache
+
+ARG GO_ENV
+ENV GO_ENV=$GO_ENV
+
+# Use it only locally development
+# ENV RABBIMQ_HOST=rabbitmq
+# ENV MONGO_URI=mongodb://mongodb-container:27017/
+
+ENV TZ=America/Fortaleza
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Defina o diretório de trabalho
+WORKDIR /app
+
+# Copie os arquivos do projeto para o contêiner
+COPY . .
+
+# Baixe as dependências
+RUN go mod tidy
+
+# Compile o binário
+RUN go build -o consumer ./consumers/consumer.go
+
+# Comando para executar o consumidor
+CMD ["./consumer"]

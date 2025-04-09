@@ -1,0 +1,25 @@
+version: "3.1"
+
+services:
+  consumer:
+    image: catalog-process-consumer:1.0
+    build:
+      context: .
+      dockerfile: Dockerfile.catalog-process-consumer
+      args:
+        - GO_ENV=${GO_ENV}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 100m
+        max-file: "3"
+        labels: "production_status"
+        env: "os"
+    deploy:
+      replicas: 4 # Número de réplicas do consumidor
+    restart: always
+
+networks:
+  default:
+    external:
+      name: modomeu_network
