@@ -7,6 +7,7 @@ import (
 	"moviedb/common"
 	"moviedb/movie"
 	"moviedb/person"
+	"moviedb/queue"
 	"moviedb/tmdb"
 	"moviedb/tv"
 	"moviedb/util"
@@ -44,28 +45,32 @@ func CheckAndUpdateCatalogByFile(mediaType string) {
 	}
 	defer fileCatalog.Close()
 
-	scannerFile := bufio.NewScanner(fileCatalog)
+  log.Println("====>catalogGenerate", len(catalogGenerate), catalogGenerate[198116].Id)
+  
+  scannerFile := bufio.NewScanner(fileCatalog)
+
+  // Initialize RabbitMQ connection
+	rmq, err := queue.NewRabbitMQ()
+	if err != nil {
+		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
+	}
+	defer rmq.Close()
 
 	for scannerFile.Scan() {
 		var elementRead tmdb.TmdbDailyFile
 		json.Unmarshal([]byte(scannerFile.Text()), &elementRead)
 		if catalogGenerate[elementRead.Id].Id == 0 {
-			log.Println("INSERT: "+fileName, elementRead.Id)
 
-			switch mediaType {
-			case common.MEDIA_TYPE_MOVIE:
-				movie.PopulateMovieByIdAndLanguage(elementRead.Id, common.LANGUAGE_EN, "Y")
-				go movie.PopulateMovieByIdAndLanguage(elementRead.Id, common.LANGUAGE_PTBR, "Y")
-			case common.MEDIA_TYPE_TV:
-				tv.PopulateSerieByIdAndLanguage(elementRead.Id, common.LANGUAGE_EN)
-				go tv.PopulateSerieByIdAndLanguage(elementRead.Id, common.LANGUAGE_PTBR)
-			case common.MEDIA_TYPE_PERSON:
-				person.PopulatePersonByIdAndLanguage(elementRead.Id, common.LANGUAGE_EN, "N")
-				go person.PopulatePersonByIdAndLanguage(elementRead.Id, common.LANGUAGE_PTBR, "N")
-			}
+      // Publish a message
+      err = rmq.PublishJSON(queue.QueueCatalogProcess, queue.CatalogProcessMessage{Id: elementRead.Id, MediaType: mediaType})
+      if err != nil {
+        log.Fatalf("Failed to publish a message: %s", err)
+      }
+
+    log.Println("Message published successfully!")
 		}
 	}
 
-	util.RemoveFile(fileName + ".json")
+  util.RemoveFile(fileName + ".json")
 	log.Println("====================>FINISH " + mediaType)
 }

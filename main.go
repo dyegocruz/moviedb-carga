@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -25,10 +24,17 @@ func init() {
 func cronCharge() {
 	c := cron.New()
 	c.AddFunc("@daily", func() {
-		log.Println("[Job] General Charge")
-		catalogCharge.GeneralCharge()
+		log.Println("[Job] General Catalog Handler")
+		catalogCharge.GeneralCatalogHandler()
 		log.Println("PROCESS COMPLETE")
 	})
+  
+  c.AddFunc("0 0 3 * * *", func() {
+    log.Println("[Job] Calling: ElasticGeneralCharge Catalog process")
+    catalogCharge.ElasticGeneralCharge()
+		log.Println("PROCESS COMPLETE")
+	})
+
 	log.Println("Start Job")
 	c.Start()
 }
@@ -62,34 +68,6 @@ func pollMessages(chn chan<- *sqs.Message) {
 }
 
 func main() {
-
-	if configs.IsProduction() {
-		cronCharge()
-	} else {
-		catalogCharge.GeneralCharge()
-		log.Println("PROCESS COMPLETE")
-	}
-
-	chnMessages := make(chan *sqs.Message, 1)
-	go pollMessages(chnMessages)
-
-	for message := range chnMessages {
-		var esChargeMessage queue.EsChargeMessage
-		json.Unmarshal([]byte(*message.Body), &esChargeMessage)
-
-		if esChargeMessage.Env == configs.GetEnv() {
-			receiptHandle := message.ReceiptHandle
-			err := queue.DeleteMessage(configs.GetQueueUrl(), receiptHandle)
-			if err != nil {
-				fmt.Printf("Got an error while trying to delete message: %v", err)
-				log.Println("Error to proceed with the ElasticGeneralCharge now, please wait the next call")
-			} else {
-				log.Println("Calling: ElasticGeneralCharge process")
-				catalogCharge.ElasticGeneralCharge()
-			}
-		} else {
-			log.Println("No messages for this environment")
-		}
-	}
-
+  cronCharge()
+  select{}
 }
