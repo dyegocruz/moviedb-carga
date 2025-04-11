@@ -7,6 +7,7 @@ import (
 	"moviedb/common"
 	"moviedb/database"
 	"moviedb/parameter"
+	"moviedb/queue"
 
 	"moviedb/person"
 	"moviedb/tmdb"
@@ -23,15 +24,26 @@ var movieCollectionString = database.COLLECTION_MOVIE
 var movieCollection *mongo.Collection = database.GetCollection(database.DB, movieCollectionString)
 
 func CheckMoviesChanges() {
-	movieChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_MOVIE, 1)
-	for _, movie := range movieChanges {
-
-		if !movie.Adult {
-			PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_PTBR, "Y")
-			go PopulateMovieByIdAndLanguage(movie.Id, common.LANGUAGE_EN, "Y")
-		}
+  // Initialize RabbitMQ connection
+	rmq, err := queue.NewRabbitMQ()
+	if err != nil {
+		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
 	}
-	log.Println("CheckMoviesChanges CONCLUDED")
+	defer rmq.Close()
+
+  movieChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_MOVIE, 1)
+
+  for _, movie := range movieChanges {
+
+    // Publish a message
+    err = rmq.PublishJSON(queue.QueueCatalogProcess, queue.CatalogProcessMessage{Id: movie.Id, MediaType: common.MEDIA_TYPE_MOVIE})
+    if err != nil {
+      log.Fatalf("Failed to publish a message: %s", err)
+    }
+
+    log.Println("Message published successfully!")
+	}
+
 }
 
 func GetMovieDetailsOnTMDBApi(id int, language string) Movie {

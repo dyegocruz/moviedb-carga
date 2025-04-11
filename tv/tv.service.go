@@ -7,6 +7,7 @@ import (
 	"moviedb/common"
 	"moviedb/database"
 	"moviedb/parameter"
+	"moviedb/queue"
 
 	"moviedb/person"
 	"moviedb/tmdb"
@@ -26,18 +27,32 @@ var serieEpisodeCollectionString = database.COLLECTION_SERIE_EPISODE
 var serieEpisodeCollection *mongo.Collection = database.GetCollection(database.DB, serieEpisodeCollectionString)
 
 func CheckTvChanges() {
-	tvChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_TV, 1)
-	for _, serie := range tvChanges {
-		if !serie.Adult {
-			go PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_EN)
-			PopulateSerieByIdAndLanguage(serie.Id, common.LANGUAGE_PTBR)
-		}
+  // Initialize RabbitMQ connection
+	rmq, err := queue.NewRabbitMQ()
+	if err != nil {
+		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
 	}
-	log.Println("CheckTvChanges CONCLUDED")
+	defer rmq.Close()
+
+  tvChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_TV, 1)
+
+  for _, serie := range tvChanges {
+
+    // Publish a message
+    err = rmq.PublishJSON(queue.QueueCatalogProcess, queue.CatalogProcessMessage{Id: serie.Id, MediaType: common.MEDIA_TYPE_TV})
+    if err != nil {
+      log.Fatalf("Failed to publish a message: %s", err)
+    }
+
+    log.Println("Message published successfully!")
+	}
+
+  log.Println("CheckTvChanges CONCLUDED")
 }
 
 func PopulateSerieByIdAndLanguage(id int, language string) {
 	itemObj := GetSerieDetailsOnTMDBApi(id, language)
+  log.Println(itemObj.Id, itemObj.Title, itemObj.OriginalTitle, itemObj.OriginalLanguage, itemObj.FirstAirDate, itemObj.Popularity)
 	PopulateSerieByLanguage(itemObj, language)
 }
 
@@ -81,22 +96,22 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 
 				log.Println("INSERT TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
 				InsertEpisode(episode, language)
-			}
-		}
-
-    // Updating just the last twenty episodes by season in case of more than 20 episodes
-    if len(seasonReq.Episodes) > 20 {
-      seasonReq.Episodes = seasonReq.Episodes[len(seasonReq.Episodes)-20:]
-    }
-
-    for _, episode := range seasonReq.Episodes {
-			reqTvEpisode := tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
-      json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
-
-      episode.Language = language
-
-      log.Println("UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
-      UpdateEpisode(episode, language)
+			} else {
+        // check and update just the last season episodes
+        if episode.SeasonNumber == itemObj.NumberOfSeasons {
+          // cehck and update just the last 10 episodes of the last season
+          if episode.EpisodeNumber >= (season.EpisodeCount - 10) {
+            // UPDATE EPISODE
+            reqTvEpisode := tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
+            json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
+  
+            episode.Language = language
+  
+            log.Println("UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
+            UpdateEpisode(episode, language)
+          }
+        }        
+      }
 		}
 
 		seasonReq.EpisodeCount = season.EpisodeCount

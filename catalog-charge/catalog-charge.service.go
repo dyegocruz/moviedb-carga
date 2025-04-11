@@ -19,6 +19,7 @@ import (
 )
 
 func CatalogCharge() {
+  // CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_TV)
 	go CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_TV)
 	CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_MOVIE)
 	log.Println("FINISH CatalogCharge")
@@ -26,7 +27,7 @@ func CatalogCharge() {
 
 func CatalogUpdates() {
   go movie.CheckMoviesChanges()
-	tv.CheckTvChanges()	
+	tv.CheckTvChanges()
 	log.Println("FINISH CatalogUpdates")
 }
 
@@ -166,9 +167,9 @@ const (
 
 func elascitClient(logString string) *elastic.Client {
 	elasticClient, err := elastic.NewClient(
-		elastic.SetURL(os.Getenv("ELASTICSEARCH")),
+		elastic.SetURL(configs.GetElkHost()),
 		elastic.SetSniff(false),
-		elastic.SetBasicAuth(os.Getenv("ELASTICSEARCH_USER"), os.Getenv("ELASTICSEARCH_PASS")),
+		elastic.SetBasicAuth(configs.GetElkUser(), configs.GetELKPassword()),
 		elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
 		elastic.SetInfoLog(log.New(os.Stdout, logString+": ", log.LstdFlags)),
 		// elastic.SetTraceLog(log.New(os.Stdout, "QUERY: ", log.LstdFlags)),
@@ -516,10 +517,10 @@ func ElasticGeneralCharge() {
 	log.Println("FINISH ElasticGeneralCharge")
 }
 
-func GeneralCharge() {
+func GeneralCatalogHandler() {
 	CatalogCharge()
 	CatalogUpdates()
-	SendMessageProcessCatalogConcluded()
+	// SendMessageProcessCatalogConcluded()
 }
 
 func SendMessageProcessCatalogConcluded() {
