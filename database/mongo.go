@@ -195,7 +195,7 @@ func GenerateCatalogCheck(collection string, language string) map[int]common.Cat
 		results = append(results, result)
 	}
 	defer cur.Close(context.TODO())  
-  log.Println("====>results", len(results), results[0].Id)
+  
 	var resultCatalog = make(map[int]common.CatalogCheck, len(results))
 	for _, result := range results {
     resultCatalog[result.Id] = result	
