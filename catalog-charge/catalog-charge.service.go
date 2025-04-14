@@ -509,9 +509,9 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 }
 
 func ElasticGeneralCharge() {
-  go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 3)
-  go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 3)
-  go ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 5)
+  // go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 3)
+  // go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 3)
+  // go ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 5)
 	CatalogSearchCharge()
 
 	log.Println("FINISH ElasticGeneralCharge")
