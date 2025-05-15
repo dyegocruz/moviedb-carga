@@ -24,24 +24,24 @@ var movieCollectionString = database.COLLECTION_MOVIE
 var movieCollection *mongo.Collection = database.GetCollection(database.DB, movieCollectionString)
 
 func CheckMoviesChanges() {
-  // Initialize RabbitMQ connection
+	// Initialize RabbitMQ connection
 	rmq, err := queue.NewRabbitMQ()
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
 	}
 	defer rmq.Close()
 
-  movieChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_MOVIE, 1)
+	movieChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_MOVIE, 1)
 
-  for _, movie := range movieChanges {
+	for _, movie := range movieChanges {
 
-    // Publish a message
-    err = rmq.PublishJSON(queue.QueueCatalogProcess, queue.CatalogProcessMessage{Id: movie.Id, MediaType: common.MEDIA_TYPE_MOVIE})
-    if err != nil {
-      log.Fatalf("Failed to publish a message: %s", err)
-    }
+		// Publish a message
+		err = rmq.PublishJSON(queue.QueueCatalogProcess, queue.CatalogProcessMessage{Id: movie.Id, MediaType: common.MEDIA_TYPE_MOVIE})
+		if err != nil {
+			log.Fatalf("Failed to publish a message: %s", err)
+		}
 
-    log.Println("Message published successfully!")
+		log.Println("Message published successfully!")
 	}
 
 }
@@ -195,6 +195,10 @@ func UpdateMovie(movie Movie, language string) {
 	movieCollection.UpdateOne(context.TODO(), bson.M{"id": movie.Id, "language": language}, bson.M{
 		"$set": movie,
 	})
+}
+
+func DeleteMovie(id int) {
+	movieCollection.DeleteMany(context.TODO(), bson.M{"id": id})
 }
 
 func GetCountAll() int64 {

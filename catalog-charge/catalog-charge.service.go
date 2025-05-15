@@ -19,14 +19,14 @@ import (
 )
 
 func CatalogCharge() {
-  // CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_TV)
+	// CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_TV)
 	go CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_TV)
 	CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_MOVIE)
 	log.Println("FINISH CatalogCharge")
 }
 
 func CatalogUpdates() {
-  go movie.CheckMoviesChanges()
+	go movie.CheckMoviesChanges()
 	tv.CheckTvChanges()
 	log.Println("FINISH CatalogUpdates")
 }
@@ -509,9 +509,9 @@ func ElasticChargeInsert(indexName string, interval int64, mapping string, worke
 }
 
 func ElasticGeneralCharge() {
-  // go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 3)
-  // go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 3)
-  // go ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 5)
+	// go ElasticChargeInsert("series", 10000, INDEX_MAPPING_SERIES, 3)
+	// go ElasticChargeInsert("movies", 10000, INDEX_MAPPING_MOVIES, 3)
+	// go ElasticChargeInsert("persons", 10000, INDEX_MAPPING_PERSONS, 5)
 	CatalogSearchCharge()
 
 	log.Println("FINISH ElasticGeneralCharge")
@@ -520,7 +520,6 @@ func ElasticGeneralCharge() {
 func GeneralCatalogHandler() {
 	CatalogCharge()
 	CatalogUpdates()
-	// SendMessageProcessCatalogConcluded()
 }
 
 func SendMessageProcessCatalogConcluded() {
