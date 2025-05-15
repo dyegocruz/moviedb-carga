@@ -27,32 +27,32 @@ var serieEpisodeCollectionString = database.COLLECTION_SERIE_EPISODE
 var serieEpisodeCollection *mongo.Collection = database.GetCollection(database.DB, serieEpisodeCollectionString)
 
 func CheckTvChanges() {
-  // Initialize RabbitMQ connection
+	// Initialize RabbitMQ connection
 	rmq, err := queue.NewRabbitMQ()
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
 	}
 	defer rmq.Close()
 
-  tvChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_TV, 1)
+	tvChanges := tmdb.GetChangesByDataType(tmdb.DATATYPE_TV, 1)
 
-  for _, serie := range tvChanges {
+	for _, serie := range tvChanges {
 
-    // Publish a message
-    err = rmq.PublishJSON(queue.QueueCatalogProcess, queue.CatalogProcessMessage{Id: serie.Id, MediaType: common.MEDIA_TYPE_TV})
-    if err != nil {
-      log.Fatalf("Failed to publish a message: %s", err)
-    }
+		// Publish a message
+		err = rmq.PublishJSON(queue.QueueCatalogProcess, queue.CatalogProcessMessage{Id: serie.Id, MediaType: common.MEDIA_TYPE_TV})
+		if err != nil {
+			log.Fatalf("Failed to publish a message: %s", err)
+		}
 
-    log.Println("Message published successfully!")
+		log.Println("Message published successfully!")
 	}
 
-  log.Println("CheckTvChanges CONCLUDED")
+	log.Println("CheckTvChanges CONCLUDED")
 }
 
 func PopulateSerieByIdAndLanguage(id int, language string) {
 	itemObj := GetSerieDetailsOnTMDBApi(id, language)
-  log.Println(itemObj.Id, itemObj.Title, itemObj.OriginalTitle, itemObj.OriginalLanguage, itemObj.FirstAirDate, itemObj.Popularity)
+	log.Println(itemObj.Id, itemObj.Title, itemObj.OriginalTitle, itemObj.OriginalLanguage, itemObj.FirstAirDate, itemObj.Popularity)
 	PopulateSerieByLanguage(itemObj, language)
 }
 
@@ -97,21 +97,21 @@ func PopulateSerieByLanguage(itemObj Serie, language string) {
 				log.Println("INSERT TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
 				InsertEpisode(episode, language)
 			} else {
-        // check and update just the last season episodes
-        if episode.SeasonNumber == itemObj.NumberOfSeasons {
-          // cehck and update just the last 10 episodes of the last season
-          if episode.EpisodeNumber >= (season.EpisodeCount - 10) {
-            // UPDATE EPISODE
-            reqTvEpisode := tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
-            json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
-  
-            episode.Language = language
-  
-            log.Println("UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
-            UpdateEpisode(episode, language)
-          }
-        }        
-      }
+				// check and update just the last season episodes
+				if episode.SeasonNumber == itemObj.NumberOfSeasons {
+					// cehck and update just the last 10 episodes of the last season
+					if episode.EpisodeNumber >= (season.EpisodeCount - 10) {
+						// UPDATE EPISODE
+						reqTvEpisode := tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
+						json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
+
+						episode.Language = language
+
+						log.Println("UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
+						UpdateEpisode(episode, language)
+					}
+				}
+			}
 		}
 
 		seasonReq.EpisodeCount = season.EpisodeCount
@@ -244,6 +244,10 @@ func UpdateSerie(serie Serie, language string) {
 	})
 }
 
+func DeleteSerie(id int) {
+	serieCollection.DeleteMany(context.TODO(), bson.M{"id": id})
+}
+
 func InsertEpisode(itemInsert Episode, language string) interface{} {
 
 	result, err := serieEpisodeCollection.InsertOne(context.TODO(), itemInsert)
@@ -282,6 +286,10 @@ func UpdateEpisode(espisode Episode, language string) {
 	serieEpisodeCollection.UpdateOne(context.TODO(), bson.M{"id": espisode.Id, "language": language}, bson.M{
 		"$set": espisode,
 	})
+}
+
+func DeleteSerieEpisodes(showId int) {
+	serieEpisodeCollection.DeleteMany(context.TODO(), bson.M{"show_id": showId})
 }
 
 func GetCountAll() int64 {

@@ -45,32 +45,51 @@ func CheckAndUpdateCatalogByFile(mediaType string) {
 	}
 	defer fileCatalog.Close()
 
-  log.Println("====>catalogGenerate", len(catalogGenerate), catalogGenerate[198116].Id)
-  
-  scannerFile := bufio.NewScanner(fileCatalog)
+	scannerFile := bufio.NewScanner(fileCatalog)
 
-  // Initialize RabbitMQ connection
+	// Initialize RabbitMQ connection
 	rmq, err := queue.NewRabbitMQ()
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
 	}
 	defer rmq.Close()
 
+	dailyFileIds := make(map[int]int)
+
 	for scannerFile.Scan() {
 		var elementRead tmdb.TmdbDailyFile
 		json.Unmarshal([]byte(scannerFile.Text()), &elementRead)
+
+		dailyFileIds[elementRead.Id] = elementRead.Id
+
 		if catalogGenerate[elementRead.Id].Id == 0 {
+			// Publish a message
+			message := queue.CatalogProcessMessage{Id: elementRead.Id, MediaType: mediaType}
+			err = rmq.PublishJSON(queue.QueueCatalogProcess, message)
+			if err != nil {
+				log.Fatalf("Failed to publish a message: %s", err)
+			}
 
-      // Publish a message
-      err = rmq.PublishJSON(queue.QueueCatalogProcess, queue.CatalogProcessMessage{Id: elementRead.Id, MediaType: mediaType})
-      if err != nil {
-        log.Fatalf("Failed to publish a message: %s", err)
-      }
-
-    log.Println("Message published successfully!")
+			log.Println("Message published successfully for Id and mediaType: ", message.Id, mediaType)
 		}
 	}
 
-  util.RemoveFile(fileName + ".json")
+	for id := range catalogGenerate {
+		// Check if the id is not in the daily file and remove it from database
+		if dailyFileIds[id] == 0 {
+			if mediaType == common.MEDIA_TYPE_MOVIE {
+				movie.DeleteMovie(id)
+				log.Println("Movie removed from catalog: ", id)
+			}
+
+			if mediaType == common.MEDIA_TYPE_TV {
+				tv.DeleteSerie(id)
+				tv.DeleteSerieEpisodes(id)
+				log.Println("TV and episodes removed from catalog: ", id)
+			}
+		}
+	}
+
+	util.RemoveFile(fileName + ".json")
 	log.Println("====================>FINISH " + mediaType)
 }
