@@ -11,6 +11,6 @@ type EsChargeMessage struct {
 }
 
 type CatalogProcessMessage struct {
-  Id int `json:"id"`
-  MediaType string `json:"mediaType"`
+	Id        int    `json:"id"`
+	MediaType string `json:"mediaType"`
 }
