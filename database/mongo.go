@@ -173,32 +173,27 @@ func GetAllIdsByLanguage(collection string, language string) []int {
 }
 
 func GenerateCatalogCheck(collection string, language string) map[int]common.CatalogCheck {
+	ctx := context.TODO()
 	client := DB
 
 	filter := bson.M{"language": language}
-	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0}).SetSort(bson.D{{Key: "id", Value: -1}}).SetNoCursorTimeout(true)
+	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0})
 
 	log.Print("STARTING Generate Catalog check for ", collection)
 
-	cur, err := client.Database(configs.MongoDatabase()).Collection(collection).Find(context.TODO(), filter, opts)
+	cur, err := client.Database(configs.MongoDatabase()).Collection(collection).Find(ctx, filter, opts)
 	if err != nil {
 		log.Println(err)
 	}
 
-	results := make([]common.CatalogCheck, 0)
-	for cur.Next(context.TODO()) {
+	resultCatalog := make(map[int]common.CatalogCheck)
+
+	for cur.Next(ctx) {
 		var result common.CatalogCheck
-		err := cur.Decode(&result)
-		if err != nil {
+		if err := cur.Decode(&result); err != nil {
 			log.Fatal(err)
 		}
-		results = append(results, result)
-	}
-	defer cur.Close(context.TODO())  
-  
-	var resultCatalog = make(map[int]common.CatalogCheck, len(results))
-	for _, result := range results {
-    resultCatalog[result.Id] = result	
+		resultCatalog[result.Id] = result
 	}
 
 	log.Printf("Generate Catalog check for %s completed", collection)

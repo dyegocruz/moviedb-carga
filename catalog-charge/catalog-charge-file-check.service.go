@@ -54,14 +54,14 @@ func CheckAndUpdateCatalogByFile(mediaType string) {
 	}
 	defer rmq.Close()
 
-	dailyFileIds := make(map[int]int)
+	dailyFileIdsSet := make(map[int]bool)
 
 	for scannerFile.Scan() {
 		var elementRead tmdb.TmdbDailyFile
 		json.Unmarshal([]byte(scannerFile.Text()), &elementRead)
+		dailyFileIdsSet[elementRead.Id] = true
 
-		dailyFileIds[elementRead.Id] = elementRead.Id
-
+		// Check if the ID exists in the generated catalog
 		if catalogGenerate[elementRead.Id].Id == 0 {
 			// Publish a message
 			message := queue.CatalogProcessMessage{Id: elementRead.Id, MediaType: mediaType}
@@ -75,8 +75,8 @@ func CheckAndUpdateCatalogByFile(mediaType string) {
 	}
 
 	for id := range catalogGenerate {
-		// Check if the id is not in the daily file and remove it from database
-		if dailyFileIds[id] == 0 {
+		if !dailyFileIdsSet[id] {
+			// ID not found in daily file IDs, remove it from database
 			if mediaType == common.MEDIA_TYPE_MOVIE {
 				movie.DeleteMovie(id)
 				log.Println("Movie removed from catalog: ", id)
