@@ -8,10 +8,10 @@ import (
 )
 
 type RabbitMQConfig struct {
-  Host     string
-  Port     string
-  User     string
-  Password string
+	Host     string
+	Port     string
+	User     string
+	Password string
 }
 
 func getEnvString(key string) string {
@@ -47,28 +47,23 @@ func GetSecretAccessKey() string {
 	return getEnvString("AWS_SECRET_ACCESS_KEY")
 }
 
-func GetQueueUrl() string {
-	return getEnvString("AWS_QUEUE_URL_BASE") + "/" + getEnvString("AWS_ACCOUNT_ID") + "/" + getEnvString("AWS_QUEUE_NAME")
-}
-
 func GetElkHost() string {
-  return getEnvString("ELASTICSEARCH")
+	return getEnvString("ELASTICSEARCH")
 }
 
 func GetElkUser() string {
-  return getEnvString("ELASTICSEARCH_USER")
+	return getEnvString("ELASTICSEARCH_USER")
 }
 
 func GetELKPassword() string {
-  return getEnvString("ELASTICSEARCH_PASS")
+	return getEnvString("ELASTICSEARCH_PASS")
 }
 
 func GetRabbitMQEnv() RabbitMQConfig {
-  return RabbitMQConfig{
-    Host:     getEnvString("RABBIMQ_HOST"),
-    Port:     getEnvString("RABBIMQ_PORT"),
-    User:     getEnvString("RABBIMQ_USER"),
-    Password: getEnvString("RABBIMQ_PASS"),
-  }
+	return RabbitMQConfig{
+		Host:     getEnvString("RABBIMQ_HOST"),
+		Port:     getEnvString("RABBIMQ_PORT"),
+		User:     getEnvString("RABBIMQ_USER"),
+		Password: getEnvString("RABBIMQ_PASS"),
+	}
 }
-

@@ -11,4 +11,4 @@ docker-compose config
 
 docker-compose up -d --build --force --remove-orphans
 
-docker-compose -f docker-compose-catalog-process.yml up -d --scale consumer=4
+docker-compose -f docker-compose-catalog-process.yml up -d --build --scale consumer=4
