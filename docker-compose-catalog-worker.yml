@@ -1,14 +1,13 @@
 version: "3.1"
 
 services:
-  consumer:
-    image: catalog-process-consumer-local:1.0
+  catalog-process-worker:
+    image: catalog-process-worker:1.0
     build:
       context: .
-      dockerfile: Dockerfile.catalog-process-consumer
+      dockerfile: Dockerfile.catalog-process-worker
       args:
         - GO_ENV=${GO_ENV}
-    network_mode: "host"
     logging:
       driver: "json-file"
       options:
@@ -17,4 +16,10 @@ services:
         labels: "production_status"
         env: "os"
     deploy:
-      replicas: 4 # Número de réplicas do consumidor
+      replicas: 4 # Número de réplicas do worker
+    restart: always
+
+networks:
+  default:
+    external:
+      name: modomeu_network

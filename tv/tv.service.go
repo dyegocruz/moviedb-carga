@@ -3,6 +3,7 @@ package tv
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"moviedb/common"
 	"moviedb/database"
@@ -52,7 +53,6 @@ func CheckTvChanges() {
 
 func PopulateSerieByIdAndLanguage(id int, language string) {
 	itemObj := GetSerieDetailsOnTMDBApi(id, language)
-	log.Println(itemObj.Id, itemObj.Title, itemObj.OriginalTitle, itemObj.OriginalLanguage, itemObj.FirstAirDate, itemObj.Popularity)
 	PopulateSerieByLanguage(itemObj, language)
 }
 
@@ -62,7 +62,55 @@ func GetSerieDetailsOnTMDBApi(id int, language string) Serie {
 	var serie Serie
 	json.NewDecoder(reqSerie.Body).Decode(&serie)
 
+	if language == common.LANGUAGE_PTBR {
+		alternativeTitles := GetTvAlternativeTitlesById(id)
+		if language == "pt-BR" && serie.OriginalLanguage == common.LANGUAGE_JA {
+			if alternativeTitles["BR"] != "" {
+				serie.Title = alternativeTitles[common.LANGUAGE_ISO_BR]
+			} else if alternativeTitles["JP"] != "" {
+				serie.Title = alternativeTitles[common.LANGUAGE_ISO_JP]
+			}
+		}
+	}
+
 	return serie
+}
+
+func GetTvAlternativeTitlesById(id int) map[string]string {
+	req := tmdb.GetAlternativeTitlesByIdAndDataType(id, tmdb.DATATYPE_TV)
+
+	var result common.ResultAlternativeTitle
+	json.NewDecoder(req.Body).Decode(&result)
+
+	alternativeTitles := make(map[string]string)
+	for _, title := range result.Results {
+		if title.Iso3166_1 == common.LANGUAGE_ISO_JP && title.Type == common.ALTERNATIVE_TITLE_TYPE_ROMAJI {
+			alternativeTitles[title.Iso3166_1] = title.Title
+		} else if title.Iso3166_1 != common.LANGUAGE_ISO_JP {
+			alternativeTitles[title.Iso3166_1] = title.Title
+		}
+	}
+	log.Println("Alternative Titles: ", alternativeTitles)
+	return alternativeTitles
+}
+
+func HandleTvEpisodeUpdate(episodeId int, language string) {
+	findEpisode := GetEpisodeByIdAndLanguage(episodeId, language)
+
+	var episode Episode
+
+	if findEpisode.Id == 0 {
+		fmt.Printf("Episode %d not found\n", episodeId)
+	} else {
+		reqTvEpisode := tmdb.GetTvSeasonEpisode(findEpisode.ShowId, findEpisode.SeasonNumber, findEpisode.EpisodeNumber, language)
+		json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
+
+		episode.Language = language
+		episode.ShowId = findEpisode.ShowId
+
+		fmt.Printf("UPDATE TV - SEASON - EPISODE: %d %d %d %d\n", episode.ShowId, episode.SeasonNumber, episode.EpisodeNumber, episode.Id)
+		UpdateEpisode(episode, language)
+	}
 }
 
 func PopulateSerieByLanguage(itemObj Serie, language string) {
@@ -282,6 +330,9 @@ func GetEpisodeBySerieSeasonAndLanguage(showId int, seasonNumber int, language s
 }
 
 func UpdateEpisode(espisode Episode, language string) {
+	// Define automaticamente o campo UpdatedAt com a data/hora atual
+	t := time.Now()
+	espisode.UpdatedAt = t.Format("02/01/2006 15:04:05")
 
 	serieEpisodeCollection.UpdateOne(context.TODO(), bson.M{"id": espisode.Id, "language": language}, bson.M{
 		"$set": espisode,

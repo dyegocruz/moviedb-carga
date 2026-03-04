@@ -51,6 +51,13 @@ func GetDetailsByIdLanguageAndDataType(id int, language string, dataType string)
 	return response
 }
 
+func GetAlternativeTitlesByIdAndDataType(id int, dataType string) *http.Response {
+	apiKey, apiHost := getApiConfig()
+
+	response := util.HttpGet(apiHost + "/" + dataType + "/" + strconv.Itoa(id) + "/alternative_titles?api_key=" + apiKey)
+	return response
+}
+
 func GetDiscoverMoviesByLanguageGenreAndPage(language string, idGenre string, page string) *http.Response {
 	apiKey, apiHost := getApiConfig()
 	return util.HttpGet(apiHost + "/discover/movie?api_key=" + apiKey + "&language=" + language + "&sort_by=popularity.desc&include_adult=false&include_video=false&page=" + page + "&with_genres=" + idGenre)

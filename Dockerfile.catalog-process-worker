@@ -6,10 +6,6 @@ RUN apk update && apk upgrade --no-cache
 ARG GO_ENV
 ENV GO_ENV=$GO_ENV
 
-# Use it only locally development
-# ENV RABBIMQ_HOST=rabbitmq
-# ENV MONGO_URI=mongodb://mongodb-container:27017/
-
 ENV TZ=America/Fortaleza
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
@@ -23,7 +19,7 @@ COPY . .
 RUN go mod tidy
 
 # Compile o binário
-RUN go build -o consumer ./consumers/consumer.go
+RUN go build -o worker ./workers/catalog-worker.go
 
 # Comando para executar o consumidor
-CMD ["./consumer"]
+CMD ["./worker"]
