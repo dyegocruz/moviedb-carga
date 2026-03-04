@@ -39,6 +39,9 @@ func main() {
 		case common.MEDIA_TYPE_TV:
 			go tv.PopulateSerieByIdAndLanguage(catalogProcessMessage.Id, common.LANGUAGE_PTBR)
 			tv.PopulateSerieByIdAndLanguage(catalogProcessMessage.Id, common.LANGUAGE_EN)
+		case common.MEDIA_TYPE_TV_EPISODE:
+			go tv.HandleTvEpisodeUpdate(catalogProcessMessage.Id, common.LANGUAGE_PTBR)
+			tv.HandleTvEpisodeUpdate(catalogProcessMessage.Id, common.LANGUAGE_EN)
 		case common.MEDIA_TYPE_PERSON:
 			go person.PopulatePersonByIdAndLanguage(catalogProcessMessage.Id, common.LANGUAGE_PTBR, "Y")
 			person.PopulatePersonByIdAndLanguage(catalogProcessMessage.Id, common.LANGUAGE_EN, "Y")
