@@ -90,7 +90,6 @@ func GetTvAlternativeTitlesById(id int) map[string]string {
 			alternativeTitles[title.Iso3166_1] = title.Title
 		}
 	}
-	log.Println("Alternative Titles: ", alternativeTitles)
 	return alternativeTitles
 }
 

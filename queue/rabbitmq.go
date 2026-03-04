@@ -18,10 +18,8 @@ type RabbitMQ struct {
 
 // NewRabbitMQ creates a new RabbitMQ connection and channel
 func NewRabbitMQ() (*RabbitMQ, error) {
-  rabbitmqConfig := configs.GetRabbitMQEnv()
-  rabbitmqString := fmt.Sprintf("amqp://%s:%s@%s:%s/", rabbitmqConfig.User, rabbitmqConfig.Password, rabbitmqConfig.Host, rabbitmqConfig.Port)
-
-  log.Println("RabbitMQ connection string: ", rabbitmqString)
+	rabbitmqConfig := configs.GetRabbitMQEnv()
+	rabbitmqString := fmt.Sprintf("amqp://%s:%s@%s:%s/", rabbitmqConfig.User, rabbitmqConfig.Password, rabbitmqConfig.Host, rabbitmqConfig.Port)
 
 	conn, err := amqp.Dial(rabbitmqString)
 	if err != nil {
@@ -57,7 +55,7 @@ func (r *RabbitMQ) SetPrefetch(count int) error {
 // Publish sends a message to a queue
 func (r *RabbitMQ) PublishJSON(queueName string, data interface{}) error {
 
-  // Serialize the struct to JSON
+	// Serialize the struct to JSON
 	body, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -107,7 +105,7 @@ func (r *RabbitMQ) ConsumeJSON(queueName string, handler func([]byte) error) err
 	msgs, err := r.channel.Consume(
 		queueName, // queue
 		"",        // consumer
-		false,      // auto-ack
+		false,     // auto-ack
 		false,     // exclusive
 		false,     // no-local
 		false,     // no-wait
@@ -117,16 +115,16 @@ func (r *RabbitMQ) ConsumeJSON(queueName string, handler func([]byte) error) err
 		return err
 	}
 
-  stopChan := make(chan bool)
+	stopChan := make(chan bool)
 
 	// Start consuming messages
 	go func() {
 		log.Printf("Consumer ready, PID: %d", os.Getpid())
 		for d := range msgs {
 			log.Printf("Received a message: %s", d.Body)
-      if err := handler(d.Body); err != nil {
-        log.Printf("Error processing message: %s", err)
-      }
+			if err := handler(d.Body); err != nil {
+				log.Printf("Error processing message: %s", err)
+			}
 			if err := d.Ack(false); err != nil {
 				log.Printf("Error acknowledging message : %s", err)
 			} else {
@@ -135,8 +133,8 @@ func (r *RabbitMQ) ConsumeJSON(queueName string, handler func([]byte) error) err
 		}
 	}()
 
-  fmt.Println("Waiting for messages...")
-  <-stopChan
+	fmt.Println("Waiting for messages...")
+	<-stopChan
 
 	return nil
 }
