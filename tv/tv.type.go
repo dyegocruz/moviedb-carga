@@ -41,6 +41,7 @@ type Episode struct {
 	VoteAverage      float64           `json:"vote_average,omitempty" bson:"vote_average"`
 	VoteCount        float64           `json:"vote_count,omitempty" bson:"vote_count"`
 	TvEpisodeCredits *TvEpisodeCredits `json:"credits,omitempty" bson:"credits"`
+	UpdatedAt        string            `json:"updatedAt,omitempty" bson:"updatedAt"`
 }
 
 type Network struct {
