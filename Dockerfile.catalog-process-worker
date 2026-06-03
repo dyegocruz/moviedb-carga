@@ -15,11 +15,11 @@ WORKDIR /app
 # Copie os arquivos do projeto para o contêiner
 COPY . .
 
-# Baixe as dependências
-RUN go mod tidy
+# Baixe as dependências do módulo sem depender de vendor
+RUN go mod download
 
 # Compile o binário
-RUN go build -o worker ./workers/catalog-worker.go
+RUN go build -mod=mod -o worker ./cmd/catalog-worker
 
 # Comando para executar o consumidor
 CMD ["./worker"]
