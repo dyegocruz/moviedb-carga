@@ -3,7 +3,6 @@ module moviedb
 go 1.24.2
 
 require (
-	github.com/aws/aws-sdk-go v1.46.7
 	github.com/gosimple/slug v1.13.1
 	github.com/joho/godotenv v1.5.1
 	github.com/olivere/elastic v6.2.37+incompatible
@@ -18,7 +17,6 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.17.2 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -31,5 +29,6 @@ require (
 	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
+	gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

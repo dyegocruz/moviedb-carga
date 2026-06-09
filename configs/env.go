@@ -1,8 +1,10 @@
 package configs
 
 import (
+	"errors"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/joho/godotenv"
 )
@@ -14,10 +16,22 @@ type RabbitMQConfig struct {
 	Password string
 }
 
+var envLoadOnce sync.Once
+var envLoadErr error
+
+func Load() error {
+	envLoadOnce.Do(func() {
+		if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
+			envLoadErr = err
+		}
+	})
+
+	return envLoadErr
+}
+
 func getEnvString(key string) string {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if err := Load(); err != nil {
+		log.Fatal("Error loading .env file: ", err)
 	}
 
 	return os.Getenv(key)
@@ -37,14 +51,6 @@ func MongoURI() string {
 
 func MongoDatabase() string {
 	return getEnvString("MONGO_DATABASE")
-}
-
-func GetAcessKeyId() string {
-	return getEnvString("AWS_ACCESS_KEY_ID")
-}
-
-func GetSecretAccessKey() string {
-	return getEnvString("AWS_SECRET_ACCESS_KEY")
 }
 
 func GetElkHost() string {

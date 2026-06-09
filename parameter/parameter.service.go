@@ -2,19 +2,28 @@ package parameter
 
 import (
 	"context"
-	"moviedb/database"
 
-	"go.mongodb.org/mongo-driver/mongo"
+	"moviedb/services"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
-var parameterCollectionString = database.COLLECTION_PARAMETER
-var parameterCollection *mongo.Collection = database.GetCollection(database.DB, parameterCollectionString)
+type Service struct {
+	mongo       *services.MongoService
+	getByTypeFn func(paramType string) Parameter
+}
 
-func GetByType(paramType string) Parameter {
+func NewService(mongo *services.MongoService) *Service {
+	return &Service{mongo: mongo}
+}
+
+func (s *Service) GetByType(paramType string) Parameter {
+	if s.getByTypeFn != nil {
+		return s.getByTypeFn(paramType)
+	}
 
 	var parameter Parameter
-	parameterCollection.FindOne(context.TODO(), bson.M{"paramType": paramType}).Decode(&parameter)
+	s.mongo.Collection(services.CollectionParameter).FindOne(context.TODO(), bson.M{"paramType": paramType}).Decode(&parameter)
 
 	return parameter
 }

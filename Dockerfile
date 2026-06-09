@@ -7,7 +7,7 @@ RUN mkdir -p /go/src/
 WORKDIR /go/src/$PACKAGE_PATH
 COPY . /go/src/$PACKAGE_PATH/
 RUN go mod download
-RUN go build -o moviedb-charge
+RUN go build -o moviedb-charge ./cmd/catalog
 
 ARG GO_ENV
 ENV GO_ENV=$GO_ENV
