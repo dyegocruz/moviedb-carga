@@ -53,14 +53,6 @@ func MongoDatabase() string {
 	return getEnvString("MONGO_DATABASE")
 }
 
-func GetAcessKeyId() string {
-	return getEnvString("AWS_ACCESS_KEY_ID")
-}
-
-func GetSecretAccessKey() string {
-	return getEnvString("AWS_SECRET_ACCESS_KEY")
-}
-
 func GetElkHost() string {
 	return getEnvString("ELASTICSEARCH")
 }

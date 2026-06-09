@@ -4,8 +4,6 @@ type Provider interface {
 	Env() string
 	MongoURI() string
 	MongoDatabase() string
-	AWSAccessKeyID() string
-	AWSSecretAccessKey() string
 	ElasticHost() string
 	ElasticUser() string
 	ElasticPassword() string
@@ -28,14 +26,6 @@ func (EnvProvider) MongoURI() string {
 
 func (EnvProvider) MongoDatabase() string {
 	return MongoDatabase()
-}
-
-func (EnvProvider) AWSAccessKeyID() string {
-	return GetAcessKeyId()
-}
-
-func (EnvProvider) AWSSecretAccessKey() string {
-	return GetSecretAccessKey()
 }
 
 func (EnvProvider) ElasticHost() string {

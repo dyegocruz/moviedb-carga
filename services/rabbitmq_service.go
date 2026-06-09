@@ -9,9 +9,24 @@ import (
 	"github.com/streadway/amqp"
 )
 
+var rabbitDialFn = amqp.Dial
+var rabbitChannelFactoryFn = func(conn *amqp.Connection) (amqpChanneler, error) {
+	return conn.Channel()
+}
+
+// amqpChanneler abstracts the amqp.Channel methods used by RabbitMQService so
+// a fake can be injected in tests.
+type amqpChanneler interface {
+	Qos(prefetchCount, prefetchSize int, global bool) error
+	QueueDeclare(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
+	Publish(exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
+	Consume(queue, consumer string, autoAck, exclusive, noLocal, noWait bool, args amqp.Table) (<-chan amqp.Delivery, error)
+	Close() error
+}
+
 type RabbitMQService struct {
 	conn    *amqp.Connection
-	channel *amqp.Channel
+	channel amqpChanneler
 }
 
 func NewRabbitMQService(config Config) (*RabbitMQService, error) {
@@ -22,12 +37,12 @@ func NewRabbitMQService(config Config) (*RabbitMQService, error) {
 	rabbitmqConfig := config.RabbitMQ()
 	rabbitmqString := fmt.Sprintf("amqp://%s:%s@%s:%s/", rabbitmqConfig.User, rabbitmqConfig.Password, rabbitmqConfig.Host, rabbitmqConfig.Port)
 
-	conn, err := amqp.Dial(rabbitmqString)
+	conn, err := rabbitDialFn(rabbitmqString)
 	if err != nil {
 		return nil, err
 	}
 
-	channel, err := conn.Channel()
+	channel, err := rabbitChannelFactoryFn(conn)
 	if err != nil {
 		return nil, err
 	}

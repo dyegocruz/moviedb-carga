@@ -9,7 +9,8 @@ import (
 )
 
 type Service struct {
-	mongo *services.MongoService
+	mongo       *services.MongoService
+	getByTypeFn func(paramType string) Parameter
 }
 
 func NewService(mongo *services.MongoService) *Service {
@@ -17,6 +18,9 @@ func NewService(mongo *services.MongoService) *Service {
 }
 
 func (s *Service) GetByType(paramType string) Parameter {
+	if s.getByTypeFn != nil {
+		return s.getByTypeFn(paramType)
+	}
 
 	var parameter Parameter
 	s.mongo.Collection(services.CollectionParameter).FindOne(context.TODO(), bson.M{"paramType": paramType}).Decode(&parameter)

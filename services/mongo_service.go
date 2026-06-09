@@ -13,6 +13,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var mongoConnect = mongo.Connect
+var mongoPing = func(client *mongo.Client, ctx context.Context) error {
+	return client.Ping(ctx, nil)
+}
+
 const (
 	CollectionParameter     = "parameter"
 	CollectionMovie         = "movie"
@@ -22,9 +27,55 @@ const (
 )
 
 type MongoService struct {
-	client *mongo.Client
-	dbName string
-	config Config
+	client          *mongo.Client
+	dbName          string
+	config          Config
+	collectionFn    func(collectionName string) *mongo.Collection
+	collectionOpsFn func(collectionName string) mongoCollectionOps
+}
+
+type mongoCursor interface {
+	Next(ctx context.Context) bool
+	Decode(val interface{}) error
+	Close(ctx context.Context) error
+}
+
+type mongoCollectionOps interface {
+	CountDocuments(ctx context.Context, filter interface{}, opts ...*options.CountOptions) (int64, error)
+	Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (mongoCursor, error)
+}
+
+type mongoCursorAdapter struct {
+	cursor *mongo.Cursor
+}
+
+func (a mongoCursorAdapter) Next(ctx context.Context) bool {
+	return a.cursor.Next(ctx)
+}
+
+func (a mongoCursorAdapter) Decode(val interface{}) error {
+	return a.cursor.Decode(val)
+}
+
+func (a mongoCursorAdapter) Close(ctx context.Context) error {
+	return a.cursor.Close(ctx)
+}
+
+type mongoCollectionAdapter struct {
+	collection *mongo.Collection
+}
+
+func (a mongoCollectionAdapter) CountDocuments(ctx context.Context, filter interface{}, opts ...*options.CountOptions) (int64, error) {
+	return a.collection.CountDocuments(ctx, filter, opts...)
+}
+
+func (a mongoCollectionAdapter) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (mongoCursor, error) {
+	cur, err := a.collection.Find(ctx, filter, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return mongoCursorAdapter{cursor: cur}, nil
 }
 
 func (s *MongoService) Close() error {
@@ -41,12 +92,12 @@ func NewMongoService(config Config) *MongoService {
 	}
 
 	ctx := context.TODO()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(config.MongoURI()))
+	client, err := mongoConnect(ctx, options.Client().ApplyURI(config.MongoURI()))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := client.Ping(ctx, nil); err != nil {
+	if err := mongoPing(client, ctx); err != nil {
 		log.Fatal(err)
 	}
 
@@ -55,7 +106,19 @@ func NewMongoService(config Config) *MongoService {
 }
 
 func (s *MongoService) Collection(collectionName string) *mongo.Collection {
+	if s.collectionFn != nil {
+		return s.collectionFn(collectionName)
+	}
+
 	return s.client.Database(s.dbName).Collection(collectionName)
+}
+
+func (s *MongoService) collectionOps(collectionName string) mongoCollectionOps {
+	if s.collectionOpsFn != nil {
+		return s.collectionOpsFn(collectionName)
+	}
+
+	return mongoCollectionAdapter{collection: s.Collection(collectionName)}
 }
 
 func (s *MongoService) CheckCreateCollections() {
@@ -65,36 +128,56 @@ func (s *MongoService) CheckCreateCollections() {
 		return
 	}
 
+	_ = applyCollectionInitialization(
+		names,
+		func(collectionName string) error {
+			return s.client.Database(s.dbName).CreateCollection(context.TODO(), collectionName)
+		},
+		func(collectionName string, indexes []mongo.IndexModel, opts *options.CreateIndexesOptions) {
+			s.client.Database(s.dbName).Collection(collectionName).Indexes().CreateMany(context.TODO(), indexes, opts)
+		},
+	)
+}
+
+func applyCollectionInitialization(
+	existingNames []string,
+	createCollection func(collectionName string) error,
+	createIndexes func(collectionName string, indexes []mongo.IndexModel, opts *options.CreateIndexesOptions),
+) []string {
 	index := []mongo.IndexModel{
 		{Keys: bson.M{"id": 1}},
 		{Keys: bson.M{"language": 1}},
 	}
+	parameterIndex := []mongo.IndexModel{{Keys: bson.M{"tipo": 1}}}
 	opts := options.CreateIndexes().SetMaxTime(10 * time.Second)
 
 	collections := []string{CollectionMovie, CollectionSerie, CollectionSerieEpisode, CollectionPerson, CollectionParameter}
+	created := make([]string, 0)
 	for _, collectionName := range collections {
-		if util.ArrayContainsString(names, collectionName) {
+		if util.ArrayContainsString(existingNames, collectionName) {
 			continue
 		}
 
 		log.Println("create collection " + collectionName)
-		if err := s.client.Database(s.dbName).CreateCollection(context.TODO(), collectionName); err != nil {
+		if err := createCollection(collectionName); err != nil {
 			log.Println(err)
 		}
 
-		collection := s.client.Database(s.dbName).Collection(collectionName)
 		if collectionName == CollectionParameter {
-			parameterIndex := []mongo.IndexModel{{Keys: bson.M{"tipo": 1}}}
-			collection.Indexes().CreateMany(context.TODO(), parameterIndex, opts)
+			createIndexes(collectionName, parameterIndex, opts)
+			created = append(created, collectionName)
 			continue
 		}
 
-		collection.Indexes().CreateMany(context.TODO(), index, opts)
+		createIndexes(collectionName, index, opts)
+		created = append(created, collectionName)
 	}
+
+	return created
 }
 
 func (s *MongoService) GetCountAllByCollection(collection string) int64 {
-	count, err := s.Collection(collection).CountDocuments(context.TODO(), bson.M{"_id": bson.M{"$ne": ""}})
+	count, err := s.collectionOps(collection).CountDocuments(context.TODO(), bson.M{"_id": bson.M{"$ne": ""}})
 	if err != nil {
 		log.Println(err)
 	}
@@ -103,7 +186,7 @@ func (s *MongoService) GetCountAllByCollection(collection string) int64 {
 }
 
 func (s *MongoService) GetCountAllByCollectionAndLanguage(collection string, language string) int64 {
-	count, err := s.Collection(collection).CountDocuments(context.TODO(), bson.M{"language": language})
+	count, err := s.collectionOps(collection).CountDocuments(context.TODO(), bson.M{"language": language})
 	if err != nil {
 		log.Println(err)
 	}
@@ -115,9 +198,10 @@ func (s *MongoService) GetAllIdsByLanguage(collection string, language string) [
 	filter := bson.M{"language": language}
 	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0}).SetNoCursorTimeout(true)
 
-	cur, err := s.Collection(collection).Find(context.TODO(), filter, opts)
+	cur, err := s.collectionOps(collection).Find(context.TODO(), filter, opts)
 	if err != nil {
 		log.Println(err)
+		return []int{}
 	}
 
 	results := make([]int, 0)
@@ -140,9 +224,10 @@ func (s *MongoService) GenerateCatalogCheck(collection string, language string) 
 
 	log.Print("STARTING Generate Catalog check for ", collection)
 
-	cur, err := s.Collection(collection).Find(ctx, filter, opts)
+	cur, err := s.collectionOps(collection).Find(ctx, filter, opts)
 	if err != nil {
 		log.Println(err)
+		return map[int]common.CatalogCheck{}
 	}
 
 	resultCatalog := make(map[int]common.CatalogCheck)

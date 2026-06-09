@@ -13,16 +13,38 @@ import (
 	"moviedb/queue"
 	"moviedb/services"
 	"moviedb/tmdb"
+	"moviedb/util"
 
 	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type rabbitPublisher interface {
+	Close()
+	PublishJSON(queueName string, message interface{}) error
+}
+
 type Service struct {
-	mongo  *services.MongoService
-	person *person.Service
-	tmdb   *tmdb.Service
+	mongo                             *services.MongoService
+	person                            *person.Service
+	tmdb                              *tmdb.Service
+	getSerieDetailsFn                 func(id int, language string) Serie
+	populateSerieByLanguageFn         func(itemObj Serie, language string)
+	rabbitFactory                     func() (rabbitPublisher, error)
+	getEpisodeByIdLanguageFn          func(id int, language string) Episode
+	getEpisodeBySerieSeasonLanguageFn func(showId int, seasonNumber int, language string) []Episode
+	getSerieByIdLanguageFn            func(id int, language string) Serie
+	insertSerieFn                     func(itemObj Serie, language string) interface{}
+	updateSerieFn                     func(itemObj Serie, language string)
+	deleteSerieFn                     func(id int)
+	insertEpisodeFn                   func(itemObj Episode, language string) interface{}
+	updateEpisodeFn                   func(itemObj Episode, language string)
+	deleteSerieEpisodesFn             func(showId int)
+	getCountAllFn                     func() int64
+	generateTvCatalogCheckFn          func(language string) map[int]common.CatalogCheck
+	generateTvEpisodesCatalogCheckFn  func(language string) map[int]common.CatalogCheck
+	populatePersonFn                  func(personId int, language, update string)
 }
 
 func NewService(mongo *services.MongoService, personService *person.Service, tmdbService *tmdb.Service) *Service {
@@ -30,7 +52,14 @@ func NewService(mongo *services.MongoService, personService *person.Service, tmd
 }
 
 func (s *Service) CheckTvChanges() {
-	rmq, err := services.NewRabbitMQService(nil)
+	factory := s.rabbitFactory
+	if factory == nil {
+		factory = func() (rabbitPublisher, error) {
+			return services.NewRabbitMQService(nil)
+		}
+	}
+
+	rmq, err := factory()
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
 	}
@@ -50,8 +79,18 @@ func (s *Service) CheckTvChanges() {
 }
 
 func (s *Service) PopulateSerieByIdAndLanguage(id int, language string) {
-	itemObj := s.GetSerieDetailsOnTMDBApi(id, language)
-	s.PopulateSerieByLanguage(itemObj, language)
+	getter := s.GetSerieDetailsOnTMDBApi
+	if s.getSerieDetailsFn != nil {
+		getter = s.getSerieDetailsFn
+	}
+
+	populator := s.PopulateSerieByLanguage
+	if s.populateSerieByLanguageFn != nil {
+		populator = s.populateSerieByLanguageFn
+	}
+
+	itemObj := getter(id, language)
+	populator(itemObj, language)
 }
 
 func (s *Service) GetSerieDetailsOnTMDBApi(id int, language string) Serie {
@@ -60,15 +99,9 @@ func (s *Service) GetSerieDetailsOnTMDBApi(id int, language string) Serie {
 	var serie Serie
 	json.NewDecoder(reqSerie.Body).Decode(&serie)
 
-	if language == common.LANGUAGE_PTBR {
+	if shouldFetchAlternativeTitles(language, serie.OriginalLanguage) {
 		alternativeTitles := s.GetTvAlternativeTitlesById(id)
-		if serie.OriginalLanguage == common.LANGUAGE_JA {
-			if alternativeTitles["BR"] != "" {
-				serie.Title = alternativeTitles[common.LANGUAGE_ISO_BR]
-			} else if alternativeTitles["JP"] != "" {
-				serie.Title = alternativeTitles[common.LANGUAGE_ISO_JP]
-			}
-		}
+		serie = applyLocalizedSerieTitle(serie, language, alternativeTitles)
 	}
 
 	return serie
@@ -93,7 +126,12 @@ func (s *Service) GetTvAlternativeTitlesById(id int) map[string]string {
 }
 
 func (s *Service) HandleTvEpisodeUpdate(episodeId int, language string) {
-	findEpisode := s.GetEpisodeByIdAndLanguage(episodeId, language)
+	getter := s.GetEpisodeByIdAndLanguage
+	if s.getEpisodeByIdLanguageFn != nil {
+		getter = s.getEpisodeByIdLanguageFn
+	}
+
+	findEpisode := getter(episodeId, language)
 	var episode Episode
 
 	if findEpisode.Id == 0 {
@@ -112,15 +150,28 @@ func (s *Service) HandleTvEpisodeUpdate(episodeId int, language string) {
 }
 
 func (s *Service) PopulateSerieByLanguage(itemObj Serie, language string) {
-	t := time.Now()
-	itemObj.UpdatedNew = t.Format("02/01/2006 15:04:05")
+	itemObj = applySerieMetadata(itemObj, language, time.Now())
 
-	itemObj.MediaType = "serie"
-	itemObj.Language = language
-	itemObj.Slug = slug.Make(itemObj.Title)
-	itemObj.SlugUrl = "serie-" + strconv.Itoa(itemObj.Id)
+	getByIdLang := s.GetSerieByIdAndLanguage
+	if s.getSerieByIdLanguageFn != nil {
+		getByIdLang = s.getSerieByIdLanguageFn
+	}
+	insertFn := s.InsertSerie
+	if s.insertSerieFn != nil {
+		insertFn = s.insertSerieFn
+	}
+	updateFn := s.UpdateSerie
+	if s.updateSerieFn != nil {
+		updateFn = s.updateSerieFn
+	}
+	populatePerson := func(personId int, lang, update string) {
+		s.person.PopulatePersonByIdAndLanguage(personId, lang, update)
+	}
+	if s.populatePersonFn != nil {
+		populatePerson = s.populatePersonFn
+	}
 
-	itemFind := s.GetSerieByIdAndLanguage(itemObj.Id, language)
+	itemFind := getByIdLang(itemObj.Id, language)
 
 	var seasonsDetails []Season
 	for _, season := range itemObj.Seasons {
@@ -130,16 +181,16 @@ func (s *Service) PopulateSerieByLanguage(itemObj Serie, language string) {
 		json.NewDecoder(reqSeasonEpisodes.Body).Decode(&seasonReq)
 
 		for _, episode := range seasonReq.Episodes {
-			findEpisode := s.GetEpisodeByIdAndLanguage(episode.Id, language)
+			foundEpisode := s.GetEpisodeByIdAndLanguage(episode.Id, language)
 
-			if findEpisode.Id == 0 {
+			if shouldInsertEpisode(foundEpisode.Id) {
 				reqTvEpisode := s.tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
 				json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
 
 				episode.Language = language
 				log.Println("INSERT TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
 				s.InsertEpisode(episode, language)
-			} else if episode.SeasonNumber == itemObj.NumberOfSeasons && episode.EpisodeNumber >= (season.EpisodeCount-10) {
+			} else if shouldUpdateLatestSeasonEpisode(foundEpisode, season, itemObj.NumberOfSeasons) {
 				reqTvEpisode := s.tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
 				json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
 
@@ -155,24 +206,25 @@ func (s *Service) PopulateSerieByLanguage(itemObj Serie, language string) {
 	}
 	itemObj.Seasons = seasonsDetails
 
-	if itemFind.Id == 0 {
+	action := decideSerieUpsertAction(itemFind.Id, itemObj.Id)
+	if action == "insert" {
 		for _, cast := range itemObj.TvCredits.Cast {
-			s.person.PopulatePersonByIdAndLanguage(cast.Id, language, "Y")
+			populatePerson(cast.Id, language, "Y")
 		}
 
 		for _, crew := range itemObj.TvCredits.Crew {
-			s.person.PopulatePersonByIdAndLanguage(crew.Id, language, "Y")
+			populatePerson(crew.Id, language, "Y")
 		}
 
-		if itemObj.Id > 0 {
-			log.Println("===>INSERT TV: ", itemObj.Id)
-			s.InsertSerie(itemObj, language)
-		}
+		log.Println("===>INSERT TV: ", itemObj.Id)
+		insertFn(itemObj, language)
 		return
 	}
 
-	log.Println("===>UPDATE TV: ", itemObj.Id)
-	s.UpdateSerie(itemObj, language)
+	if action == "update" {
+		log.Println("===>UPDATE TV: ", itemObj.Id)
+		updateFn(itemObj, language)
+	}
 }
 
 func (s *Service) PopulateSeries(language string, idGenre string) {
@@ -187,15 +239,13 @@ func (s *Service) PopulateSeries(language string, idGenre string) {
 		json.NewDecoder(response.Body).Decode(&result)
 
 		for _, item := range result.Results {
-			if item.Id > 0 {
-				checkTvExist := s.GetSerieByIdAndLanguage(item.Id, common.LANGUAGE_PTBR)
-				if checkTvExist.Id == 0 {
-					itemObjBr := s.GetSerieDetailsOnTMDBApi(item.Id, common.LANGUAGE_PTBR)
-					s.PopulateSerieByLanguage(itemObjBr, common.LANGUAGE_PTBR)
+			checkTvExist := s.GetSerieByIdAndLanguage(item.Id, common.LANGUAGE_PTBR)
+			if shouldPopulateDiscoveredSerie(item.Id, checkTvExist.Id) {
+				itemObjBr := s.GetSerieDetailsOnTMDBApi(item.Id, common.LANGUAGE_PTBR)
+				s.PopulateSerieByLanguage(itemObjBr, common.LANGUAGE_PTBR)
 
-					itemObj := s.GetSerieDetailsOnTMDBApi(item.Id, language)
-					go s.PopulateSerieByLanguage(itemObj, language)
-				}
+				itemObj := s.GetSerieDetailsOnTMDBApi(item.Id, language)
+				go s.PopulateSerieByLanguage(itemObj, language)
 			}
 		}
 	}
@@ -244,6 +294,10 @@ func (s *Service) GetCatalogSearchIn(ids []int) []Serie {
 }
 
 func (s *Service) GetSerieByIdAndLanguage(id int, language string) Serie {
+	if s.getSerieByIdLanguageFn != nil {
+		return s.getSerieByIdLanguageFn(id, language)
+	}
+
 	var item Serie
 	s.mongo.Collection(services.CollectionSerie).FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
 
@@ -251,6 +305,10 @@ func (s *Service) GetSerieByIdAndLanguage(id int, language string) Serie {
 }
 
 func (s *Service) InsertSerie(itemInsert Serie, language string) interface{} {
+	if s.insertSerieFn != nil {
+		return s.insertSerieFn(itemInsert, language)
+	}
+
 	result, err := s.mongo.Collection(services.CollectionSerie).InsertOne(context.TODO(), itemInsert)
 	if err != nil {
 		log.Println("EERRORRR")
@@ -261,14 +319,28 @@ func (s *Service) InsertSerie(itemInsert Serie, language string) interface{} {
 }
 
 func (s *Service) UpdateSerie(serie Serie, language string) {
+	if s.updateSerieFn != nil {
+		s.updateSerieFn(serie, language)
+		return
+	}
+
 	s.mongo.Collection(services.CollectionSerie).UpdateOne(context.TODO(), bson.M{"id": serie.Id, "language": language}, bson.M{"$set": serie})
 }
 
 func (s *Service) DeleteSerie(id int) {
+	if s.deleteSerieFn != nil {
+		s.deleteSerieFn(id)
+		return
+	}
+
 	s.mongo.Collection(services.CollectionSerie).DeleteMany(context.TODO(), bson.M{"id": id})
 }
 
 func (s *Service) InsertEpisode(itemInsert Episode, language string) interface{} {
+	if s.insertEpisodeFn != nil {
+		return s.insertEpisodeFn(itemInsert, language)
+	}
+
 	result, err := s.mongo.Collection(services.CollectionSerieEpisode).InsertOne(context.TODO(), itemInsert)
 	if err != nil {
 		log.Println("EERRORRR")
@@ -279,6 +351,10 @@ func (s *Service) InsertEpisode(itemInsert Episode, language string) interface{}
 }
 
 func (s *Service) GetEpisodeByIdAndLanguage(id int, language string) Episode {
+	if s.getEpisodeByIdLanguageFn != nil {
+		return s.getEpisodeByIdLanguageFn(id, language)
+	}
+
 	var item Episode
 	s.mongo.Collection(services.CollectionSerieEpisode).FindOne(context.TODO(), bson.M{"id": id, "language": language}).Decode(&item)
 
@@ -286,6 +362,10 @@ func (s *Service) GetEpisodeByIdAndLanguage(id int, language string) Episode {
 }
 
 func (s *Service) GetEpisodeBySerieSeasonAndLanguage(showId int, seasonNumber int, language string) []Episode {
+	if s.getEpisodeBySerieSeasonLanguageFn != nil {
+		return s.getEpisodeBySerieSeasonLanguageFn(showId, seasonNumber, language)
+	}
+
 	cur, err := s.mongo.Collection(services.CollectionSerieEpisode).Find(context.TODO(), bson.M{"show_id": showId, "season_number": seasonNumber, "language": language})
 	if err != nil {
 		log.Println(err)
@@ -299,6 +379,11 @@ func (s *Service) GetEpisodeBySerieSeasonAndLanguage(showId int, seasonNumber in
 }
 
 func (s *Service) UpdateEpisode(espisode Episode, language string) {
+	if s.updateEpisodeFn != nil {
+		s.updateEpisodeFn(espisode, language)
+		return
+	}
+
 	t := time.Now()
 	espisode.UpdatedAt = t.Format("02/01/2006 15:04:05")
 
@@ -306,17 +391,96 @@ func (s *Service) UpdateEpisode(espisode Episode, language string) {
 }
 
 func (s *Service) DeleteSerieEpisodes(showId int) {
+	if s.deleteSerieEpisodesFn != nil {
+		s.deleteSerieEpisodesFn(showId)
+		return
+	}
+
 	s.mongo.Collection(services.CollectionSerieEpisode).DeleteMany(context.TODO(), bson.M{"show_id": showId})
 }
 
 func (s *Service) GetCountAll() int64 {
+	if s.getCountAllFn != nil {
+		return s.getCountAllFn()
+	}
+
 	return s.mongo.GetCountAllByCollection(services.CollectionSerie)
 }
 
 func (s *Service) GenerateTvCatalogCheck(language string) map[int]common.CatalogCheck {
+	if s.generateTvCatalogCheckFn != nil {
+		return s.generateTvCatalogCheckFn(language)
+	}
+
 	return s.mongo.GenerateCatalogCheck(services.CollectionSerie, language)
 }
 
 func (s *Service) GenerateTvEpisodesCatalogCheck(language string) map[int]common.CatalogCheck {
+	if s.generateTvEpisodesCatalogCheckFn != nil {
+		return s.generateTvEpisodesCatalogCheckFn(language)
+	}
+
 	return s.mongo.GenerateCatalogCheck(services.CollectionSerieEpisode, language)
+}
+
+func applySerieMetadata(itemObj Serie, language string, now time.Time) Serie {
+	itemObj.UpdatedNew = now.Format("02/01/2006 15:04:05")
+	itemObj.MediaType = "serie"
+	itemObj.Language = language
+	itemObj.Slug = slug.Make(itemObj.Title)
+	itemObj.SlugUrl = "serie-" + strconv.Itoa(itemObj.Id)
+	return itemObj
+}
+
+func applyLocalizedSerieTitle(serie Serie, language string, alternativeTitles map[string]string) Serie {
+	if language == common.LANGUAGE_PTBR && serie.OriginalLanguage == common.LANGUAGE_JA {
+		if alternativeTitles[common.LANGUAGE_ISO_BR] != "" {
+			serie.Title = alternativeTitles[common.LANGUAGE_ISO_BR]
+		} else if alternativeTitles[common.LANGUAGE_ISO_JP] != "" {
+			serie.Title = alternativeTitles[common.LANGUAGE_ISO_JP]
+		}
+	}
+
+	return serie
+}
+
+func shouldFetchAlternativeTitles(language string, originalLanguage string) bool {
+	return language == common.LANGUAGE_PTBR && originalLanguage == common.LANGUAGE_JA
+}
+
+func shouldInsertEpisode(existingEpisodeID int) bool {
+	return existingEpisodeID == 0
+}
+
+func shouldUpdateLatestSeasonEpisode(episode Episode, season Season, numberOfSeasons int) bool {
+	var lastSeason = episode.SeasonNumber == numberOfSeasons
+
+	if lastSeason || episode.UpdatedAt == "" {
+		return true
+	}
+
+	updateTime, err := util.ParseStringToTime(episode.UpdatedAt)
+	if err != nil {
+		fmt.Println("Failed to convert date:", err)
+		return true
+	}
+
+	sevenDaysAgo := time.Now().AddDate(0, 0, -7)
+	needUpdate := updateTime.Before(sevenDaysAgo)
+
+	return needUpdate
+}
+
+func decideSerieUpsertAction(existingID int, itemID int) string {
+	if existingID == 0 && itemID > 0 {
+		return "insert"
+	}
+	if existingID != 0 {
+		return "update"
+	}
+	return "skip"
+}
+
+func shouldPopulateDiscoveredSerie(itemID int, existingID int) bool {
+	return itemID > 0 && existingID == 0
 }

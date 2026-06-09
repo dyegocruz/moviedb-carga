@@ -15,11 +15,17 @@ const (
 	DATATYPE_PERSON = "person"
 )
 
-type Service struct {
-	parameter *parameter.Service
+// ParameterProvider abstracts parameter lookup so the service can be tested
+// without a real Mongo connection.
+type ParameterProvider interface {
+	GetByType(paramType string) parameter.Parameter
 }
 
-func NewService(parameterService *parameter.Service) *Service {
+type Service struct {
+	parameter ParameterProvider
+}
+
+func NewService(parameterService ParameterProvider) *Service {
 	return &Service{parameter: parameterService}
 }
 
