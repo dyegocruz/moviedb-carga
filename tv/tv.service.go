@@ -455,7 +455,15 @@ func shouldInsertEpisode(existingEpisodeID int) bool {
 func shouldUpdateLatestSeasonEpisode(episode Episode, season Season, numberOfSeasons int) bool {
 	var lastSeason = episode.SeasonNumber == numberOfSeasons
 
-	if lastSeason || episode.UpdatedAt == "" {
+	if !lastSeason {
+		limitLine := season.EpisodeCount - 30
+
+		if episode.EpisodeNumber < limitLine {
+			return false
+		}
+	}
+
+	if episode.UpdatedAt == "" {
 		return true
 	}
 
