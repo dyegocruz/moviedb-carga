@@ -12,27 +12,26 @@ import (
 
 	"moviedb/tmdb"
 
-	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Service struct {
-	mongo *services.MongoService
-	tmdb  *tmdb.Service
-	getPersonDetailsFn         func(id int, language string) Person
-	maxPageLoadFn              func() int
-	getPopularPersonFn         func(language string, page string) ResultPerson
-	populatePersonByLanguageFn func(itemObj Person, language string, updatePerson string)
-	populatePersonByIdFn       func(id int, language string, updatePerson string)
-	getAllByIdsFn              func(ids []int) []interface{}
-	getCatalogSearchInFn       func(language string, ids []int) []Person
-	getPersonByIdLanguageFn    func(id int, language string) Person
-	getPersonsWithCreditsFn    func(language string) []Person
-	getPersonsWithoutCreditsFn func(language string) []Person
-	insertPersonFn             func(itemObj Person) interface{}
-	updatePersonFn             func(itemObj Person, language string)
-	getCountAllFn              func() int64
+	mongo                        *services.MongoService
+	tmdb                         *tmdb.Service
+	getPersonDetailsFn           func(id int, language string) Person
+	maxPageLoadFn                func() int
+	getPopularPersonFn           func(language string, page string) ResultPerson
+	populatePersonByLanguageFn   func(itemObj Person, language string, updatePerson string)
+	populatePersonByIdFn         func(id int, language string, updatePerson string)
+	getAllByIdsFn                func(ids []int) []interface{}
+	getCatalogSearchInFn         func(language string, ids []int) []Person
+	getPersonByIdLanguageFn      func(id int, language string) Person
+	getPersonsWithCreditsFn      func(language string) []Person
+	getPersonsWithoutCreditsFn   func(language string) []Person
+	insertPersonFn               func(itemObj Person) interface{}
+	updatePersonFn               func(itemObj Person, language string)
+	getCountAllFn                func() int64
 	generatePersonCatalogCheckFn func(language string) map[int]common.CatalogCheck
 }
 
@@ -101,8 +100,23 @@ func (s *Service) PopulatePersonByIdAndLanguage(id int, language string, updateP
 		populator = s.populatePersonByLanguageFn
 	}
 
-	itemObj := getter(id, language)
-	populator(itemObj, language, updatePerson)
+	itemObjMain := getter(id, language)
+	itemObjEN := getter(id, common.LANGUAGE_EN)
+
+	localizationBR := common.LocalizationPerson{
+		Locale:    common.LANGUAGE_PTBR,
+		Name:      itemObjMain.Name,
+		Biography: itemObjMain.Biography,
+	}
+	localizationEN := common.LocalizationPerson{
+		Locale:    common.LANGUAGE_EN,
+		Name:      itemObjEN.Name,
+		Biography: itemObjEN.Biography,
+	}
+	itemObjMain.Localizations = append(itemObjMain.Localizations, localizationBR)
+	itemObjMain.Localizations = append(itemObjMain.Localizations, localizationEN)
+
+	populator(itemObjMain, language, updatePerson)
 }
 
 func (s *Service) PopulatePersons(language string) {
@@ -180,7 +194,7 @@ func (s *Service) GetCatalogSearchIn(language string, ids []int) []Person {
 	}
 
 	ctx2 := context.TODO()
-	projection := bson.M{"_id": 0, "id": 1, "name": 1, "profile_path": 1, "language": 1, "popularity": 1}
+	projection := bson.M{"_id": 0, "id": 1, "name": 1, "profile_path": 1, "language": 1, "popularity": 1, "localizations": 1}
 	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}}).SetProjection(projection)
 	cur, err := s.mongo.Collection(services.CollectionPerson).Find(ctx2, bson.M{"language": language, "id": bson.M{"$in": ids}}, optionsFind)
 	if err != nil {
@@ -302,10 +316,10 @@ func (s *Service) GeneratePersonCatalogCheck(language string) map[int]common.Cat
 }
 
 func applyPersonMetadata(itemObj Person, language string, now time.Time) Person {
-	itemObj.UpdatedNew = now.Format("02/01/2006 15:04:05")
+	itemObj.UpdatedAt = now.Format("02/01/2006 15:04:05")
 	itemObj.Language = language
-	itemObj.Slug = slug.Make(itemObj.Name)
-	itemObj.SlugUrl = "person-" + strconv.Itoa(itemObj.Id)
+	// itemObj.Slug = slug.Make(itemObj.Name)
+	// itemObj.SlugUrl = "person-" + strconv.Itoa(itemObj.Id)
 	return itemObj
 }
 

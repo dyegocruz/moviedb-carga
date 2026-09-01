@@ -15,7 +15,6 @@ import (
 	"moviedb/tmdb"
 	"moviedb/util"
 
-	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -43,6 +42,7 @@ type Service struct {
 	deleteSerieEpisodesFn             func(showId int)
 	getCountAllFn                     func() int64
 	generateTvCatalogCheckFn          func(language string) map[int]common.CatalogCheck
+	generateTvLocaleCheckFn           func(language string) map[int]common.CatalogCheck
 	generateTvEpisodesCatalogCheckFn  func(language string) map[int]common.CatalogCheck
 	populatePersonFn                  func(personId int, language, update string)
 }
@@ -89,8 +89,11 @@ func (s *Service) PopulateSerieByIdAndLanguage(id int, language string) {
 		populator = s.populateSerieByLanguageFn
 	}
 
-	itemObj := getter(id, language)
-	populator(itemObj, language)
+	itemObjMainLanguage := getter(id, common.LANGUAGE_PTBR)
+	itemObjEN := getter(id, common.LANGUAGE_EN)
+	itemObjMainLanguage = mergeSerieLocalizationAndTitles(itemObjMainLanguage, itemObjEN, itemObjMainLanguage.AlternativeTitles.Results)
+
+	populator(itemObjMainLanguage, language)
 }
 
 func (s *Service) GetSerieDetailsOnTMDBApi(id int, language string) Serie {
@@ -99,32 +102,10 @@ func (s *Service) GetSerieDetailsOnTMDBApi(id int, language string) Serie {
 	var serie Serie
 	json.NewDecoder(reqSerie.Body).Decode(&serie)
 
-	if shouldFetchAlternativeTitles(language, serie.OriginalLanguage) {
-		alternativeTitles := s.GetTvAlternativeTitlesById(id)
-		serie = applyLocalizedSerieTitle(serie, language, alternativeTitles)
-	}
-
 	return serie
 }
 
-func (s *Service) GetTvAlternativeTitlesById(id int) map[string]string {
-	req := s.tmdb.GetAlternativeTitlesByIdAndDataType(id, tmdb.DATATYPE_TV)
-
-	var result common.ResultAlternativeTitle
-	json.NewDecoder(req.Body).Decode(&result)
-
-	alternativeTitles := make(map[string]string)
-	for _, title := range result.Results {
-		if title.Iso3166_1 == common.LANGUAGE_ISO_JP && title.Type == common.ALTERNATIVE_TITLE_TYPE_ROMAJI {
-			alternativeTitles[title.Iso3166_1] = title.Title
-		} else if title.Iso3166_1 != common.LANGUAGE_ISO_JP {
-			alternativeTitles[title.Iso3166_1] = title.Title
-		}
-	}
-
-	return alternativeTitles
-}
-
+// Force update an episode when it exists on database
 func (s *Service) HandleTvEpisodeUpdate(episodeId int, language string) {
 	getter := s.GetEpisodeByIdAndLanguage
 	if s.getEpisodeByIdLanguageFn != nil {
@@ -145,8 +126,32 @@ func (s *Service) HandleTvEpisodeUpdate(episodeId int, language string) {
 	episode.Language = language
 	episode.ShowId = findEpisode.ShowId
 
+	episode = s.handleEpisodeLocalization(episode.ShowId, episode.SeasonNumber, episode)
+
 	fmt.Printf("UPDATE TV - SEASON - EPISODE: %d %d %d %d\n", episode.ShowId, episode.SeasonNumber, episode.EpisodeNumber, episode.Id)
 	s.UpdateEpisode(episode, language)
+}
+
+func (s *Service) handleEpisodeLocalization(showId int, seasonNumber int, episode Episode) Episode {
+	reqTvEpisodeMain := s.tmdb.GetTvSeasonEpisode(showId, seasonNumber, episode.EpisodeNumber, common.LANGUAGE_PTBR)
+	json.NewDecoder(reqTvEpisodeMain.Body).Decode(&episode)
+
+	var episodeEn Episode
+	reqTvEpisodeEN := s.tmdb.GetTvSeasonEpisode(showId, seasonNumber, episode.EpisodeNumber, common.LANGUAGE_EN)
+	json.NewDecoder(reqTvEpisodeEN.Body).Decode(&episodeEn)
+
+	episode.Localizations = append(episode.Localizations, common.LocalizationCommon{
+		Locale:   common.LANGUAGE_PTBR,
+		Title:    episode.Name,
+		Synopsis: episode.Overview,
+	})
+	episode.Localizations = append(episode.Localizations, common.LocalizationCommon{
+		Locale:   common.LANGUAGE_EN,
+		Title:    episodeEn.Name,
+		Synopsis: episodeEn.Overview,
+	})
+	episode.Language = common.LANGUAGE_PTBR
+	return episode
 }
 
 func (s *Service) PopulateSerieByLanguage(itemObj Serie, language string) {
@@ -177,32 +182,28 @@ func (s *Service) PopulateSerieByLanguage(itemObj Serie, language string) {
 	for _, season := range itemObj.Seasons {
 		reqSeasonEpisodes := s.tmdb.GetTvSeason(itemObj.Id, season.SeasonNumber, language)
 
-		var seasonReq Season
-		json.NewDecoder(reqSeasonEpisodes.Body).Decode(&seasonReq)
+		var seasonMainReq Season
+		json.NewDecoder(reqSeasonEpisodes.Body).Decode(&seasonMainReq)
 
-		for _, episode := range seasonReq.Episodes {
+		for _, episode := range seasonMainReq.Episodes {
 			foundEpisode := s.GetEpisodeByIdAndLanguage(episode.Id, language)
 
 			if shouldInsertEpisode(foundEpisode.Id) {
-				reqTvEpisode := s.tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
-				json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
+				episode = s.handleEpisodeLocalization(itemObj.Id, seasonMainReq.SeasonNumber, episode)
 
-				episode.Language = language
-				log.Println("INSERT TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
+				log.Println("INSERT TV - SEASON - EPISODE: ", itemObj.Id, seasonMainReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
 				s.InsertEpisode(episode, language)
-			} else if shouldUpdateLatestSeasonEpisode(foundEpisode, season, itemObj.NumberOfSeasons) {
-				reqTvEpisode := s.tmdb.GetTvSeasonEpisode(itemObj.Id, season.SeasonNumber, episode.EpisodeNumber, language)
-				json.NewDecoder(reqTvEpisode.Body).Decode(&episode)
+			} else if shouldUpdateLatestSeasonEpisode(foundEpisode, seasonMainReq, itemObj.NumberOfSeasons) {
 
-				episode.Language = language
-				log.Println("UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
+				episode = s.handleEpisodeLocalization(itemObj.Id, seasonMainReq.SeasonNumber, episode)
+				log.Println("UPDATE TV - SEASON - EPISODE: ", itemObj.Id, seasonMainReq.SeasonNumber, episode.EpisodeNumber, episode.Id)
 				s.UpdateEpisode(episode, language)
 			}
 		}
 
-		seasonReq.EpisodeCount = season.EpisodeCount
-		seasonReq.Overview = season.Overview
-		seasonsDetails = append(seasonsDetails, seasonReq)
+		seasonMainReq.EpisodeCount = season.EpisodeCount
+		seasonMainReq.Localizations = season.Localizations
+		seasonsDetails = append(seasonsDetails, seasonMainReq)
 	}
 	itemObj.Seasons = seasonsDetails
 
@@ -274,7 +275,7 @@ func (s *Service) GetAllByIds(ids []int) []interface{} {
 
 func (s *Service) GetCatalogSearchIn(ids []int) []Serie {
 	ctx2 := context.TODO()
-	projection := bson.M{"_id": 0, "id": 1, "language": 1, "original_title": 1, "original_language": 1, "title": 1, "poster_path": 1, "first_air_date": 1, "popularity": 1}
+	projection := bson.M{"_id": 0, "id": 1, "language": 1, "original_title": 1, "original_language": 1, "title": 1, "poster_path": 1, "first_air_date": 1, "popularity": 1, "localizations": 1}
 	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}}).SetProjection(projection)
 	cur, err := s.mongo.Collection(services.CollectionSerie).Find(ctx2, bson.M{"id": bson.M{"$in": ids}}, optionsFind)
 	if err != nil {
@@ -415,6 +416,43 @@ func (s *Service) GenerateTvCatalogCheck(language string) map[int]common.Catalog
 	return s.mongo.GenerateCatalogCheck(services.CollectionSerie, language)
 }
 
+func (s *Service) generateLocaleCheck(language string) map[int]common.CatalogCheck {
+	if s.generateTvLocaleCheckFn != nil {
+		return s.generateTvLocaleCheckFn(language)
+	}
+
+	return s.mongo.GenerateLocaleCheck(services.CollectionSerie, language)
+}
+
+func (s *Service) HandleTvLocales() {
+	tvIds := s.generateLocaleCheck(common.LANGUAGE_PTBR)
+	for id := range tvIds {
+
+		tvPtBr := s.GetSerieByIdAndLanguage(id, common.LANGUAGE_PTBR)
+		tvEn := s.GetSerieByIdAndLanguage(id, common.LANGUAGE_EN)
+
+		alternativeTitles := tvPtBr.AlternativeTitlesDb
+		if len(alternativeTitles) == 0 {
+			alternativeTitlesResp := s.tmdb.GetAlternativeTitlesByIdAndDataType(tvPtBr.Id, common.DATATYPE_TV)
+			var alternativeTitlesResult common.AlternativeTvTitlesResponse
+			json.NewDecoder(alternativeTitlesResp.Body).Decode(&alternativeTitlesResult)
+			for _, title := range alternativeTitlesResult.Results {
+				alternativeTitles = append(alternativeTitles, common.AlternativeTitle{
+					Iso3166_1: title.Iso3166_1,
+					Title:     title.Title,
+					Type:      title.Type,
+				})
+			}
+		}
+
+		tvPtBr = mergeSerieLocalizationAndTitles(tvPtBr, tvEn, alternativeTitles)
+
+		s.UpdateSerie(tvPtBr, common.LANGUAGE_PTBR)
+
+		log.Println("TV ID: ", tvPtBr.Id, " UPDATED WITH LOCALIZATIONS AND ALTERNATIVE TITLES")
+	}
+}
+
 func (s *Service) GenerateTvEpisodesCatalogCheck(language string) map[int]common.CatalogCheck {
 	if s.generateTvEpisodesCatalogCheckFn != nil {
 		return s.generateTvEpisodesCatalogCheckFn(language)
@@ -424,28 +462,66 @@ func (s *Service) GenerateTvEpisodesCatalogCheck(language string) map[int]common
 }
 
 func applySerieMetadata(itemObj Serie, language string, now time.Time) Serie {
-	itemObj.UpdatedNew = now.Format("02/01/2006 15:04:05")
+	itemObj.UpdatedAt = now.Format("02/01/2006 15:04:05")
 	itemObj.MediaType = "serie"
 	itemObj.Language = language
-	itemObj.Slug = slug.Make(itemObj.Title)
-	itemObj.SlugUrl = "serie-" + strconv.Itoa(itemObj.Id)
 	return itemObj
 }
 
-func applyLocalizedSerieTitle(serie Serie, language string, alternativeTitles map[string]string) Serie {
-	if language == common.LANGUAGE_PTBR && serie.OriginalLanguage == common.LANGUAGE_JA {
-		if alternativeTitles[common.LANGUAGE_ISO_BR] != "" {
-			serie.Title = alternativeTitles[common.LANGUAGE_ISO_BR]
-		} else if alternativeTitles[common.LANGUAGE_ISO_JP] != "" {
-			serie.Title = alternativeTitles[common.LANGUAGE_ISO_JP]
-		}
+func mergeSerieLocalizationAndTitles(mainSerie Serie, enSerie Serie, alternativeTitles []common.AlternativeTitle) Serie {
+	mainSerie.AlternativeTitlesDb = mainSerie.AlternativeTitlesDb[:0]
+	for _, title := range alternativeTitles {
+		mainSerie.AlternativeTitlesDb = append(mainSerie.AlternativeTitlesDb, common.AlternativeTitle{
+			Iso3166_1: title.Iso3166_1,
+			Title:     title.Title,
+			Type:      title.Type,
+		})
 	}
 
-	return serie
-}
+	mainSerie.Localizations = []common.LocalizationMovieTv{
+		{
+			Locale:     common.LANGUAGE_PTBR,
+			Title:      mainSerie.Title,
+			Synopsis:   mainSerie.Overview,
+			Genres:     mainSerie.Genres,
+			PosterPath: mainSerie.PosterPath,
+		},
+		{
+			Locale:     common.LANGUAGE_EN,
+			Title:      enSerie.Title,
+			Synopsis:   enSerie.Overview,
+			Genres:     enSerie.Genres,
+			PosterPath: enSerie.PosterPath,
+		},
+	}
 
-func shouldFetchAlternativeTitles(language string, originalLanguage string) bool {
-	return language == common.LANGUAGE_PTBR && originalLanguage == common.LANGUAGE_JA
+	seasonByNumberEN := make(map[int]Season, len(enSerie.Seasons))
+	for _, seasonEN := range enSerie.Seasons {
+		seasonByNumberEN[seasonEN.SeasonNumber] = seasonEN
+	}
+
+	for i, seasonMain := range mainSerie.Seasons {
+		seasonLocalizationBR := common.LocalizationCommon{
+			Locale:   common.LANGUAGE_PTBR,
+			Title:    seasonMain.Name,
+			Synopsis: seasonMain.Overview,
+		}
+
+		seasonLocalizationEN := common.LocalizationCommon{
+			Locale:   common.LANGUAGE_EN,
+			Title:    seasonMain.Name,
+			Synopsis: seasonMain.Overview,
+		}
+
+		if seasonEN, found := seasonByNumberEN[seasonMain.SeasonNumber]; found {
+			seasonLocalizationEN.Title = seasonEN.Name
+			seasonLocalizationEN.Synopsis = seasonEN.Overview
+		}
+
+		mainSerie.Seasons[i].Localizations = []common.LocalizationCommon{seasonLocalizationBR, seasonLocalizationEN}
+	}
+
+	return mainSerie
 }
 
 func shouldInsertEpisode(existingEpisodeID int) bool {

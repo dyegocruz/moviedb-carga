@@ -172,11 +172,11 @@ func (s *Service) CheckAndUpdateCatalogByFile(mediaType string) {
 
 	switch mediaType {
 	case common.MEDIA_TYPE_MOVIE:
-		catalogGenerate = genMovieCatalogCheck(common.LANGUAGE_EN)
+		catalogGenerate = genMovieCatalogCheck(common.LANGUAGE_PTBR)
 	case common.MEDIA_TYPE_TV:
-		catalogGenerate = genTvCatalogCheck(common.LANGUAGE_EN)
+		catalogGenerate = genTvCatalogCheck(common.LANGUAGE_PTBR)
 	case common.MEDIA_TYPE_PERSON:
-		catalogGenerate = genPersonCatalogCheck(common.LANGUAGE_EN)
+		catalogGenerate = genPersonCatalogCheck(common.LANGUAGE_PTBR)
 	}
 
 	fileName := mediaFile + dateFile
@@ -264,7 +264,7 @@ func (s *Service) handleCatalogPerson(listPersonIdsIn []int, newIndexName string
 		getter = s.getPersonCatalogSearchInFn
 	}
 
-	docs := getter("en", listPersonIdsIn)
+	docs := getter(common.LANGUAGE_PTBR, listPersonIdsIn)
 	for _, catalog := range buildCatalogPersonDocs(docs) {
 		req := elastic.NewBulkIndexRequest().Index(newIndexName).Doc(catalog)
 		bulkProcessor.Add(req)
@@ -285,13 +285,17 @@ func buildCatalogTvLocalized(docs []tv.Serie) []CatalogSearch {
 			catalogTvLocalizated[item.Id] = catalog
 		}
 
-		var location Location
-		location.Language = item.Language
-		location.Title = item.Title
-		location.PosterPath = item.PosterPath
-
 		loc := catalogTvLocalizated[item.Id]
-		loc.Locations = append(loc.Locations, location)
+
+		for _, localization := range item.Localizations {
+			var location Location
+			location.Language = localization.Locale
+			location.Title = localization.Title
+			location.PosterPath = localization.PosterPath
+
+			loc.Locations = append(loc.Locations, location)
+		}
+
 		catalogTvLocalizated[item.Id] = loc
 	}
 
@@ -317,13 +321,25 @@ func buildCatalogMovieLocalized(docs []movie.Movie) []CatalogSearch {
 			catalogMovieLocalizated[item.Id] = catalog
 		}
 
-		var location Location
-		location.Language = item.Language
-		location.Title = item.Title
-		location.PosterPath = item.PosterPath
-
 		loc := catalogMovieLocalizated[item.Id]
-		loc.Locations = append(loc.Locations, location)
+
+		if len(item.Localizations) > 0 {
+			for _, localization := range item.Localizations {
+				var location Location
+				location.Language = localization.Locale
+				location.Title = localization.Title
+				location.PosterPath = localization.PosterPath
+
+				loc.Locations = append(loc.Locations, location)
+			}
+		} else {
+			var location Location
+			location.Language = item.Language
+			location.Title = item.Title
+			location.PosterPath = item.PosterPath
+			loc.Locations = append(loc.Locations, location)
+		}
+
 		catalogMovieLocalizated[item.Id] = loc
 	}
 
@@ -337,14 +353,29 @@ func buildCatalogMovieLocalized(docs []movie.Movie) []CatalogSearch {
 
 func buildCatalogPersonDocs(docs []person.Person) []CatalogSearch {
 	catalogList := make([]CatalogSearch, 0, len(docs))
-	for _, item := range docs {
-		catalogList = append(catalogList, CatalogSearch{
-			Id:          item.Id,
-			Name:        item.Name,
+	for _, person := range docs {
+
+		personCatalog := CatalogSearch{
+			Id:          person.Id,
+			Name:        person.Name,
 			CatalogType: common.MEDIA_TYPE_PERSON,
-			ProfilePath: item.ProfilePath,
-			Popularity:  item.Popularity,
-		})
+			ProfilePath: person.ProfilePath,
+			Popularity:  person.Popularity,
+		}
+
+		if len(person.Localizations) > 0 {
+			personCatalog.Name = person.Localizations[0].Name
+			for _, localization := range person.Localizations {
+				var location Location
+				location.Language = localization.Locale
+				location.Title = localization.Name
+				personCatalog.Locations = append(personCatalog.Locations, location)
+			}
+		} else {
+			personCatalog.Name = person.Name
+		}
+
+		catalogList = append(catalogList, personCatalog)
 	}
 
 	return catalogList
@@ -391,7 +422,7 @@ func (s *Service) CatalogSearchCharge() {
 						bulkProcessor.Close()
 					}, nil
 				},
-				func(collection string) []int { return s.mongo.GetAllIdsByLanguage(collection, "en") },
+				func(collection string) []int { return s.mongo.GetAllIdsByLanguage(collection, common.LANGUAGE_PTBR) },
 				func(ids []int, idx string, bulk bulkAdder) { s.handleCatalogTv(ids, idx, bulk) },
 				func(ids []int, idx string, bulk bulkAdder) { s.handleCatalogMovie(ids, idx, bulk) },
 				func(ids []int, idx string, bulk bulkAdder) { s.handleCatalogPerson(ids, idx, bulk) },
@@ -523,7 +554,7 @@ func (s *Service) ElasticChargeInsert(indexName string, interval int64, mapping 
 		}
 	}
 
-	docsIds := getAllIdsByLanguage(collectionCount, "en")
+	docsIds := getAllIdsByLanguage(collectionCount, common.LANGUAGE_PTBR)
 	elasticAliasName := indexName
 	now := s.nowFn
 	if now == nil {

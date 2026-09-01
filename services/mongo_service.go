@@ -19,11 +19,11 @@ var mongoPing = func(client *mongo.Client, ctx context.Context) error {
 }
 
 const (
-	CollectionParameter     = "parameter"
-	CollectionMovie         = "movie"
-	CollectionPerson        = "person"
-	CollectionSerie         = "serie"
-	CollectionSerieEpisode  = "serie-episode"
+	CollectionParameter    = "parameter"
+	CollectionMovie        = "movie"
+	CollectionPerson       = "person"
+	CollectionSerie        = "serie"
+	CollectionSerieEpisode = "serie-episode"
 )
 
 type MongoService struct {
@@ -240,5 +240,31 @@ func (s *MongoService) GenerateCatalogCheck(collection string, language string) 
 	}
 
 	log.Printf("Generate Catalog check for %s completed", collection)
+	return resultCatalog
+}
+
+func (s *MongoService) GenerateLocaleCheck(collection string, language string) map[int]common.CatalogCheck {
+	ctx := context.TODO()
+	filter := bson.M{"language": language, "localizations": bson.M{"$exists": false}}
+	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0})
+
+	log.Print("STARTING Generate Locale check for ", collection)
+
+	cur, err := s.collectionOps(collection).Find(ctx, filter, opts)
+	if err != nil {
+		log.Println(err)
+		return map[int]common.CatalogCheck{}
+	}
+
+	resultCatalog := make(map[int]common.CatalogCheck)
+	for cur.Next(ctx) {
+		var result common.CatalogCheck
+		if err := cur.Decode(&result); err != nil {
+			log.Fatal(err)
+		}
+		resultCatalog[result.Id] = result
+	}
+
+	log.Printf("Generate Locale check for %s completed", collection)
 	return resultCatalog
 }
