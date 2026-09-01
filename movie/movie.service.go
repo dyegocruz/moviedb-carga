@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"strconv"
 	"time"
 
 	"moviedb/common"
@@ -13,7 +12,6 @@ import (
 	"moviedb/services"
 	"moviedb/tmdb"
 
-	"github.com/gosimple/slug"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -24,23 +22,24 @@ type rabbitPublisher interface {
 }
 
 type Service struct {
-	mongo  *services.MongoService
-	person *person.Service
-	tmdb   *tmdb.Service
-	getMovieDetailsFn         func(id int, language string) Movie
-	maxPageLoadFn             func() int
-	getDiscoverMoviesFn       func(language string, idGenre string, page string) ResultMovie
-	populateMovieByLanguageFn func(itemObj Movie, language string, updateCast string)
-	rabbitFactory             func() (rabbitPublisher, error)
-	getMovieByIdLanguageFn    func(id int, language string) Movie
-	getAllByIdsFn             func(ids []int) []interface{}
-	getCatalogSearchInFn      func(ids []int) []Movie
-	insertMovieFn             func(itemObj Movie, language string) interface{}
-	updateMovieFn             func(itemObj Movie, language string)
-	deleteMovieFn             func(id int)
-	getCountAllFn             func() int64
+	mongo                       *services.MongoService
+	person                      *person.Service
+	tmdb                        *tmdb.Service
+	getMovieDetailsFn           func(id int, language string) Movie
+	maxPageLoadFn               func() int
+	getDiscoverMoviesFn         func(language string, idGenre string, page string) ResultMovie
+	populateMovieByLanguageFn   func(itemObj Movie, language string, updateCast string)
+	rabbitFactory               func() (rabbitPublisher, error)
+	getMovieByIdLanguageFn      func(id int, language string) Movie
+	getAllByIdsFn               func(ids []int) []interface{}
+	getCatalogSearchInFn        func(ids []int) []Movie
+	insertMovieFn               func(itemObj Movie, language string) interface{}
+	updateMovieFn               func(itemObj Movie, language string)
+	deleteMovieFn               func(id int)
+	getCountAllFn               func() int64
 	generateMovieCatalogCheckFn func(language string) map[int]common.CatalogCheck
-	populatePersonFn          func(personId int, language string, updateCast string)
+	generateMovieLocaleCheckFn  func(language string) map[int]common.CatalogCheck
+	populatePersonFn            func(personId int, language string, updateCast string)
 }
 
 func NewService(mongo *services.MongoService, personService *person.Service, tmdbService *tmdb.Service) *Service {
@@ -92,8 +91,11 @@ func (s *Service) PopulateMovieByIdAndLanguage(id int, language string, updateCa
 		populator = s.populateMovieByLanguageFn
 	}
 
-	itemObj := getter(id, language)
-	populator(itemObj, language, updateCast)
+	itemObjMainLanguage := getter(id, common.LANGUAGE_PTBR)
+	itemObjEN := getter(id, common.LANGUAGE_EN)
+	itemObjMainLanguage = mergeMovieLocalizationAndTitles(itemObjMainLanguage, itemObjEN, itemObjMainLanguage.AlternativeTitles.Titles)
+
+	populator(itemObjMainLanguage, language, updateCast)
 }
 
 func (s *Service) PopulateMovieByLanguage(itemObj Movie, language string, updateCast string) {
@@ -138,55 +140,6 @@ func (s *Service) PopulateMovieByLanguage(itemObj Movie, language string, update
 	}
 }
 
-func (s *Service) PopulateMovies(language string, idGenre string) {
-	maxPageLoad := s.maxPageLoadFn
-	if maxPageLoad == nil {
-		maxPageLoad = s.tmdb.MaxPageLoad
-	}
-	apiMaxPage := maxPageLoad()
-
-	getDiscover := s.getDiscoverMoviesFn
-	if getDiscover == nil {
-		getDiscover = func(language string, idGenre string, page string) ResultMovie {
-			response := s.tmdb.GetDiscoverMoviesByLanguageGenreAndPage(language, idGenre, page)
-			var result ResultMovie
-			json.NewDecoder(response.Body).Decode(&result)
-			return result
-		}
-	}
-
-	getByIdLang := s.GetMovieByIdAndLanguage
-	if s.getMovieByIdLanguageFn != nil {
-		getByIdLang = s.getMovieByIdLanguageFn
-	}
-
-	getDetails := s.GetMovieDetailsOnTMDBApi
-	if s.getMovieDetailsFn != nil {
-		getDetails = s.getMovieDetailsFn
-	}
-
-	populateByLanguage := s.PopulateMovieByLanguage
-	if s.populateMovieByLanguageFn != nil {
-		populateByLanguage = s.populateMovieByLanguageFn
-	}
-
-	for i := 1; i < apiMaxPage+1; i++ {
-		log.Println("======> MOVIE PAGE: ", language, i)
-		page := strconv.Itoa(i)
-		result := getDiscover(language, idGenre, page)
-		for _, item := range result.Results {
-			checkMovieExist := getByIdLang(item.Id, common.LANGUAGE_PTBR)
-			if shouldPopulateDiscoveredMovie(item.Id, checkMovieExist.Id) {
-				itemObjPtBr := getDetails(item.Id, common.LANGUAGE_PTBR)
-				populateByLanguage(itemObjPtBr, common.LANGUAGE_PTBR, "N")
-
-				itemObjEn := getDetails(item.Id, language)
-				go populateByLanguage(itemObjEn, language, "N")
-			}
-		}
-	}
-}
-
 func (s *Service) GetAllByIds(ids []int) []interface{} {
 	if s.getAllByIdsFn != nil {
 		return s.getAllByIdsFn(ids)
@@ -218,7 +171,7 @@ func (s *Service) GetCatalogSearchIn(ids []int) []Movie {
 	}
 
 	ctx2 := context.TODO()
-	projection := bson.M{"_id": 0, "id": 1, "language": 1, "original_title": 1, "original_language": 1, "title": 1, "poster_path": 1, "release_date": 1, "popularity": 1}
+	projection := bson.M{"_id": 0, "id": 1, "language": 1, "original_title": 1, "original_language": 1, "title": 1, "poster_path": 1, "release_date": 1, "popularity": 1, "localizations": 1}
 	optionsFind := options.Find().SetSort(bson.D{{Key: "id", Value: 1}}).SetProjection(projection)
 	cur, err := s.mongo.Collection(services.CollectionMovie).Find(ctx2, bson.M{"id": bson.M{"$in": ids}}, optionsFind)
 	if err != nil {
@@ -296,13 +249,77 @@ func (s *Service) GenerateMovieCatalogCheck(language string) map[int]common.Cata
 	return s.mongo.GenerateCatalogCheck(services.CollectionMovie, language)
 }
 
+func (s *Service) generateLocaleCheck(language string) map[int]common.CatalogCheck {
+	if s.generateMovieLocaleCheckFn != nil {
+		return s.generateMovieLocaleCheckFn(language)
+	}
+
+	return s.mongo.GenerateLocaleCheck(services.CollectionMovie, language)
+}
+
+func (s *Service) HandleMovieLocales() {
+	movieIds := s.generateLocaleCheck(common.LANGUAGE_PTBR)
+	for id := range movieIds {
+		moviePtBr := s.GetMovieByIdAndLanguage(id, common.LANGUAGE_PTBR)
+		movieEn := s.GetMovieByIdAndLanguage(id, common.LANGUAGE_EN)
+
+		alternativeTitles := moviePtBr.AlternativeTitlesDb
+		if len(alternativeTitles) == 0 {
+			alternativeTitlesResp := s.tmdb.GetAlternativeTitlesByIdAndDataType(moviePtBr.Id, common.DATATYPE_MOVIE)
+			var alternativeTitlesResult common.AlternativeMovieTitlesResponse
+			json.NewDecoder(alternativeTitlesResp.Body).Decode(&alternativeTitlesResult)
+			for _, title := range alternativeTitlesResult.Titles {
+				alternativeTitles = append(alternativeTitles, common.AlternativeTitle{
+					Iso3166_1: title.Iso3166_1,
+					Title:     title.Title,
+					Type:      title.Type,
+				})
+			}
+		}
+
+		moviePtBr = mergeMovieLocalizationAndTitles(moviePtBr, movieEn, alternativeTitles)
+
+		s.UpdateMovie(moviePtBr, common.LANGUAGE_PTBR)
+
+		log.Println("MOVIE ID: ", moviePtBr.Id, " UPDATED WITH LOCALIZATIONS AND ALTERNATIVE TITLES")
+	}
+}
+
 func applyMovieMetadata(itemObj Movie, language string, now time.Time) Movie {
-	itemObj.UpdatedNew = now.Format("02/01/2006 15:04:05")
+	itemObj.UpdatedAt = now.Format("02/01/2006 15:04:05")
 	itemObj.MediaType = "movie"
 	itemObj.Language = language
-	itemObj.Slug = slug.Make(itemObj.Title)
-	itemObj.SlugUrl = "movie-" + strconv.Itoa(itemObj.Id)
 	return itemObj
+}
+
+func mergeMovieLocalizationAndTitles(mainMovie Movie, enMovie Movie, alternativeTitles []common.AlternativeTitle) Movie {
+	mainMovie.AlternativeTitlesDb = mainMovie.AlternativeTitlesDb[:0]
+	for _, title := range alternativeTitles {
+		mainMovie.AlternativeTitlesDb = append(mainMovie.AlternativeTitlesDb, common.AlternativeTitle{
+			Iso3166_1: title.Iso3166_1,
+			Title:     title.Title,
+			Type:      title.Type,
+		})
+	}
+
+	mainMovie.Localizations = []common.LocalizationMovieTv{
+		{
+			Locale:     common.LANGUAGE_PTBR,
+			Title:      mainMovie.Title,
+			Synopsis:   mainMovie.Overview,
+			Genres:     mainMovie.Genres,
+			PosterPath: mainMovie.PosterPath,
+		},
+		{
+			Locale:     common.LANGUAGE_EN,
+			Title:      enMovie.Title,
+			Synopsis:   enMovie.Overview,
+			Genres:     enMovie.Genres,
+			PosterPath: enMovie.PosterPath,
+		},
+	}
+
+	return mainMovie
 }
 
 func decideMovieUpsertAction(existingID int, itemID int) string {

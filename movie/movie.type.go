@@ -1,13 +1,8 @@
 package movie
 
 import (
-	"time"
+	"moviedb/common"
 )
-
-type Genres struct {
-	Id   int    `json:"id" bson:"id"`
-	Name string `json:"name" bson:"name"`
-}
 
 type ProductionCompanie struct {
 	Id            int    `json:"id" bson:"id"`
@@ -56,31 +51,34 @@ type MovieCredits struct {
 }
 
 type Movie struct {
-	Popularity          float64               `json:"popularity" bson:"popularity"`
-	Id                  int                   `json:"id" bson:"id"`
-	Video               bool                  `json:"video" bson:"video"`
-	VoteCount           int                   `json:"vote_count" bson:"vote_count"`
-	VoteAverage         float64               `json:"vote_average" bson:"vote_average"`
-	Title               string                `json:"title" bson:"title"`
-	ReleaseDate         string                `json:"release_date,omitempty" bson:"release_date"`
-	Runtime             int                   `json:"runtime,omitempty" bson:"runtime"`
-	OriginalLanguage    string                `json:"original_language" bson:"original_language"`
-	OriginalTitle       string                `json:"original_title" bson:"original_title"`
-	BackdropPath        string                `json:"backdrop_path" bson:"backdrop_path"`
-	Adult               bool                  `json:"adult,omitempty" bson:"adult"`
-	Overview            string                `json:"overview" bson:"overview"`
-	PosterPath          string                `json:"poster_path" bson:"poster_path"`
-	MediaType           string                `json:"media_type" bson:"media_type"`
-	Language            string                `json:"language" bson:"language"`
-	SlugUrl             string                `json:"slugUrl,omitempty" bson:"slugUrl"`
-	Slug                string                `json:"slug,omitempty" bson:"slug"`
-	Updated             *time.Time            `json:"updated,omitempty" bson:"updated"`
-	UpdatedNew          string                `json:"updatedNew,omitempty" bson:"updatedNew"`
-	Genres              []Genres              `json:"genres" bson:"genres"`
-	ProductionCompanies []ProductionCompanie  `json:"production_companies" bson:"production_companies"`
-	ProductionCountries []ProductionCountries `json:"production_countries" bson:"production_countries"`
-	SpokenLanguages     []SpokenLanguages     `json:"spoken_languages" bson:"spoken_languages"`
-	MovieCredits        MovieCredits          `json:"credits" bson:"credits"`
+	Title               string                       `json:"title"`
+	Overview            string                       `json:"overview"`
+	PosterPath          string                       `json:"poster_path"`
+	Popularity          float64                      `json:"popularity" bson:"popularity"`
+	Genres              []common.Genres              `json:"genres"`
+	Id                  int                          `json:"id" bson:"id"`
+	Video               bool                         `json:"video" bson:"video"`
+	VoteCount           int                          `json:"vote_count" bson:"vote_count"`
+	VoteAverage         float64                      `json:"vote_average" bson:"vote_average"`
+	Localizations       []common.LocalizationMovieTv `json:"localizations" bson:"localizations"`
+	ReleaseDate         string                       `json:"release_date,omitempty" bson:"release_date"`
+	Runtime             int                          `json:"runtime,omitempty" bson:"runtime"`
+	OriginalLanguage    string                       `json:"original_language" bson:"original_language"`
+	OriginalTitle       string                       `json:"original_title" bson:"original_title"`
+	BackdropPath        string                       `json:"backdrop_path" bson:"backdrop_path"`
+	Adult               bool                         `json:"adult,omitempty" bson:"adult"`
+	MediaType           string                       `json:"media_type" bson:"media_type"`
+	Language            string                       `json:"language" bson:"language"`
+	UpdatedAt           string                       `json:"updated_at,omitempty" bson:"updated_at"`
+	ProductionCompanies []ProductionCompanie         `json:"production_companies" bson:"production_companies"`
+	ProductionCountries []ProductionCountries        `json:"production_countries" bson:"production_countries"`
+	SpokenLanguages     []SpokenLanguages            `json:"spoken_languages" bson:"spoken_languages"`
+	MovieCredits        MovieCredits                 `json:"credits" bson:"credits"`
+	AlternativeTitles   AlternativeTitlesMovie       `json:"alternative_titles" bson:"-"`
+	AlternativeTitlesDb []common.AlternativeTitle    `json:"alternative_titles_db" bson:"alternative_titles_db"`
+}
+type AlternativeTitlesMovie struct {
+	Titles []common.AlternativeTitle `json:"titles" bson:"titles"`
 }
 
 type ResultMovie struct {

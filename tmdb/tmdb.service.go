@@ -56,13 +56,13 @@ func (s *Service) GetChangesByDataType(dataType string, page int) []ChangedEleme
 func (s *Service) GetDetailsByIdLanguageAndDataType(id int, language string, dataType string) *http.Response {
 	apiKey, apiHost := s.getApiConfig()
 
-	appendResponse := "credits"
+	appendResponse := "&append_to_response=credits,alternative_titles"
 
 	if dataType == DATATYPE_PERSON {
-		appendResponse = "combined_credits"
+		appendResponse = "&append_to_response=combined_credits,alternative_titles"
 	}
 
-	response := util.HttpGet(apiHost + "/" + dataType + "/" + strconv.Itoa(id) + "?api_key=" + apiKey + "&language=" + language + "&append_to_response=" + appendResponse)
+	response := util.HttpGet(apiHost + "/" + dataType + "/" + strconv.Itoa(id) + "?api_key=" + apiKey + "&language=" + language + appendResponse)
 	return response
 }
 
