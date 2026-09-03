@@ -61,7 +61,7 @@ var rabbitFactory = func(config services.Config) (rabbitConsumer, error) {
 // moviePopulator is the subset of movie.Service used in the worker handler.
 type moviePopulator interface {
 	PopulateMovieByIdAndLanguage(id int, language string, updateCast string)
-	HandleMovieLocales()
+	HandleMovieImagesPath()
 }
 
 // tvPopulator is the subset of tv.Service used in the worker handler.
@@ -106,7 +106,7 @@ func handleCatalogMessage(body []byte, movieSvc moviePopulator, tvSvc tvPopulato
 		case common.MEDIA_TYPE_TV:
 			tvSvc.HandleTvLocales()
 		case common.MEDIA_TYPE_MOVIE:
-			movieSvc.HandleMovieLocales()
+			movieSvc.HandleMovieImagesPath()
 		}
 	}
 
