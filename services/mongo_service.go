@@ -268,3 +268,29 @@ func (s *MongoService) GenerateLocaleCheck(collection string, language string) m
 	log.Printf("Generate Locale check for %s completed", collection)
 	return resultCatalog
 }
+
+func (s *MongoService) GeneratePosterPathCheck(collection string, language string) map[int]common.CatalogCheck {
+	ctx := context.TODO()
+	filter := bson.M{"language": language, "localizations.poster_path": "", "poster_path": bson.M{"$ne": ""}}
+	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0})
+
+	log.Print("STARTING Generate Poster Path check for ", collection)
+
+	cur, err := s.collectionOps(collection).Find(ctx, filter, opts)
+	if err != nil {
+		log.Println(err)
+		return map[int]common.CatalogCheck{}
+	}
+
+	resultCatalog := make(map[int]common.CatalogCheck)
+	for cur.Next(ctx) {
+		var result common.CatalogCheck
+		if err := cur.Decode(&result); err != nil {
+			log.Fatal(err)
+		}
+		resultCatalog[result.Id] = result
+	}
+
+	log.Printf("Generate Poster Path check for %s completed", collection)
+	return resultCatalog
+}

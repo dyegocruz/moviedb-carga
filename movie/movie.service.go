@@ -22,24 +22,24 @@ type rabbitPublisher interface {
 }
 
 type Service struct {
-	mongo                       *services.MongoService
-	person                      *person.Service
-	tmdb                        *tmdb.Service
-	getMovieDetailsFn           func(id int, language string) Movie
-	maxPageLoadFn               func() int
-	getDiscoverMoviesFn         func(language string, idGenre string, page string) ResultMovie
-	populateMovieByLanguageFn   func(itemObj Movie, language string, updateCast string)
-	rabbitFactory               func() (rabbitPublisher, error)
-	getMovieByIdLanguageFn      func(id int, language string) Movie
-	getAllByIdsFn               func(ids []int) []interface{}
-	getCatalogSearchInFn        func(ids []int) []Movie
-	insertMovieFn               func(itemObj Movie, language string) interface{}
-	updateMovieFn               func(itemObj Movie, language string)
-	deleteMovieFn               func(id int)
-	getCountAllFn               func() int64
-	generateMovieCatalogCheckFn func(language string) map[int]common.CatalogCheck
-	generateMovieLocaleCheckFn  func(language string) map[int]common.CatalogCheck
-	populatePersonFn            func(personId int, language string, updateCast string)
+	mongo                          *services.MongoService
+	person                         *person.Service
+	tmdb                           *tmdb.Service
+	getMovieDetailsFn              func(id int, language string) Movie
+	maxPageLoadFn                  func() int
+	getDiscoverMoviesFn            func(language string, idGenre string, page string) ResultMovie
+	populateMovieByLanguageFn      func(itemObj Movie, language string, updateCast string)
+	rabbitFactory                  func() (rabbitPublisher, error)
+	getMovieByIdLanguageFn         func(id int, language string) Movie
+	getAllByIdsFn                  func(ids []int) []interface{}
+	getCatalogSearchInFn           func(ids []int) []Movie
+	insertMovieFn                  func(itemObj Movie, language string) interface{}
+	updateMovieFn                  func(itemObj Movie, language string)
+	deleteMovieFn                  func(id int)
+	getCountAllFn                  func() int64
+	generateMovieCatalogCheckFn    func(language string) map[int]common.CatalogCheck
+	generateMoviePosterPathCheckFn func(language string) map[int]common.CatalogCheck
+	populatePersonFn               func(personId int, language string, updateCast string)
 }
 
 func NewService(mongo *services.MongoService, personService *person.Service, tmdbService *tmdb.Service) *Service {
@@ -249,39 +249,30 @@ func (s *Service) GenerateMovieCatalogCheck(language string) map[int]common.Cata
 	return s.mongo.GenerateCatalogCheck(services.CollectionMovie, language)
 }
 
-func (s *Service) generateLocaleCheck(language string) map[int]common.CatalogCheck {
-	if s.generateMovieLocaleCheckFn != nil {
-		return s.generateMovieLocaleCheckFn(language)
+func (s *Service) GeneratePosterPathCheck(language string) map[int]common.CatalogCheck {
+	if s.generateMoviePosterPathCheckFn != nil {
+		return s.generateMoviePosterPathCheckFn(language)
 	}
 
-	return s.mongo.GenerateLocaleCheck(services.CollectionMovie, language)
+	return s.mongo.GeneratePosterPathCheck(services.CollectionMovie, language)
 }
 
-func (s *Service) HandleMovieLocales() {
-	movieIds := s.generateLocaleCheck(common.LANGUAGE_PTBR)
+func (s *Service) HandleMovieImagesPath() {
+	movieIds := s.GeneratePosterPathCheck(common.LANGUAGE_PTBR)
 	for id := range movieIds {
-		moviePtBr := s.GetMovieByIdAndLanguage(id, common.LANGUAGE_PTBR)
-		movieEn := s.GetMovieByIdAndLanguage(id, common.LANGUAGE_EN)
+		movie := s.GetMovieByIdAndLanguage(id, common.LANGUAGE_PTBR)
 
-		alternativeTitles := moviePtBr.AlternativeTitlesDb
-		if len(alternativeTitles) == 0 {
-			alternativeTitlesResp := s.tmdb.GetAlternativeTitlesByIdAndDataType(moviePtBr.Id, common.DATATYPE_MOVIE)
-			var alternativeTitlesResult common.AlternativeMovieTitlesResponse
-			json.NewDecoder(alternativeTitlesResp.Body).Decode(&alternativeTitlesResult)
-			for _, title := range alternativeTitlesResult.Titles {
-				alternativeTitles = append(alternativeTitles, common.AlternativeTitle{
-					Iso3166_1: title.Iso3166_1,
-					Title:     title.Title,
-					Type:      title.Type,
-				})
+		if len(movie.Localizations) > 0 {
+			for i, loc := range movie.Localizations {
+				if loc.PosterPath == "" {
+					movie.Localizations[i].PosterPath = movie.PosterPath
+				}
 			}
 		}
 
-		moviePtBr = mergeMovieLocalizationAndTitles(moviePtBr, movieEn, alternativeTitles)
+		s.UpdateMovie(movie, common.LANGUAGE_PTBR)
 
-		s.UpdateMovie(moviePtBr, common.LANGUAGE_PTBR)
-
-		log.Println("MOVIE ID: ", moviePtBr.Id, " UPDATED WITH LOCALIZATIONS AND ALTERNATIVE TITLES")
+		log.Println("MOVIE ID: ", movie.Id, " UPDATED WITH CORRECT POSTER PATH")
 	}
 }
 
