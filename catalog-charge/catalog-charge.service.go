@@ -291,7 +291,11 @@ func buildCatalogTvLocalized(docs []tv.Serie) []CatalogSearch {
 			var location Location
 			location.Language = localization.Locale
 			location.Title = localization.Title
-			location.PosterPath = localization.PosterPath
+			if localization.PosterPath != "" {
+				location.PosterPath = localization.PosterPath
+			} else {
+				location.PosterPath = item.PosterPath
+			}
 
 			loc.Locations = append(loc.Locations, location)
 		}
@@ -328,7 +332,11 @@ func buildCatalogMovieLocalized(docs []movie.Movie) []CatalogSearch {
 				var location Location
 				location.Language = localization.Locale
 				location.Title = localization.Title
-				location.PosterPath = localization.PosterPath
+				if localization.PosterPath != "" {
+					location.PosterPath = localization.PosterPath
+				} else {
+					location.PosterPath = item.PosterPath
+				}
 
 				loc.Locations = append(loc.Locations, location)
 			}

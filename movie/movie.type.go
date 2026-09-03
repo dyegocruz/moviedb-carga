@@ -53,7 +53,7 @@ type MovieCredits struct {
 type Movie struct {
 	Title               string                       `json:"title"`
 	Overview            string                       `json:"overview"`
-	PosterPath          string                       `json:"poster_path"`
+	PosterPath          string                       `json:"poster_path" bson:"poster_path"`
 	Popularity          float64                      `json:"popularity" bson:"popularity"`
 	Genres              []common.Genres              `json:"genres"`
 	Id                  int                          `json:"id" bson:"id"`
