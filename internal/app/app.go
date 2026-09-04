@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"moviedb/bootstrap"
@@ -120,10 +121,13 @@ func RunCatalog() error {
 	}
 
 	parameterService := parameter.NewService(mongoService)
-	parameter := parameterService.GetByType("CHARGE_TMDB_CONFIG")
+	parameter := parameterService.GetByType("CHARGE_CATALOG_HANDLER")
 
 	config := services.DefaultConfig()
 	catalogService := catalogRuntimeFactory(mongoService, config)
+
+	fmt.Printf("parameter.Options.EnableUpdateCatalogDb: %v\n", parameter.Options.EnableUpdateCatalogDb)
+	fmt.Printf("parameter.Options.EnableChargeCache: %v\n", parameter.Options.EnableChargeCache)
 
 	c := schedulerFactory()
 	if err := c.AddFunc("@daily", func() {
