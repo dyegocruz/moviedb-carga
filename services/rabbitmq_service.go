@@ -5,9 +5,21 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/streadway/amqp"
 )
+
+// dlqSuffix names the dead-letter queue derived from a consumer's queue name.
+const dlqSuffix = ".dlq"
+
+// dlqEnvelope stores enough context to investigate/replay a failed message.
+type dlqEnvelope struct {
+	OriginalQueue string          `json:"original_queue"`
+	Error         string          `json:"error"`
+	FailedAt      time.Time       `json:"failed_at"`
+	Body          json.RawMessage `json:"body"`
+}
 
 var rabbitDialFn = amqp.Dial
 var rabbitChannelFactoryFn = func(conn *amqp.Connection) (amqpChanneler, error) {
@@ -84,6 +96,11 @@ func (r *RabbitMQService) ConsumeJSON(queueName string, handler func([]byte) err
 		return err
 	}
 
+	dlqName := queueName + dlqSuffix
+	if _, err := r.channel.QueueDeclare(dlqName, false, false, false, false, nil); err != nil {
+		return err
+	}
+
 	msgs, err := r.channel.Consume(queueName, "", false, false, false, false, nil)
 	if err != nil {
 		return err
@@ -94,7 +111,7 @@ func (r *RabbitMQService) ConsumeJSON(queueName string, handler func([]byte) err
 		log.Printf("Consumer ready, PID: %d", os.Getpid())
 		for d := range msgs {
 			log.Printf("Received a message: %s", d.Body)
-			processDelivery(d, handler)
+			r.processDelivery(d, queueName, dlqName, handler)
 		}
 		// msgs closes when the broker drops the channel/connection (restart,
 		// network blip, heartbeat timeout, protocol error). Surface that as an
@@ -110,22 +127,50 @@ func (r *RabbitMQService) ConsumeJSON(queueName string, handler func([]byte) err
 
 // processDelivery runs handler for a single delivery, recovering from panics
 // so that a single bad message can't take down the whole consumer/process.
-func processDelivery(d amqp.Delivery, handler func([]byte) error) {
-	defer func() {
-		if rec := recover(); rec != nil {
-			log.Printf("Recovered from panic while processing message: %v", rec)
-			if err := d.Nack(false, true); err != nil {
-				log.Printf("Error nacking message after panic: %s", err)
+// On failure the message is moved to the queue's DLQ and acked from the
+// original queue, instead of being requeued (and reprocessed) forever.
+func (r *RabbitMQService) processDelivery(d amqp.Delivery, queueName, dlqName string, handler func([]byte) error) {
+	handlerErr := func() (err error) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				err = fmt.Errorf("panic: %v", rec)
 			}
-		}
+		}()
+		return handler(d.Body)
 	}()
 
-	if err := handler(d.Body); err != nil {
-		log.Printf("Error processing message: %s", err)
+	if handlerErr != nil {
+		log.Printf("Error processing message: %s", handlerErr)
+		if err := r.sendToDLQ(dlqName, queueName, d.Body, handlerErr); err != nil {
+			log.Printf("Error sending message to DLQ %q: %s", dlqName, err)
+			if err := d.Nack(false, true); err != nil {
+				log.Printf("Error nacking message: %s", err)
+			}
+			return
+		}
+		log.Printf("Message moved to DLQ %q", dlqName)
 	}
+
 	if err := d.Ack(false); err != nil {
 		log.Printf("Error acknowledging message : %s", err)
 	} else {
 		log.Printf("Acknowledged message")
 	}
+}
+
+// sendToDLQ publishes the failed message body wrapped with error context to
+// the given dead-letter queue for later inspection/replay.
+func (r *RabbitMQService) sendToDLQ(dlqName, originalQueue string, body []byte, cause error) error {
+	envelope := dlqEnvelope{
+		OriginalQueue: originalQueue,
+		Error:         cause.Error(),
+		FailedAt:      time.Now(),
+		Body:          body,
+	}
+	payload, err := json.Marshal(envelope)
+	if err != nil {
+		return err
+	}
+
+	return r.channel.Publish("", dlqName, false, false, amqp.Publishing{ContentType: "application/json", Body: payload})
 }

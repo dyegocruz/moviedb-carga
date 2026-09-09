@@ -210,6 +210,59 @@ func TestConsumeJSON_ReturnsErrorOnConsumeFail(t *testing.T) {
 	}
 }
 
+func TestConsumeJSON_HandlerErrorSendsToDLQAndAcksOriginal(t *testing.T) {
+	acker := &fakeAcker{}
+	deliveries := make(chan amqp.Delivery, 1)
+	body, _ := json.Marshal(map[string]string{"hello": "world"})
+	deliveries <- amqp.Delivery{Body: body, Acknowledger: acker}
+
+	ch := &fakeChannel{deliveries: deliveries}
+	svc := newServiceWithFake(ch)
+
+	wantErr := errors.New("boom")
+	go func() {
+		_ = svc.ConsumeJSON("q-test", func(b []byte) error { return wantErr })
+	}()
+
+	deadline := time.After(2 * time.Second)
+	for {
+		ch.mu.Lock()
+		published := len(ch.published)
+		ch.mu.Unlock()
+		if published > 0 {
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatal("message was not published to DLQ within timeout")
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+
+	ch.mu.Lock()
+	dlqMsg := ch.published[0]
+	ch.mu.Unlock()
+
+	var envelope dlqEnvelope
+	if err := json.Unmarshal(dlqMsg.Body, &envelope); err != nil {
+		t.Fatalf("DLQ message is not valid JSON: %v", err)
+	}
+	if envelope.OriginalQueue != "q-test" {
+		t.Fatalf("expected original_queue=q-test, got %s", envelope.OriginalQueue)
+	}
+	if envelope.Error != wantErr.Error() {
+		t.Fatalf("expected error=%q, got %q", wantErr.Error(), envelope.Error)
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	acker.mu.Lock()
+	acked := acker.acked
+	acker.mu.Unlock()
+	if !acked {
+		t.Fatal("expected original message to be acknowledged after DLQ publish")
+	}
+}
+
 func TestConsumeJSON_ReturnsErrorOnQueueDeclareFail(t *testing.T) {
 	wantErr := errors.New("declare failed")
 	ch := &fakeChannel{queueDeclErr: wantErr}
