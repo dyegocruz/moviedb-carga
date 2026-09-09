@@ -89,23 +89,43 @@ func (r *RabbitMQService) ConsumeJSON(queueName string, handler func([]byte) err
 		return err
 	}
 
-	stopChan := make(chan bool)
+	done := make(chan error, 1)
 	go func() {
 		log.Printf("Consumer ready, PID: %d", os.Getpid())
 		for d := range msgs {
 			log.Printf("Received a message: %s", d.Body)
-			if err := handler(d.Body); err != nil {
-				log.Printf("Error processing message: %s", err)
-			}
-			if err := d.Ack(false); err != nil {
-				log.Printf("Error acknowledging message : %s", err)
-			} else {
-				log.Printf("Acknowledged message")
+			processDelivery(d, handler)
+		}
+		// msgs closes when the broker drops the channel/connection (restart,
+		// network blip, heartbeat timeout, protocol error). Surface that as an
+		// error instead of blocking forever, so the caller can exit and let the
+		// process supervisor (Docker "restart: always") restore the consumer.
+		log.Printf("Consumer channel closed unexpectedly, PID: %d", os.Getpid())
+		done <- fmt.Errorf("rabbitmq consumer channel closed for queue %q", queueName)
+	}()
+
+	log.Println("Waiting for messages...")
+	return <-done
+}
+
+// processDelivery runs handler for a single delivery, recovering from panics
+// so that a single bad message can't take down the whole consumer/process.
+func processDelivery(d amqp.Delivery, handler func([]byte) error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			log.Printf("Recovered from panic while processing message: %v", rec)
+			if err := d.Nack(false, true); err != nil {
+				log.Printf("Error nacking message after panic: %s", err)
 			}
 		}
 	}()
 
-	log.Println("Waiting for messages...")
-	<-stopChan
-	return nil
+	if err := handler(d.Body); err != nil {
+		log.Printf("Error processing message: %s", err)
+	}
+	if err := d.Ack(false); err != nil {
+		log.Printf("Error acknowledging message : %s", err)
+	} else {
+		log.Printf("Acknowledged message")
+	}
 }
