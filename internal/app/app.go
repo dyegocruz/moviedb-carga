@@ -129,34 +129,37 @@ func RunCatalog() error {
 	fmt.Printf("parameter.Options.EnableUpdateCatalogDb: %v\n", parameter.Options.EnableUpdateCatalogDb)
 	fmt.Printf("parameter.Options.EnableChargeCache: %v\n", parameter.Options.EnableChargeCache)
 
-	c := schedulerFactory()
-	if err := c.AddFunc("@daily", func() {
-		if parameter.Options.EnableUpdateCatalogDb {
-			log.Println("[Job] General Catalog Handler")
-			catalogService.GeneralCatalogHandler()
-			log.Println("PROCESS COMPLETE")
-		} else {
-			log.Println("[Job] General Catalog Handler is disabled by configuration")
-		}
-	}); err != nil {
-		return err
-	}
+	catalogService.ElasticGeneralCharge()
+	log.Println("PROCESS COMPLETE")
 
-	if err := c.AddFunc("0 0 3 * * *", func() {
-		if parameter.Options.EnableChargeCache {
-			log.Println("[Job] Elastic General Charge")
-			catalogService.ElasticGeneralCharge()
-			log.Println("PROCESS COMPLETE")
-		} else {
-			log.Println("[Job] Elastic General Charge is disabled by configuration")
-		}
-	}); err != nil {
-		return err
-	}
+	// c := schedulerFactory()
+	// if err := c.AddFunc("@daily", func() {
+	// 	if parameter.Options.EnableUpdateCatalogDb {
+	// 		log.Println("[Job] General Catalog Handler")
+	// 		catalogService.GeneralCatalogHandler()
+	// 		log.Println("PROCESS COMPLETE")
+	// 	} else {
+	// 		log.Println("[Job] General Catalog Handler is disabled by configuration")
+	// 	}
+	// }); err != nil {
+	// 	return err
+	// }
 
-	log.Println("Start Job")
-	c.Start()
-	blockForever()
+	// if err := c.AddFunc("0 0 3 * * *", func() {
+	// 	if parameter.Options.EnableChargeCache {
+	// 		log.Println("[Job] Elastic General Charge")
+	// 		catalogService.ElasticGeneralCharge()
+	// 		log.Println("PROCESS COMPLETE")
+	// 	} else {
+	// 		log.Println("[Job] Elastic General Charge is disabled by configuration")
+	// 	}
+	// }); err != nil {
+	// 	return err
+	// }
+
+	// log.Println("Start Job")
+	// c.Start()
+	// blockForever()
 	return nil
 }
 
