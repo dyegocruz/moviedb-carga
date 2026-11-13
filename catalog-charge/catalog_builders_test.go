@@ -60,8 +60,10 @@ func TestCollectionByIndexName(t *testing.T) {
 
 func TestBuildCatalogTvLocalized_GroupsByIdAndAccumulatesLocations(t *testing.T) {
 	docs := []tv.Serie{
-		{Id: 1, Title: "Serie PT", Language: common.LANGUAGE_PTBR, PosterPath: "/pt.jpg", FirstAirDate: "2020-01-01", OriginalLanguage: "ja", OriginalTitle: "S1", Popularity: 9.9},
-		{Id: 1, Title: "Serie EN", Language: common.LANGUAGE_EN, PosterPath: "/en.jpg", FirstAirDate: "2020-01-01", OriginalLanguage: "ja", OriginalTitle: "S1", Popularity: 9.9},
+		{Id: 1, Title: "Serie PT", Language: common.LANGUAGE_PTBR, PosterPath: "/pt.jpg", FirstAirDate: "2020-01-01", OriginalLanguage: "ja", OriginalTitle: "S1", Popularity: 9.9,
+			Localizations: []common.LocalizationMovieTv{{Locale: common.LANGUAGE_PTBR, Title: "Serie PT", PosterPath: "/pt.jpg"}}},
+		{Id: 1, Title: "Serie EN", Language: common.LANGUAGE_EN, PosterPath: "/en.jpg", FirstAirDate: "2020-01-01", OriginalLanguage: "ja", OriginalTitle: "S1", Popularity: 9.9,
+			Localizations: []common.LocalizationMovieTv{{Locale: common.LANGUAGE_EN, Title: "Serie EN", PosterPath: "/en.jpg"}}},
 	}
 
 	got := buildCatalogTvLocalized(docs)

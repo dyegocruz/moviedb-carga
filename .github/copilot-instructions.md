@@ -1,7 +1,7 @@
 # Contexto e Diretrizes do Projeto (Go / GoLang)
 
 ## Stack Tecnológica
-- **Linguagem:** Go (GoLang) 1.22+
+- **Linguagem:** Go (GoLang) 1.24+
 - **Banco de Dados Documental:** MongoDB (Driver oficial `go.mongodb.org/mongo-driver`)
 - **Busca e Observabilidade:** Elasticsearch (Cliente oficial `github.com/olivere/elastic`)
 - **Mensageria / Eventos:** RabbitMQ (Driver `github.com/rabbitmq/amqp091-go`)

@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"moviedb/bootstrap"
@@ -45,6 +44,10 @@ var catalogRuntimeFactory = func(mongoService *services.MongoService, config ser
 	return catalogCharge.NewService(config, mongoService, elasticService, movieService, personService, tvService)
 }
 
+var catalogParameterProvider = func(mongoService *services.MongoService) parameter.Parameter {
+	return parameter.NewService(mongoService).GetByType("CHARGE_CATALOG_HANDLER")
+}
+
 var blockForever = func() {
 	select {}
 }
@@ -54,6 +57,8 @@ type rabbitConsumer interface {
 	SetPrefetch(count int) error
 	ConsumeJSON(queueName string, handler func([]byte) error) error
 }
+
+const catalogWorkerConcurrency = 4
 
 var rabbitFactory = func(config services.Config) (rabbitConsumer, error) {
 	return services.NewRabbitMQService(config)
@@ -120,18 +125,14 @@ func RunCatalog() error {
 		return err
 	}
 
-	parameterService := parameter.NewService(mongoService)
-	parameter := parameterService.GetByType("CHARGE_CATALOG_HANDLER")
+	catalogParameter := catalogParameterProvider(mongoService)
 
 	config := services.DefaultConfig()
 	catalogService := catalogRuntimeFactory(mongoService, config)
 
-	fmt.Printf("parameter.Options.EnableUpdateCatalogDb: %v\n", parameter.Options.EnableUpdateCatalogDb)
-	fmt.Printf("parameter.Options.EnableChargeCache: %v\n", parameter.Options.EnableChargeCache)
-
 	c := schedulerFactory()
 	if err := c.AddFunc("@daily", func() {
-		if parameter.Options.EnableUpdateCatalogDb {
+		if catalogParameter.Options.EnableUpdateCatalogDb {
 			log.Println("[Job] General Catalog Handler")
 			catalogService.GeneralCatalogHandler()
 			log.Println("PROCESS COMPLETE")
@@ -143,7 +144,7 @@ func RunCatalog() error {
 	}
 
 	if err := c.AddFunc("0 0 3 * * *", func() {
-		if parameter.Options.EnableChargeCache {
+		if catalogParameter.Options.EnableChargeCache {
 			log.Println("[Job] Elastic General Charge")
 			catalogService.ElasticGeneralCharge()
 			log.Println("PROCESS COMPLETE")
@@ -163,6 +164,7 @@ func RunCatalog() error {
 func RunCatalogWorker() error {
 	mongoService, err := bootstrapInitialize()
 	if err != nil {
+		log.Printf("Failed to initialize bootstrap: %v\n", err)
 		return err
 	}
 
@@ -178,7 +180,7 @@ func RunCatalogWorker() error {
 	}
 	defer rabbitService.Close()
 
-	if err := rabbitService.SetPrefetch(10); err != nil {
+	if err := rabbitService.SetPrefetch(catalogWorkerConcurrency); err != nil {
 		return err
 	}
 

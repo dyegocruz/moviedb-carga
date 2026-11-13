@@ -24,38 +24,13 @@ func TestNewService(t *testing.T) {
 	}
 }
 
-func TestGetTvAlternativeTitlesById(t *testing.T) {
+func TestGetSerieDetailsOnTMDBApi_ReturnsRequestedLanguageDetails(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/tv/33/alternative_titles" {
+		if r.URL.Path != "/tv/33" || r.URL.Query().Get("language") != common.LANGUAGE_PTBR {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
-		_, _ = w.Write([]byte(`{"id":33,"results":[{"iso_3166_1":"JP","title":"Romaji Name","type":"Romaji"},{"iso_3166_1":"BR","title":"Titulo BR","type":""}]}`))
-	}))
-	defer server.Close()
-
-	tmdbSvc := tmdb.NewService(&fakeParamProvider{host: server.URL, apiKey: "k"})
-	svc := NewService(nil, nil, tmdbSvc)
-
-	alts := svc.GetTvAlternativeTitlesById(33)
-	if alts[common.LANGUAGE_ISO_JP] != "Romaji Name" {
-		t.Fatalf("expected JP Romaji title, got %+v", alts)
-	}
-	if alts[common.LANGUAGE_ISO_BR] != "Titulo BR" {
-		t.Fatalf("expected BR title, got %+v", alts)
-	}
-}
-
-func TestGetSerieDetailsOnTMDBApi_UsesAlternativeTitleForJapanesePtBr(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/tv/33":
-			_, _ = w.Write([]byte(`{"id":33,"name":"Original","original_language":"ja"}`))
-		case "/tv/33/alternative_titles":
-			_, _ = w.Write([]byte(`{"id":33,"results":[{"iso_3166_1":"BR","title":"Titulo Brasileiro","type":""}]}`))
-		default:
-			http.Error(w, "not found", http.StatusNotFound)
-		}
+		_, _ = w.Write([]byte(`{"id":33,"name":"Titulo Brasileiro","original_language":"ja"}`))
 	}))
 	defer server.Close()
 
@@ -64,7 +39,7 @@ func TestGetSerieDetailsOnTMDBApi_UsesAlternativeTitleForJapanesePtBr(t *testing
 
 	got := svc.GetSerieDetailsOnTMDBApi(33, common.LANGUAGE_PTBR)
 	if got.Title != "Titulo Brasileiro" {
-		t.Fatalf("expected localized title, got %q", got.Title)
+		t.Fatalf("expected requested-language title, got %q", got.Title)
 	}
 }
 
@@ -87,37 +62,6 @@ func TestGetSerieDetailsOnTMDBApi_EnglishDoesNotOverrideTitle(t *testing.T) {
 	}
 }
 
-func TestPopulateSerieByIdAndLanguage_UsesHooks(t *testing.T) {
-	svc := NewService(nil, nil, nil)
-
-	var gotGetterId int
-	var gotGetterLang string
-	var gotPopSerie Serie
-	var gotPopLang string
-
-	svc.getSerieDetailsFn = func(id int, language string) Serie {
-		gotGetterId = id
-		gotGetterLang = language
-		return Serie{Id: id, Title: "Hooked Serie"}
-	}
-	svc.populateSerieByLanguageFn = func(itemObj Serie, language string) {
-		gotPopSerie = itemObj
-		gotPopLang = language
-	}
-
-	svc.PopulateSerieByIdAndLanguage(88, "pt-BR")
-
-	if gotGetterId != 88 || gotGetterLang != "pt-BR" {
-		t.Fatalf("getter args mismatch: id=%d lang=%s", gotGetterId, gotGetterLang)
-	}
-	if gotPopSerie.Id != 88 || gotPopSerie.Title != "Hooked Serie" {
-		t.Fatalf("unexpected serie passed to populator: %+v", gotPopSerie)
-	}
-	if gotPopLang != "pt-BR" {
-		t.Fatalf("unexpected populator language: %s", gotPopLang)
-	}
-}
-
 func TestApplySerieMetadata(t *testing.T) {
 	now := time.Date(2026, 6, 3, 9, 8, 7, 0, time.UTC)
 	item := Serie{Id: 30, Title: "Shogun"}
@@ -127,56 +71,8 @@ func TestApplySerieMetadata(t *testing.T) {
 	if got.MediaType != "serie" || got.Language != "pt-BR" {
 		t.Fatalf("unexpected media/language: %+v", got)
 	}
-	if got.SlugUrl != "serie-30" {
-		t.Fatalf("unexpected slug url: %s", got.SlugUrl)
-	}
-	if got.Slug == "" {
-		t.Fatal("expected non-empty slug")
-	}
-	if got.UpdatedNew != "03/06/2026 09:08:07" {
-		t.Fatalf("unexpected updated format: %s", got.UpdatedNew)
-	}
-}
-
-func TestApplyLocalizedSerieTitle_BrPriority(t *testing.T) {
-	serie := Serie{Title: "Original", OriginalLanguage: common.LANGUAGE_JA}
-	alts := map[string]string{common.LANGUAGE_ISO_BR: "Titulo BR", common.LANGUAGE_ISO_JP: "Titulo JP"}
-
-	got := applyLocalizedSerieTitle(serie, common.LANGUAGE_PTBR, alts)
-	if got.Title != "Titulo BR" {
-		t.Fatalf("expected BR title priority, got %q", got.Title)
-	}
-}
-
-func TestApplyLocalizedSerieTitle_JpFallback(t *testing.T) {
-	serie := Serie{Title: "Original", OriginalLanguage: common.LANGUAGE_JA}
-	alts := map[string]string{common.LANGUAGE_ISO_JP: "Titulo JP"}
-
-	got := applyLocalizedSerieTitle(serie, common.LANGUAGE_PTBR, alts)
-	if got.Title != "Titulo JP" {
-		t.Fatalf("expected JP fallback title, got %q", got.Title)
-	}
-}
-
-func TestApplyLocalizedSerieTitle_NoOverrideForEnglish(t *testing.T) {
-	serie := Serie{Title: "Original", OriginalLanguage: common.LANGUAGE_JA}
-	alts := map[string]string{common.LANGUAGE_ISO_BR: "Titulo BR"}
-
-	got := applyLocalizedSerieTitle(serie, common.LANGUAGE_EN, alts)
-	if got.Title != "Original" {
-		t.Fatalf("did not expect title override for english, got %q", got.Title)
-	}
-}
-
-func TestShouldFetchAlternativeTitles(t *testing.T) {
-	if !shouldFetchAlternativeTitles(common.LANGUAGE_PTBR, common.LANGUAGE_JA) {
-		t.Fatal("expected true for pt-BR and original ja")
-	}
-	if shouldFetchAlternativeTitles(common.LANGUAGE_EN, common.LANGUAGE_JA) {
-		t.Fatal("expected false for english")
-	}
-	if shouldFetchAlternativeTitles(common.LANGUAGE_PTBR, common.LANGUAGE_EN) {
-		t.Fatal("expected false for non-japanese original language")
+	if got.UpdatedAt != "03/06/2026 09:08:07" {
+		t.Fatalf("unexpected updated format: %s", got.UpdatedAt)
 	}
 }
 
@@ -190,14 +86,34 @@ func TestShouldInsertEpisode(t *testing.T) {
 }
 
 func TestShouldUpdateLatestSeasonEpisode(t *testing.T) {
-	if !shouldUpdateLatestSeasonEpisode(3, 3, 10, 20) {
-		t.Fatal("expected update for latest season and recent episodes")
+	oldUpdatedAt := time.Now().AddDate(0, 0, -8).Format("02/01/2006 15:04:05")
+	if !shouldUpdateLatestSeasonEpisode(
+		Episode{SeasonNumber: 3, EpisodeNumber: 10, UpdatedAt: oldUpdatedAt},
+		Season{EpisodeCount: 20},
+		3,
+	) {
+		t.Fatal("expected update for an episode not updated in the last week")
 	}
-	if shouldUpdateLatestSeasonEpisode(2, 3, 10, 20) {
-		t.Fatal("did not expect update for non-latest season")
+	if shouldUpdateLatestSeasonEpisode(
+		Episode{SeasonNumber: 2, EpisodeNumber: 10, UpdatedAt: oldUpdatedAt},
+		Season{EpisodeCount: 50},
+		3,
+	) {
+		t.Fatal("did not expect update for an old episode in a non-latest season")
 	}
-	if shouldUpdateLatestSeasonEpisode(3, 3, 5, 20) {
-		t.Fatal("did not expect update for old episode")
+	if !shouldUpdateLatestSeasonEpisode(
+		Episode{SeasonNumber: 2, EpisodeNumber: 25},
+		Season{EpisodeCount: 50},
+		3,
+	) {
+		t.Fatal("expected update for a recent episode without an update timestamp")
+	}
+	if shouldUpdateLatestSeasonEpisode(
+		Episode{SeasonNumber: 3, EpisodeNumber: 10, UpdatedAt: time.Now().Format("02/01/2006 15:04:05")},
+		Season{EpisodeCount: 20},
+		3,
+	) {
+		t.Fatal("did not expect update for a recently updated episode")
 	}
 }
 

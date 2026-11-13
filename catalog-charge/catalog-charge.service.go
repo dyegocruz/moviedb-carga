@@ -65,7 +65,7 @@ func (s *Service) CheckAndUpdateCatalogByFile(mediaType string) {
 	t := time.Now()
 	dateFile := t.AddDate(0, 0, -1).Format("01_02_2006")
 	mediaFile := mediaFilePrefix(mediaType)
-	var catalogGenerate map[int]common.CatalogCheck
+	var catalogGenerate map[int]bool
 
 	switch mediaType {
 	case common.MEDIA_TYPE_MOVIE:
@@ -95,33 +95,35 @@ func (s *Service) CheckAndUpdateCatalogByFile(mediaType string) {
 	}
 	defer rmq.Close()
 
-	dailyFileIdsSet := make(map[int]bool)
-
 	for scannerFile.Scan() {
 		var elementRead tmdb.TmdbDailyFile
 		json.Unmarshal([]byte(scannerFile.Text()), &elementRead)
-		dailyFileIdsSet[elementRead.Id] = true
 
-		if shouldPublishCatalogMessage(elementRead.Id, catalogGenerate) {
-			message := queue.CatalogProcessMessage{Id: elementRead.Id, MediaType: mediaType}
-			if err := rmq.PublishJSON(queue.QueueCatalogProcess, message); err != nil {
-				log.Fatalf("Failed to publish a message: %s", err)
-			}
-
-			log.Println("Message published successfully for Id and mediaType: ", message.Id, mediaType)
+		if _, isInCatalog := catalogGenerate[elementRead.Id]; isInCatalog {
+			catalogGenerate[elementRead.Id] = true
+			continue
 		}
+
+		message := queue.CatalogProcessMessage{Id: elementRead.Id, MediaType: mediaType}
+		if err := rmq.PublishJSON(queue.QueueCatalogProcess, message); err != nil {
+			log.Fatalf("Failed to publish a message: %s", err)
+		}
+		log.Println("Message published successfully for Id and mediaType: ", message.Id, mediaType)
 	}
 
-	for _, id := range idsMissingFromDaily(catalogGenerate, dailyFileIdsSet) {
-		if mediaType == common.MEDIA_TYPE_MOVIE {
-			s.movie.DeleteMovie(id)
-			log.Println("Movie removed from catalog: ", id)
-		}
+	for id, isInCatalog := range catalogGenerate {
 
-		if mediaType == common.MEDIA_TYPE_TV {
-			s.tv.DeleteSerie(id)
-			s.tv.DeleteSerieEpisodes(id)
-			log.Println("TV and episodes removed from catalog: ", id)
+		if !isInCatalog {
+			if mediaType == common.MEDIA_TYPE_MOVIE {
+				s.movie.DeleteMovie(id)
+				log.Println("Movie removed from catalog: ", id)
+			}
+
+			if mediaType == common.MEDIA_TYPE_TV {
+				s.tv.DeleteSerie(id)
+				s.tv.DeleteSerieEpisodes(id)
+				log.Println("TV and episodes removed from catalog: ", id)
+			}
 		}
 	}
 

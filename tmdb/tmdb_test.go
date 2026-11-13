@@ -87,7 +87,7 @@ func TestGetChangesByDataType_MultiPage(t *testing.T) {
 
 func TestGetDetailsByIdLanguageAndDataType_Movie(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("append_to_response") != "credits" {
+		if r.URL.Query().Get("append_to_response") != "credits,alternative_titles" {
 			http.Error(w, "bad append_to_response", http.StatusBadRequest)
 			return
 		}
@@ -106,7 +106,7 @@ func TestGetDetailsByIdLanguageAndDataType_Movie(t *testing.T) {
 
 func TestGetDetailsByIdLanguageAndDataType_Person(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("append_to_response") != "combined_credits" {
+		if r.URL.Query().Get("append_to_response") != "combined_credits,alternative_titles" {
 			http.Error(w, "bad append_to_response", http.StatusBadRequest)
 			return
 		}

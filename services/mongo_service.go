@@ -217,7 +217,7 @@ func (s *MongoService) GetAllIdsByLanguage(collection string, language string) [
 	return results
 }
 
-func (s *MongoService) GenerateCatalogCheck(collection string, language string) map[int]common.CatalogCheck {
+func (s *MongoService) GenerateCatalogCheck(collection string, language string) map[int]bool {
 	ctx := context.TODO()
 	filter := bson.M{"language": language}
 	opts := options.Find().SetProjection(bson.M{"id": 1, "_id": 0})
@@ -227,16 +227,16 @@ func (s *MongoService) GenerateCatalogCheck(collection string, language string) 
 	cur, err := s.collectionOps(collection).Find(ctx, filter, opts)
 	if err != nil {
 		log.Println(err)
-		return map[int]common.CatalogCheck{}
+		return map[int]bool{}
 	}
 
-	resultCatalog := make(map[int]common.CatalogCheck)
+	resultCatalog := make(map[int]bool)
 	for cur.Next(ctx) {
 		var result common.CatalogCheck
 		if err := cur.Decode(&result); err != nil {
 			log.Fatal(err)
 		}
-		resultCatalog[result.Id] = result
+		resultCatalog[result.Id] = false
 	}
 
 	log.Printf("Generate Catalog check for %s completed", collection)

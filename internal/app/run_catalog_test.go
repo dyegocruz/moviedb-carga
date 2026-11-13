@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"moviedb/parameter"
 	"moviedb/services"
 )
 
@@ -63,13 +64,18 @@ func TestRunCatalog_SchedulerAddError(t *testing.T) {
 	oldRuntimeFactory := catalogRuntimeFactory
 	oldSchedulerFactory := schedulerFactory
 	oldBlockForever := blockForever
+	oldParameterProvider := catalogParameterProvider
 	defer func() { bootstrapInitialize = oldInit }()
 	defer func() { catalogRuntimeFactory = oldRuntimeFactory }()
 	defer func() { schedulerFactory = oldSchedulerFactory }()
 	defer func() { blockForever = oldBlockForever }()
+	defer func() { catalogParameterProvider = oldParameterProvider }()
 
 	bootstrapInitialize = func() (*services.MongoService, error) {
 		return &services.MongoService{}, nil
+	}
+	catalogParameterProvider = func(*services.MongoService) parameter.Parameter {
+		return parameter.Parameter{}
 	}
 	catalogRuntimeFactory = func(_ *services.MongoService, _ services.Config) catalogRuntime {
 		return &fakeCatalogRuntime{}
@@ -91,13 +97,21 @@ func TestRunCatalog_RegistersAndRunsJobs(t *testing.T) {
 	oldRuntimeFactory := catalogRuntimeFactory
 	oldSchedulerFactory := schedulerFactory
 	oldBlockForever := blockForever
+	oldParameterProvider := catalogParameterProvider
 	defer func() { bootstrapInitialize = oldInit }()
 	defer func() { catalogRuntimeFactory = oldRuntimeFactory }()
 	defer func() { schedulerFactory = oldSchedulerFactory }()
 	defer func() { blockForever = oldBlockForever }()
+	defer func() { catalogParameterProvider = oldParameterProvider }()
 
 	bootstrapInitialize = func() (*services.MongoService, error) {
 		return &services.MongoService{}, nil
+	}
+	catalogParameterProvider = func(*services.MongoService) parameter.Parameter {
+		return parameter.Parameter{Options: parameter.Options{
+			EnableUpdateCatalogDb: true,
+			EnableChargeCache:     true,
+		}}
 	}
 	runtime := &fakeCatalogRuntime{}
 	catalogRuntimeFactory = func(_ *services.MongoService, _ services.Config) catalogRuntime {

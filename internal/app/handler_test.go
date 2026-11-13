@@ -31,6 +31,8 @@ func (f *fakeMovie) PopulateMovieByIdAndLanguage(id int, language string, _ stri
 	}{id, language})
 }
 
+func (f *fakeMovie) HandleMovieImagesPath() {}
+
 type fakeTv struct {
 	mu         sync.Mutex
 	serieCalls []struct {
@@ -60,6 +62,8 @@ func (f *fakeTv) HandleTvEpisodeUpdate(id int, language string) {
 		lang string
 	}{id, language})
 }
+
+func (f *fakeTv) HandleTvLocales() {}
 
 type fakePerson struct {
 	mu    sync.Mutex
@@ -122,12 +126,12 @@ func TestHandleCatalogMessage_Movie(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Synchronous call (EN) must be done; async call (PT-BR) may still be running.
+	// Wait for the worker's synchronous population call.
 	waitFor(t, func() bool {
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		for _, c := range m.calls {
-			if c.id == 99 && c.lang == common.LANGUAGE_EN {
+			if c.id == 99 && c.lang == common.LANGUAGE_PTBR {
 				return true
 			}
 		}
@@ -146,7 +150,7 @@ func TestHandleCatalogMessage_TV(t *testing.T) {
 		tv.mu.Lock()
 		defer tv.mu.Unlock()
 		for _, c := range tv.serieCalls {
-			if c.id == 55 && c.lang == common.LANGUAGE_EN {
+			if c.id == 55 && c.lang == common.LANGUAGE_PTBR {
 				return true
 			}
 		}
@@ -165,7 +169,7 @@ func TestHandleCatalogMessage_TVEpisode(t *testing.T) {
 		tv.mu.Lock()
 		defer tv.mu.Unlock()
 		for _, c := range tv.episodeCalls {
-			if c.id == 7 && c.lang == common.LANGUAGE_EN {
+			if c.id == 7 && c.lang == common.LANGUAGE_PTBR {
 				return true
 			}
 		}
@@ -184,7 +188,7 @@ func TestHandleCatalogMessage_Person(t *testing.T) {
 		p.mu.Lock()
 		defer p.mu.Unlock()
 		for _, c := range p.calls {
-			if c.id == 3 && c.lang == common.LANGUAGE_EN {
+			if c.id == 3 && c.lang == common.LANGUAGE_PTBR {
 				return true
 			}
 		}
