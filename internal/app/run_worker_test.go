@@ -116,8 +116,8 @@ func TestRunCatalogWorker_ConsumeError(t *testing.T) {
 	if !fake.closed {
 		t.Fatal("expected rabbit close to be called")
 	}
-	if fake.prefetchSet != 10 {
-		t.Fatalf("expected prefetch 10, got %d", fake.prefetchSet)
+	if fake.prefetchSet != catalogWorkerConcurrency {
+		t.Fatalf("expected prefetch %d, got %d", catalogWorkerConcurrency, fake.prefetchSet)
 	}
 }
 
@@ -145,7 +145,7 @@ func TestRunCatalogWorker_Success(t *testing.T) {
 	if !fake.closed {
 		t.Fatal("expected rabbit close to be called")
 	}
-	if fake.prefetchSet != 10 {
-		t.Fatalf("expected prefetch 10, got %d", fake.prefetchSet)
+	if fake.prefetchSet != catalogWorkerConcurrency {
+		t.Fatalf("expected prefetch %d, got %d", catalogWorkerConcurrency, fake.prefetchSet)
 	}
 }

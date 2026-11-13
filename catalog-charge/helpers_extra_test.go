@@ -43,9 +43,7 @@ func TestProcessIDsInBatchesWithInterval(t *testing.T) {
 		batches = append(batches, cp)
 	})
 
-	// shouldFlushBatch uses index modulo, so with interval=2 and 3 items:
-	// i=0 flush [1], i=2 flush [2,3]
-	want := [][]int{{1}, {2, 3}}
+	want := [][]int{{1, 2}, {3}}
 	if !reflect.DeepEqual(batches, want) {
 		t.Fatalf("unexpected batches: got=%v want=%v", batches, want)
 	}
@@ -60,57 +58,8 @@ func TestProcessIDsInBatches_Wrapper(t *testing.T) {
 		batches = append(batches, cp)
 	})
 
-	// interval=1000 keeps current behavior: flush at i=0, then remainder.
-	want := [][]int{{9}, {8}}
+	want := [][]int{{9, 8}}
 	if !reflect.DeepEqual(batches, want) {
 		t.Fatalf("unexpected batches: got=%v want=%v", batches, want)
-	}
-}
-
-func TestRotateAliasAndCleanup_WithOldIndex(t *testing.T) {
-	actions := make([]string, 0)
-
-	rotateAliasAndCleanup(
-		"new_idx",
-		"catalog_alias",
-		"catalog_search",
-		[]string{"old_idx"},
-		func(index, alias string) { actions = append(actions, "add:"+index+":"+alias) },
-		func(index, alias string) { actions = append(actions, "remove:"+index+":"+alias) },
-		func(index string) { actions = append(actions, "delete:"+index) },
-		func(index string) { actions = append(actions, "count:"+index) },
-	)
-
-	want := []string{
-		"add:new_idx:catalog_alias",
-		"remove:old_idx:catalog_alias",
-		"delete:old_idx",
-		"count:catalog_search",
-	}
-	if !reflect.DeepEqual(actions, want) {
-		t.Fatalf("unexpected actions: got=%v want=%v", actions, want)
-	}
-}
-
-func TestRotateAliasAndCleanup_WithoutOldIndex(t *testing.T) {
-	actions := make([]string, 0)
-
-	rotateAliasAndCleanup(
-		"new_idx",
-		"catalog_alias",
-		"catalog_search",
-		nil,
-		func(index, alias string) { actions = append(actions, "add:"+index+":"+alias) },
-		func(index, alias string) { actions = append(actions, "remove:"+index+":"+alias) },
-		func(index string) { actions = append(actions, "delete:"+index) },
-		func(index string) { actions = append(actions, "count:"+index) },
-	)
-
-	want := []string{
-		"add:new_idx:catalog_alias",
-		"count:catalog_search",
-	}
-	if !reflect.DeepEqual(actions, want) {
-		t.Fatalf("unexpected actions: got=%v want=%v", actions, want)
 	}
 }

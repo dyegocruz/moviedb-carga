@@ -39,39 +39,6 @@ func TestGetMovieDetailsOnTMDBApi(t *testing.T) {
 	}
 }
 
-func TestPopulateMovieByIdAndLanguage_UsesHooks(t *testing.T) {
-	svc := NewService(nil, nil, nil)
-
-	var gotGetterId int
-	var gotGetterLang string
-	var gotPopMovie Movie
-	var gotPopLang string
-	var gotUpdateCast string
-
-	svc.getMovieDetailsFn = func(id int, language string) Movie {
-		gotGetterId = id
-		gotGetterLang = language
-		return Movie{Id: id, Title: "Hooked"}
-	}
-	svc.populateMovieByLanguageFn = func(itemObj Movie, language string, updateCast string) {
-		gotPopMovie = itemObj
-		gotPopLang = language
-		gotUpdateCast = updateCast
-	}
-
-	svc.PopulateMovieByIdAndLanguage(77, "pt-BR", "Y")
-
-	if gotGetterId != 77 || gotGetterLang != "pt-BR" {
-		t.Fatalf("getter args mismatch: id=%d lang=%s", gotGetterId, gotGetterLang)
-	}
-	if gotPopMovie.Id != 77 || gotPopMovie.Title != "Hooked" {
-		t.Fatalf("unexpected movie passed to populator: %+v", gotPopMovie)
-	}
-	if gotPopLang != "pt-BR" || gotUpdateCast != "Y" {
-		t.Fatalf("populator args mismatch: lang=%s updateCast=%s", gotPopLang, gotUpdateCast)
-	}
-}
-
 func TestApplyMovieMetadata(t *testing.T) {
 	now := time.Date(2026, 6, 3, 10, 20, 30, 0, time.UTC)
 	item := Movie{Id: 11, Title: "Cidade de Deus"}
@@ -81,14 +48,8 @@ func TestApplyMovieMetadata(t *testing.T) {
 	if got.MediaType != "movie" || got.Language != "pt-BR" {
 		t.Fatalf("unexpected media/language: %+v", got)
 	}
-	if got.SlugUrl != "movie-11" {
-		t.Fatalf("unexpected slug url: %s", got.SlugUrl)
-	}
-	if got.Slug == "" {
-		t.Fatal("expected non-empty slug")
-	}
-	if got.UpdatedNew != "03/06/2026 10:20:30" {
-		t.Fatalf("unexpected updated format: %s", got.UpdatedNew)
+	if got.UpdatedAt != "03/06/2026 10:20:30" {
+		t.Fatalf("unexpected updated format: %s", got.UpdatedAt)
 	}
 }
 

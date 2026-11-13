@@ -2,89 +2,12 @@ package catalogCharge
 
 import (
 	"testing"
-	"time"
 
 	"moviedb/common"
 	"moviedb/movie"
 	"moviedb/person"
 	"moviedb/tv"
 )
-
-func TestCatalogCharge_CallsTvAndMovieHandlers(t *testing.T) {
-	svc := &Service{}
-
-	called := make(chan string, 2)
-	svc.checkAndUpdateCatalogByFileFn = func(mediaType string) {
-		called <- mediaType
-	}
-
-	svc.CatalogCharge()
-
-	seen := map[string]bool{}
-	for i := 0; i < 2; i++ {
-		select {
-		case mediaType := <-called:
-			seen[mediaType] = true
-		case <-time.After(300 * time.Millisecond):
-			t.Fatal("timed out waiting for CatalogCharge calls")
-		}
-	}
-
-	if !seen[common.MEDIA_TYPE_TV] || !seen[common.MEDIA_TYPE_MOVIE] {
-		t.Fatalf("expected tv and movie calls, got %+v", seen)
-	}
-}
-
-func TestCatalogUpdates_CallsMovieAndTvHandlers(t *testing.T) {
-	svc := &Service{}
-
-	movieCalled := make(chan struct{}, 1)
-	tvCalled := make(chan struct{}, 1)
-
-	svc.checkMoviesChangesFn = func() { movieCalled <- struct{}{} }
-	svc.checkTvChangesFn = func() { tvCalled <- struct{}{} }
-
-	svc.CatalogUpdates()
-
-	select {
-	case <-movieCalled:
-	case <-time.After(300 * time.Millisecond):
-		t.Fatal("timed out waiting for movie changes call")
-	}
-
-	select {
-	case <-tvCalled:
-	case <-time.After(300 * time.Millisecond):
-		t.Fatal("timed out waiting for tv changes call")
-	}
-}
-
-func TestElasticGeneralCharge_DelegatesToCatalogSearchCharge(t *testing.T) {
-	svc := &Service{}
-	called := false
-	svc.catalogSearchChargeFn = func() { called = true }
-
-	svc.ElasticGeneralCharge()
-
-	if !called {
-		t.Fatal("expected CatalogSearchCharge to be called")
-	}
-}
-
-func TestGeneralCatalogHandler_DelegatesToCatalogAndUpdates(t *testing.T) {
-	svc := &Service{}
-	catalogCalled := false
-	updatesCalled := false
-
-	svc.catalogChargeFn = func() { catalogCalled = true }
-	svc.catalogUpdatesFn = func() { updatesCalled = true }
-
-	svc.GeneralCatalogHandler()
-
-	if !catalogCalled || !updatesCalled {
-		t.Fatalf("expected both calls, got catalog=%v updates=%v", catalogCalled, updatesCalled)
-	}
-}
 
 func TestShouldPublishCatalogMessage(t *testing.T) {
 	catalog := map[int]common.CatalogCheck{
@@ -135,28 +58,12 @@ func TestCollectionByIndexName(t *testing.T) {
 	}
 }
 
-func TestShouldFlushBatch(t *testing.T) {
-	if !shouldFlushBatch(0, 1000) {
-		t.Fatal("expected flush on first element with interval 1000")
-	}
-	if shouldFlushBatch(1, 1000) {
-		t.Fatal("did not expect flush for index 1 and interval 1000")
-	}
-	if !shouldFlushBatch(2000, 1000) {
-		t.Fatal("expected flush for index divisible by interval")
-	}
-	if shouldFlushBatch(1, 0) {
-		t.Fatal("did not expect flush when interval is zero")
-	}
-	if shouldFlushBatch(1, -1) {
-		t.Fatal("did not expect flush when interval is negative")
-	}
-}
-
 func TestBuildCatalogTvLocalized_GroupsByIdAndAccumulatesLocations(t *testing.T) {
 	docs := []tv.Serie{
-		{Id: 1, Title: "Serie PT", Language: common.LANGUAGE_PTBR, PosterPath: "/pt.jpg", FirstAirDate: "2020-01-01", OriginalLanguage: "ja", OriginalTitle: "S1", Popularity: 9.9},
-		{Id: 1, Title: "Serie EN", Language: common.LANGUAGE_EN, PosterPath: "/en.jpg", FirstAirDate: "2020-01-01", OriginalLanguage: "ja", OriginalTitle: "S1", Popularity: 9.9},
+		{Id: 1, Title: "Serie PT", Language: common.LANGUAGE_PTBR, PosterPath: "/pt.jpg", FirstAirDate: "2020-01-01", OriginalLanguage: "ja", OriginalTitle: "S1", Popularity: 9.9,
+			Localizations: []common.LocalizationMovieTv{{Locale: common.LANGUAGE_PTBR, Title: "Serie PT", PosterPath: "/pt.jpg"}}},
+		{Id: 1, Title: "Serie EN", Language: common.LANGUAGE_EN, PosterPath: "/en.jpg", FirstAirDate: "2020-01-01", OriginalLanguage: "ja", OriginalTitle: "S1", Popularity: 9.9,
+			Localizations: []common.LocalizationMovieTv{{Locale: common.LANGUAGE_EN, Title: "Serie EN", PosterPath: "/en.jpg"}}},
 	}
 
 	got := buildCatalogTvLocalized(docs)

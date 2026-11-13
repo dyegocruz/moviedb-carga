@@ -37,8 +37,9 @@ type amqpChanneler interface {
 }
 
 type RabbitMQService struct {
-	conn    *amqp.Connection
-	channel amqpChanneler
+	conn          *amqp.Connection
+	channel       amqpChanneler
+	prefetchCount int
 }
 
 func NewRabbitMQService(config Config) (*RabbitMQService, error) {
@@ -75,7 +76,11 @@ func (r *RabbitMQService) Close() {
 }
 
 func (r *RabbitMQService) SetPrefetch(count int) error {
-	return r.channel.Qos(count, 0, false)
+	if err := r.channel.Qos(count, 0, false); err != nil {
+		return err
+	}
+	r.prefetchCount = count
+	return nil
 }
 
 func (r *RabbitMQService) PublishJSON(queueName string, data interface{}) error {
@@ -106,23 +111,30 @@ func (r *RabbitMQService) ConsumeJSON(queueName string, handler func([]byte) err
 		return err
 	}
 
-	done := make(chan error, 1)
-	go func() {
-		log.Printf("Consumer ready, PID: %d", os.Getpid())
-		for d := range msgs {
-			log.Printf("Received a message: %s", d.Body)
-			r.processDelivery(d, queueName, dlqName, handler)
-		}
-		// msgs closes when the broker drops the channel/connection (restart,
-		// network blip, heartbeat timeout, protocol error). Surface that as an
-		// error instead of blocking forever, so the caller can exit and let the
-		// process supervisor (Docker "restart: always") restore the consumer.
-		log.Printf("Consumer channel closed unexpectedly, PID: %d", os.Getpid())
-		done <- fmt.Errorf("rabbitmq consumer channel closed for queue %q", queueName)
-	}()
+	workerCount := r.prefetchCount
+	if workerCount < 1 {
+		workerCount = 1
+	}
 
+	deliveries := make(chan amqp.Delivery, workerCount)
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			for d := range deliveries {
+				r.processDelivery(d, queueName, dlqName, handler)
+			}
+		}()
+	}
+
+	log.Printf("Consumer ready, PID: %d, workers: %d", os.Getpid(), workerCount)
 	log.Println("Waiting for messages...")
-	return <-done
+	for d := range msgs {
+		log.Printf("Received a message: %s", d.Body)
+		deliveries <- d
+	}
+
+	close(deliveries)
+	log.Printf("Consumer channel closed unexpectedly, PID: %d", os.Getpid())
+	return fmt.Errorf("rabbitmq consumer channel closed for queue %q", queueName)
 }
 
 // processDelivery runs handler for a single delivery, recovering from panics

@@ -20,8 +20,8 @@ type createIndexesCall struct {
 }
 
 type fakeMongoCursor struct {
-	items []common.CatalogCheck
-	idx   int
+	items  []common.CatalogCheck
+	idx    int
 	closed bool
 }
 
@@ -166,7 +166,7 @@ func TestMongoService_GenerateCatalogCheck(t *testing.T) {
 	if len(got) != 2 {
 		t.Fatalf("expected 2 items, got %d", len(got))
 	}
-	if got[1].Id != 1 || got[2].Id != 2 {
+	if got[1] || got[2] {
 		t.Fatalf("unexpected map content: %#v", got)
 	}
 

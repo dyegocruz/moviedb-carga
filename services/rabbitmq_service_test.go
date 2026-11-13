@@ -199,6 +199,111 @@ func TestConsumeJSON_HandlerInvokedAndAcked(t *testing.T) {
 	}
 }
 
+func TestConsumeJSON_ProcessesUpToPrefetchConcurrently(t *testing.T) {
+	const concurrency = 2
+
+	deliveries := make(chan amqp.Delivery, concurrency)
+	for i := 0; i < concurrency; i++ {
+		deliveries <- amqp.Delivery{Body: []byte(`{}`), Acknowledger: &fakeAcker{}}
+	}
+
+	svc := newServiceWithFake(&fakeChannel{deliveries: deliveries})
+	if err := svc.SetPrefetch(concurrency); err != nil {
+		t.Fatalf("set prefetch: %v", err)
+	}
+
+	started := make(chan struct{}, concurrency)
+	release := make(chan struct{})
+	completed := make(chan struct{}, concurrency)
+	consumeDone := make(chan error, 1)
+	go func() {
+		consumeDone <- svc.ConsumeJSON("q-test", func([]byte) error {
+			started <- struct{}{}
+			<-release
+			completed <- struct{}{}
+			return nil
+		})
+	}()
+
+	for i := 0; i < concurrency; i++ {
+		select {
+		case <-started:
+		case <-time.After(2 * time.Second):
+			close(release)
+			t.Fatal("deliveries were not processed concurrently")
+		}
+	}
+
+	close(release)
+	for i := 0; i < concurrency; i++ {
+		select {
+		case <-completed:
+		case <-time.After(2 * time.Second):
+			t.Fatal("handlers did not complete")
+		}
+	}
+	close(deliveries)
+
+	select {
+	case err := <-consumeDone:
+		if err == nil {
+			t.Fatal("expected an error after the deliveries channel closed")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("consumer did not stop after the deliveries channel closed")
+	}
+}
+
+func TestConsumeJSON_DetectsChannelClosureWhileHandlerIsRunning(t *testing.T) {
+	deliveries := make(chan amqp.Delivery)
+	svc := newServiceWithFake(&fakeChannel{deliveries: deliveries})
+	if err := svc.SetPrefetch(1); err != nil {
+		t.Fatalf("set prefetch: %v", err)
+	}
+
+	handlerStarted := make(chan struct{})
+	releaseHandler := make(chan struct{})
+	handlerFinished := make(chan struct{})
+	consumeDone := make(chan error, 1)
+	go func() {
+		consumeDone <- svc.ConsumeJSON("q-test", func([]byte) error {
+			close(handlerStarted)
+			<-releaseHandler
+			close(handlerFinished)
+			return nil
+		})
+	}()
+
+	go func() {
+		deliveries <- amqp.Delivery{Body: []byte(`{}`), Acknowledger: &fakeAcker{}}
+	}()
+
+	select {
+	case <-handlerStarted:
+	case <-time.After(2 * time.Second):
+		close(releaseHandler)
+		t.Fatal("handler did not start")
+	}
+	close(deliveries)
+
+	select {
+	case err := <-consumeDone:
+		if err == nil {
+			t.Fatal("expected an error after the deliveries channel closed")
+		}
+	case <-time.After(2 * time.Second):
+		close(releaseHandler)
+		t.Fatal("consumer waited for the running handler before detecting channel closure")
+	}
+
+	close(releaseHandler)
+	select {
+	case <-handlerFinished:
+	case <-time.After(2 * time.Second):
+		t.Fatal("handler did not finish after being released")
+	}
+}
+
 func TestConsumeJSON_ReturnsErrorOnConsumeFail(t *testing.T) {
 	wantErr := errors.New("consume failed")
 	ch := &fakeChannel{consumeErr: wantErr}

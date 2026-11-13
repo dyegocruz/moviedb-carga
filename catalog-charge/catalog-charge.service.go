@@ -24,221 +24,115 @@ type bulkAdder interface {
 	Add(r elastic.BulkableRequest)
 }
 
-type rabbitPublisher interface {
-	Close()
-	PublishJSON(queueName string, data interface{}) error
-}
-
 type Service struct {
-	config                        services.Config
-	mongo                         *services.MongoService
-	elastic                       *services.ElasticService
-	movie                         *movie.Service
-	person                        *person.Service
-	tv                            *tv.Service
-	checkAndUpdateCatalogByFileFn func(mediaType string)
-	checkMoviesChangesFn          func()
-	checkTvChangesFn              func()
-	catalogSearchChargeFn         func()
-	catalogChargeFn               func()
-	catalogUpdatesFn              func()
-	getTvCatalogSearchInFn        func(ids []int) []tv.Serie
-	getMovieCatalogSearchInFn     func(ids []int) []movie.Movie
-	getPersonCatalogSearchInFn    func(language string, ids []int) []person.Person
-	getTvAllByIdsFn               func(ids []int) []interface{}
-	getMovieAllByIdsFn            func(ids []int) []interface{}
-	getPersonAllByIdsFn           func(ids []int) []interface{}
-	nowFn                         func() time.Time
-	downloadExportFileFn          func(url string, fileName string)
-	unzipFn                       func(fileName string)
-	openFileFn                    func(name string) (*os.File, error)
-	newRabbitMQServiceFn          func(config services.Config) (rabbitPublisher, error)
-	removeFileFn                  func(name string)
-	generateMovieCatalogCheckFn   func(language string) map[int]common.CatalogCheck
-	generateTvCatalogCheckFn      func(language string) map[int]common.CatalogCheck
-	generatePersonCatalogCheckFn  func(language string) map[int]common.CatalogCheck
-	deleteMovieFn                 func(id int)
-	deleteSerieFn                 func(id int)
-	deleteSerieEpisodesFn         func(id int)
-	getAllIdsByLanguageFn         func(collection string, language string) []int
-	catalogSearchChargeExecutorFn func()
-	catalogSearchChargeRunFn      func(workers int, indexName string, newIndexName string) error
-	elasticChargeInsertExecutorFn func(indexName string, interval int64, mapping string, workers int)
-	elasticChargeInsertRunFn      func(indexName string, interval int64, workers int, mapping string, newIndexName string, docsIDs []int) error
+	config  services.Config
+	mongo   *services.MongoService
+	elastic *services.ElasticService
+	movie   *movie.Service
+	person  *person.Service
+	tv      *tv.Service
 }
 
-func NewService(config services.Config, mongo *services.MongoService, elasticService *services.ElasticService, movieService *movie.Service, personService *person.Service, tvService *tv.Service) *Service {
+func NewService(
+	config services.Config,
+	mongo *services.MongoService,
+	elasticService *services.ElasticService,
+	movieService *movie.Service,
+	personService *person.Service,
+	tvService *tv.Service,
+) *Service {
 	if config == nil {
 		config = services.DefaultConfig()
 	}
 
-	return &Service{config: config, mongo: mongo, elastic: elasticService, movie: movieService, person: personService, tv: tvService}
+	return &Service{config: config,
+		mongo: mongo, elastic: elasticService, movie: movieService, person: personService, tv: tvService}
 }
 
 func (s *Service) CatalogCharge() {
-	runCheckAndUpdate := s.CheckAndUpdateCatalogByFile
-	if s.checkAndUpdateCatalogByFileFn != nil {
-		runCheckAndUpdate = s.checkAndUpdateCatalogByFileFn
-	}
-
-	go runCheckAndUpdate(common.MEDIA_TYPE_TV)
-	runCheckAndUpdate(common.MEDIA_TYPE_MOVIE)
+	go s.CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_TV)
+	s.CheckAndUpdateCatalogByFile(common.MEDIA_TYPE_MOVIE)
 	log.Println("FINISH CatalogCharge")
 }
 
 func (s *Service) CatalogUpdates() {
-	runMoviesChanges := func() {
-		s.movie.CheckMoviesChanges()
-	}
-	runTvChanges := func() {
-		s.tv.CheckTvChanges()
-	}
-
-	if s.checkMoviesChangesFn != nil {
-		runMoviesChanges = s.checkMoviesChangesFn
-	}
-	if s.checkTvChangesFn != nil {
-		runTvChanges = s.checkTvChangesFn
-	}
-
-	go runMoviesChanges()
-	runTvChanges()
+	go s.movie.CheckMoviesChanges()
+	s.tv.CheckTvChanges()
 	log.Println("FINISH CatalogUpdates")
 }
 
 func (s *Service) CheckAndUpdateCatalogByFile(mediaType string) {
-	now := s.nowFn
-	if now == nil {
-		now = time.Now
-	}
-	download := s.downloadExportFileFn
-	if download == nil {
-		download = util.DownloadExportFile
-	}
-	unzip := s.unzipFn
-	if unzip == nil {
-		unzip = util.Unzip
-	}
-	openFile := s.openFileFn
-	if openFile == nil {
-		openFile = os.Open
-	}
-	newRabbit := s.newRabbitMQServiceFn
-	if newRabbit == nil {
-		newRabbit = func(config services.Config) (rabbitPublisher, error) {
-			return services.NewRabbitMQService(config)
-		}
-	}
-	removeFile := s.removeFileFn
-	if removeFile == nil {
-		removeFile = util.RemoveFile
-	}
-
-	genMovieCatalogCheck := func(language string) map[int]common.CatalogCheck {
-		return s.movie.GenerateMovieCatalogCheck(language)
-	}
-	if s.generateMovieCatalogCheckFn != nil {
-		genMovieCatalogCheck = s.generateMovieCatalogCheckFn
-	}
-	genTvCatalogCheck := func(language string) map[int]common.CatalogCheck {
-		return s.tv.GenerateTvCatalogCheck(language)
-	}
-	if s.generateTvCatalogCheckFn != nil {
-		genTvCatalogCheck = s.generateTvCatalogCheckFn
-	}
-	genPersonCatalogCheck := func(language string) map[int]common.CatalogCheck {
-		return s.person.GeneratePersonCatalogCheck(language)
-	}
-	if s.generatePersonCatalogCheckFn != nil {
-		genPersonCatalogCheck = s.generatePersonCatalogCheckFn
-	}
-	deleteMovie := func(id int) { s.movie.DeleteMovie(id) }
-	if s.deleteMovieFn != nil {
-		deleteMovie = s.deleteMovieFn
-	}
-	deleteSerie := func(id int) { s.tv.DeleteSerie(id) }
-	if s.deleteSerieFn != nil {
-		deleteSerie = s.deleteSerieFn
-	}
-	deleteSerieEpisodes := func(id int) { s.tv.DeleteSerieEpisodes(id) }
-	if s.deleteSerieEpisodesFn != nil {
-		deleteSerieEpisodes = s.deleteSerieEpisodesFn
-	}
-
-	t := now()
+	t := time.Now()
 	dateFile := t.AddDate(0, 0, -1).Format("01_02_2006")
 	mediaFile := mediaFilePrefix(mediaType)
-	var catalogGenerate map[int]common.CatalogCheck
+	var catalogGenerate map[int]bool
 
 	switch mediaType {
 	case common.MEDIA_TYPE_MOVIE:
-		catalogGenerate = genMovieCatalogCheck(common.LANGUAGE_PTBR)
+		catalogGenerate = s.movie.GenerateMovieCatalogCheck(common.LANGUAGE_PTBR)
 	case common.MEDIA_TYPE_TV:
-		catalogGenerate = genTvCatalogCheck(common.LANGUAGE_PTBR)
+		catalogGenerate = s.tv.GenerateTvCatalogCheck(common.LANGUAGE_PTBR)
 	case common.MEDIA_TYPE_PERSON:
-		catalogGenerate = genPersonCatalogCheck(common.LANGUAGE_PTBR)
+		catalogGenerate = s.person.GeneratePersonCatalogCheck(common.LANGUAGE_PTBR)
 	}
 
 	fileName := mediaFile + dateFile
 
 	log.Println("====================>INIT " + mediaType)
-	download("http://files.tmdb.org/p/exports", fileName)
-	unzip(fileName)
+	util.DownloadExportFile("http://files.tmdb.org/p/exports", fileName)
+	util.Unzip(fileName)
 
-	fileCatalog, err := openFile(fileName + ".json")
+	fileCatalog, err := os.Open(fileName + ".json")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer fileCatalog.Close()
 
 	scannerFile := bufio.NewScanner(fileCatalog)
-	rmq, err := newRabbit(s.config)
+	rmq, err := services.NewRabbitMQService(s.config)
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
 	}
 	defer rmq.Close()
 
-	dailyFileIdsSet := make(map[int]bool)
-
 	for scannerFile.Scan() {
 		var elementRead tmdb.TmdbDailyFile
 		json.Unmarshal([]byte(scannerFile.Text()), &elementRead)
-		dailyFileIdsSet[elementRead.Id] = true
 
-		if shouldPublishCatalogMessage(elementRead.Id, catalogGenerate) {
-			message := queue.CatalogProcessMessage{Id: elementRead.Id, MediaType: mediaType}
-			if err := rmq.PublishJSON(queue.QueueCatalogProcess, message); err != nil {
-				log.Fatalf("Failed to publish a message: %s", err)
+		if _, isInCatalog := catalogGenerate[elementRead.Id]; isInCatalog {
+			catalogGenerate[elementRead.Id] = true
+			continue
+		}
+
+		message := queue.CatalogProcessMessage{Id: elementRead.Id, MediaType: mediaType}
+		if err := rmq.PublishJSON(queue.QueueCatalogProcess, message); err != nil {
+			log.Fatalf("Failed to publish a message: %s", err)
+		}
+		log.Println("Message published successfully for Id and mediaType: ", message.Id, mediaType)
+	}
+
+	for id, isInCatalog := range catalogGenerate {
+
+		if !isInCatalog {
+			if mediaType == common.MEDIA_TYPE_MOVIE {
+				s.movie.DeleteMovie(id)
+				log.Println("Movie removed from catalog: ", id)
 			}
 
-			log.Println("Message published successfully for Id and mediaType: ", message.Id, mediaType)
+			if mediaType == common.MEDIA_TYPE_TV {
+				s.tv.DeleteSerie(id)
+				s.tv.DeleteSerieEpisodes(id)
+				log.Println("TV and episodes removed from catalog: ", id)
+			}
 		}
 	}
 
-	for _, id := range idsMissingFromDaily(catalogGenerate, dailyFileIdsSet) {
-		if mediaType == common.MEDIA_TYPE_MOVIE {
-			deleteMovie(id)
-			log.Println("Movie removed from catalog: ", id)
-		}
-
-		if mediaType == common.MEDIA_TYPE_TV {
-			deleteSerie(id)
-			deleteSerieEpisodes(id)
-			log.Println("TV and episodes removed from catalog: ", id)
-		}
-	}
-
-	removeFile(fileName + ".json")
+	util.RemoveFile(fileName + ".json")
 	log.Println("====================>FINISH " + mediaType)
 }
 
 func (s *Service) handleCatalogTv(listTvIdsIn []int, newIndexName string, bulkProcessor bulkAdder) {
-	getter := func(ids []int) []tv.Serie { return s.tv.GetCatalogSearchIn(ids) }
-	if s.getTvCatalogSearchInFn != nil {
-		getter = s.getTvCatalogSearchInFn
-	}
-
-	docs := getter(listTvIdsIn)
+	docs := s.tv.GetCatalogSearchIn(listTvIdsIn)
 	for _, item := range buildCatalogTvLocalized(docs) {
 		req := elastic.NewBulkIndexRequest().Index(newIndexName).Doc(item)
 		bulkProcessor.Add(req)
@@ -246,12 +140,7 @@ func (s *Service) handleCatalogTv(listTvIdsIn []int, newIndexName string, bulkPr
 }
 
 func (s *Service) handleCatalogMovie(listMovieIdsIn []int, newIndexName string, bulkProcessor bulkAdder) {
-	getter := func(ids []int) []movie.Movie { return s.movie.GetCatalogSearchIn(ids) }
-	if s.getMovieCatalogSearchInFn != nil {
-		getter = s.getMovieCatalogSearchInFn
-	}
-
-	docs := getter(listMovieIdsIn)
+	docs := s.movie.GetCatalogSearchIn(listMovieIdsIn)
 	for _, item := range buildCatalogMovieLocalized(docs) {
 		req := elastic.NewBulkIndexRequest().Index(newIndexName).Doc(item)
 		bulkProcessor.Add(req)
@@ -259,12 +148,7 @@ func (s *Service) handleCatalogMovie(listMovieIdsIn []int, newIndexName string, 
 }
 
 func (s *Service) handleCatalogPerson(listPersonIdsIn []int, newIndexName string, bulkProcessor bulkAdder) {
-	getter := func(language string, ids []int) []person.Person { return s.person.GetCatalogSearchIn(language, ids) }
-	if s.getPersonCatalogSearchInFn != nil {
-		getter = s.getPersonCatalogSearchInFn
-	}
-
-	docs := getter(common.LANGUAGE_PTBR, listPersonIdsIn)
+	docs := s.person.GetCatalogSearchIn(common.LANGUAGE_PTBR, listPersonIdsIn)
 	for _, catalog := range buildCatalogPersonDocs(docs) {
 		req := elastic.NewBulkIndexRequest().Index(newIndexName).Doc(catalog)
 		bulkProcessor.Add(req)
@@ -390,132 +274,83 @@ func buildCatalogPersonDocs(docs []person.Person) []CatalogSearch {
 }
 
 func (s *Service) CatalogSearchCharge() {
-	if s.catalogSearchChargeExecutorFn != nil {
-		s.catalogSearchChargeExecutorFn()
-		return
-	}
-
 	workers := 5
 	indexName := "catalog_search"
-	elasticAliasName := indexName
-	now := s.nowFn
-	if now == nil {
-		now = time.Now
-	}
-	currentTime := now()
-	newIndexName := elasticAliasName + "_" + currentTime.Format("20060102150401")
+	newIndexName := indexName + "_" + time.Now().Format("20060102150401")
 	log.Println(newIndexName)
 
-	run := s.catalogSearchChargeRunFn
-	if run == nil {
-		run = func(workers int, indexName string, newIndexName string) error {
-			elasticClient := s.elastic.Client()
-			ctx := context.Background()
-
-			return s.executeCatalogSearchCharge(
-				workers,
-				indexName,
-				newIndexName,
-				func(name string) error {
-					_, err := elasticClient.CreateIndex(name).BodyString(INDEX_MAPPING_CATALOG_SEARCH).Do(ctx)
-					return err
-				},
-				func(workerCount int) (bulkAdder, func(), error) {
-					bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).Workers(workerCount).BulkActions(-1).After(after).Stats(true).Do(ctx)
-					if err != nil {
-						return nil, nil, err
-					}
-					return bulkProcessor, func() {
-						bulkProcessor.Flush()
-						bulkProcessor.Close()
-					}, nil
-				},
-				func(collection string) []int { return s.mongo.GetAllIdsByLanguage(collection, common.LANGUAGE_PTBR) },
-				func(ids []int, idx string, bulk bulkAdder) { s.handleCatalogTv(ids, idx, bulk) },
-				func(ids []int, idx string, bulk bulkAdder) { s.handleCatalogMovie(ids, idx, bulk) },
-				func(ids []int, idx string, bulk bulkAdder) { s.handleCatalogPerson(ids, idx, bulk) },
-				func(alias string) ([]string, error) { return s.IndexNamesByAlias(alias, elasticClient) },
-				func(index, alias string) { elasticClient.Alias().Add(index, alias).Do(ctx) },
-				func(index, alias string) { elasticClient.Alias().Remove(index, alias).Do(ctx) },
-				func(index string) { elasticClient.DeleteIndex(index).Do(ctx) },
-				func(index string) { elasticClient.Count(index).Do(ctx) },
-			)
-		}
-	}
-
-	err := run(workers, indexName, newIndexName)
-	if err != nil {
+	elasticClient := s.elastic.Client()
+	ctx := context.Background()
+	if _, err := elasticClient.CreateIndex(newIndexName).BodyString(INDEX_MAPPING_CATALOG_SEARCH).Do(ctx); err != nil {
 		log.Println("Falha ao criar o índice:", newIndexName)
 		panic(err)
 	}
 
-	log.Println("Carga finalizada com sucesso!")
-}
-
-func (s *Service) executeCatalogSearchCharge(
-	workers int,
-	indexName string,
-	newIndexName string,
-	createIndex func(name string) error,
-	newBulk func(workerCount int) (bulkAdder, func(), error),
-	getIDs func(collection string) []int,
-	handleTv func(ids []int, newIndexName string, bulk bulkAdder),
-	handleMovie func(ids []int, newIndexName string, bulk bulkAdder),
-	handlePerson func(ids []int, newIndexName string, bulk bulkAdder),
-	indexNamesByAlias func(alias string) ([]string, error),
-	addAlias func(index, alias string),
-	removeAlias func(index, alias string),
-	deleteIndex func(index string),
-	countIndex func(index string),
-) error {
-	if err := createIndex(newIndexName); err != nil {
-		return err
-	}
-
-	bulkProcessor, closeBulk, err := newBulk(workers)
+	bulkProcessor, err := newBulkProcessor(elasticClient, ctx, workers)
 	if err != nil {
-		log.Println("bulkProcessor Error", err)
+		log.Println("bulkProcessor TV Error", err)
 	} else {
-		idsTv := getIDs(services.CollectionSerie)
-		log.Println(len(idsTv))
-		processIDsInBatches(idsTv, 1000, func(batch []int) {
-			handleTv(batch, newIndexName, bulkProcessor)
+		ids := s.mongo.GetAllIdsByLanguage(services.CollectionSerie, common.LANGUAGE_PTBR)
+		log.Println(len(ids))
+		processIDsInBatches(ids, 1000, func(batch []int) {
+			s.handleCatalogTv(batch, newIndexName, bulkProcessor)
 		})
-		closeBulk()
+		bulkProcessor.Flush()
+		bulkProcessor.Close()
 	}
 
-	bulkProcessor, closeBulk, err = newBulk(workers)
+	bulkProcessor, err = newBulkProcessor(elasticClient, ctx, workers)
 	if err != nil {
-		log.Println("bulkProcessor Error", err)
+		log.Println("bulkProcessor Movie Error", err)
 	} else {
-		idsMovies := getIDs(services.CollectionMovie)
-		log.Println(len(idsMovies))
-		processIDsInBatches(idsMovies, 1000, func(batch []int) {
-			handleMovie(batch, newIndexName, bulkProcessor)
+		ids := s.mongo.GetAllIdsByLanguage(services.CollectionMovie, common.LANGUAGE_PTBR)
+		log.Println(len(ids))
+		processIDsInBatches(ids, 1000, func(batch []int) {
+			s.handleCatalogMovie(batch, newIndexName, bulkProcessor)
 		})
-		closeBulk()
+		bulkProcessor.Flush()
+		bulkProcessor.Close()
 	}
 
-	bulkProcessor, closeBulk, err = newBulk(workers)
+	bulkProcessor, err = newBulkProcessor(elasticClient, ctx, workers)
 	if err != nil {
-		log.Println("bulkProcessor Error", err)
+		log.Println("bulkProcessor Person Error", err)
 	} else {
-		idsPersons := getIDs(services.CollectionPerson)
-		log.Println(len(idsPersons))
-		processIDsInBatches(idsPersons, 1000, func(batch []int) {
-			handlePerson(batch, newIndexName, bulkProcessor)
+		ids := s.mongo.GetAllIdsByLanguage(services.CollectionPerson, common.LANGUAGE_PTBR)
+		log.Println(len(ids))
+		processIDsInBatches(ids, 1000, func(batch []int) {
+			s.handleCatalogPerson(batch, newIndexName, bulkProcessor)
 		})
-		closeBulk()
+		bulkProcessor.Flush()
+		bulkProcessor.Close()
 	}
 
-	existentSerieAliases, err := indexNamesByAlias(indexName)
+	existingAliases, err := s.IndexNamesByAlias(indexName, elasticClient)
 	if err != nil {
 		log.Println("Error ao buscar o index no alias: " + indexName)
 	}
-	log.Println(existentSerieAliases)
+	log.Println(existingAliases)
 
-	rotateAliasAndCleanup(newIndexName, indexName, indexName, existentSerieAliases, addAlias, removeAlias, deleteIndex, countIndex)
-	return nil
+	rotateCatalogAlias(elasticClient, ctx, newIndexName, indexName, existingAliases)
+
+	log.Println("Carga finalizada com sucesso!")
+}
+
+func newBulkProcessor(client *elastic.Client, ctx context.Context, workers int) (*elastic.BulkProcessor, error) {
+	return elastic.NewBulkProcessorService(client).
+		Workers(workers).
+		BulkActions(1000).
+		After(after).
+		Do(ctx)
+}
+
+func rotateCatalogAlias(client *elastic.Client, ctx context.Context, newIndexName string, aliasName string, existingAliases []string) {
+	_, _ = client.Alias().Add(newIndexName, aliasName).Do(ctx)
+	if oldIndex, ok := oldIndexToRetire(existingAliases); ok {
+		_, _ = client.Alias().Remove(oldIndex, aliasName).Do(ctx)
+		_, _ = client.DeleteIndex(oldIndex).Do(ctx)
+	}
+	_, _ = client.Count(aliasName).Do(ctx)
 }
 
 func (s *Service) handleElasticChargeInsertDocs(indexName string, listIdsIn []int, newIndexName string, bulkProcessor bulkAdder) {
@@ -523,23 +358,11 @@ func (s *Service) handleElasticChargeInsertDocs(indexName string, listIdsIn []in
 
 	switch indexName {
 	case "series":
-		if s.getTvAllByIdsFn != nil {
-			docs = s.getTvAllByIdsFn(listIdsIn)
-		} else {
-			docs = s.tv.GetAllByIds(listIdsIn)
-		}
+		docs = s.tv.GetAllByIds(listIdsIn)
 	case "movies":
-		if s.getMovieAllByIdsFn != nil {
-			docs = s.getMovieAllByIdsFn(listIdsIn)
-		} else {
-			docs = s.movie.GetAllByIds(listIdsIn)
-		}
+		docs = s.movie.GetAllByIds(listIdsIn)
 	case "persons":
-		if s.getPersonAllByIdsFn != nil {
-			docs = s.getPersonAllByIdsFn(listIdsIn)
-		} else {
-			docs = s.person.GetAllByIds(listIdsIn)
-		}
+		docs = s.person.GetAllByIds(listIdsIn)
 	}
 
 	for _, doc := range docs {
@@ -549,137 +372,47 @@ func (s *Service) handleElasticChargeInsertDocs(indexName string, listIdsIn []in
 }
 
 func (s *Service) ElasticChargeInsert(indexName string, interval int64, mapping string, workers int) {
-	if s.elasticChargeInsertExecutorFn != nil {
-		s.elasticChargeInsertExecutorFn(indexName, interval, mapping, workers)
-		return
-	}
-
 	collectionCount := collectionByIndexName(indexName)
-	getAllIdsByLanguage := s.getAllIdsByLanguageFn
-	if getAllIdsByLanguage == nil {
-		getAllIdsByLanguage = func(collection string, language string) []int {
-			return s.mongo.GetAllIdsByLanguage(collection, language)
-		}
-	}
-
-	docsIds := getAllIdsByLanguage(collectionCount, common.LANGUAGE_PTBR)
-	elasticAliasName := indexName
-	now := s.nowFn
-	if now == nil {
-		now = time.Now
-	}
-	currentTime := now()
-	newIndexName := elasticAliasName + "_" + currentTime.Format("20060102150401")
+	docsIDs := s.mongo.GetAllIdsByLanguage(collectionCount, common.LANGUAGE_PTBR)
+	newIndexName := indexName + "_" + time.Now().Format("20060102150401")
 	log.Println(newIndexName)
 
-	run := s.elasticChargeInsertRunFn
-	if run == nil {
-		run = func(indexName string, interval int64, workers int, mapping string, newIndexName string, docsIDs []int) error {
-			elasticClient := s.elastic.Client()
-			ctx := context.Background()
-
-			return s.executeElasticChargeInsert(
-				indexName,
-				interval,
-				workers,
-				newIndexName,
-				func(name string) error {
-					_, err := elasticClient.CreateIndex(name).BodyString(mapping).Do(context.TODO())
-					return err
-				},
-				func(workerCount int) (bulkAdder, func(), error) {
-					bulkProcessor, err := elastic.NewBulkProcessorService(elasticClient).Workers(workerCount).BulkActions(-1).After(after).Stats(true).Do(ctx)
-					if err != nil {
-						return nil, nil, err
-					}
-					return bulkProcessor, func() {
-						bulkProcessor.Flush()
-						bulkProcessor.Close()
-					}, nil
-				},
-				docsIDs,
-				func(ids []int, idx string, bulk bulkAdder) {
-					s.handleElasticChargeInsertDocs(indexName, ids, idx, bulk)
-				},
-				func(alias string) ([]string, error) { return s.IndexNamesByAlias(alias, elasticClient) },
-				func(index, alias string) { elasticClient.Alias().Add(index, alias).Do(ctx) },
-				func(index, alias string) { elasticClient.Alias().Remove(index, alias).Do(ctx) },
-				func(index string) { elasticClient.DeleteIndex(index).Do(ctx) },
-				func(index string) { elasticClient.Count(index).Do(ctx) },
-			)
-		}
-	}
-
-	err := run(indexName, interval, workers, mapping, newIndexName, docsIds)
-	if err != nil {
+	elasticClient := s.elastic.Client()
+	ctx := context.Background()
+	if _, err := elasticClient.CreateIndex(newIndexName).BodyString(mapping).Do(ctx); err != nil {
 		log.Println("Falha ao criar o índice:", newIndexName)
 		panic(err)
 	}
-	log.Println("Carga finalizada com sucesso!")
-}
 
-func (s *Service) executeElasticChargeInsert(
-	indexName string,
-	interval int64,
-	workers int,
-	newIndexName string,
-	createIndex func(name string) error,
-	newBulk func(workerCount int) (bulkAdder, func(), error),
-	docsIDs []int,
-	handleDocs func(ids []int, newIndexName string, bulk bulkAdder),
-	indexNamesByAlias func(alias string) ([]string, error),
-	addAlias func(index, alias string),
-	removeAlias func(index, alias string),
-	deleteIndex func(index string),
-	countIndex func(index string),
-) error {
-	if err := createIndex(newIndexName); err != nil {
-		return err
-	}
-
-	bulkProcessor, closeBulk, err := newBulk(workers)
+	bulkProcessor, err := newBulkProcessor(elasticClient, ctx, workers)
 	if err != nil {
 		log.Println("bulkProcessor Error", err)
 	} else {
 		processIDsInBatchesWithInterval(docsIDs, interval, func(batch []int) {
-			handleDocs(batch, newIndexName, bulkProcessor)
+			s.handleElasticChargeInsertDocs(indexName, batch, newIndexName, bulkProcessor)
 		})
-		closeBulk()
+		bulkProcessor.Flush()
+		bulkProcessor.Close()
 	}
 
-	existentSerieAliases, err := indexNamesByAlias(indexName)
+	existingAliases, err := s.IndexNamesByAlias(indexName, elasticClient)
 	if err != nil {
 		log.Println("Error ao buscar o index no alias: " + indexName)
 	}
-	log.Println(existentSerieAliases)
+	log.Println(existingAliases)
 
-	rotateAliasAndCleanup(newIndexName, indexName, indexName, existentSerieAliases, addAlias, removeAlias, deleteIndex, countIndex)
-	return nil
+	rotateCatalogAlias(elasticClient, ctx, newIndexName, indexName, existingAliases)
+	log.Println("Carga finalizada com sucesso!")
 }
 
 func (s *Service) ElasticGeneralCharge() {
-	runCatalogSearchCharge := s.CatalogSearchCharge
-	if s.catalogSearchChargeFn != nil {
-		runCatalogSearchCharge = s.catalogSearchChargeFn
-	}
-
-	runCatalogSearchCharge()
+	s.CatalogSearchCharge()
 	log.Println("FINISH ElasticGeneralCharge")
 }
 
 func (s *Service) GeneralCatalogHandler() {
-	runCatalogCharge := s.CatalogCharge
-	runCatalogUpdates := s.CatalogUpdates
-
-	if s.catalogChargeFn != nil {
-		runCatalogCharge = s.catalogChargeFn
-	}
-	if s.catalogUpdatesFn != nil {
-		runCatalogUpdates = s.catalogUpdatesFn
-	}
-
-	runCatalogCharge()
-	runCatalogUpdates()
+	s.CatalogCharge()
+	s.CatalogUpdates()
 }
 
 func (s *Service) IndexNamesByAlias(aliasName string, elasticClient *elastic.Client) ([]string, error) {
@@ -726,14 +459,6 @@ func collectionByIndexName(indexName string) string {
 	}
 }
 
-func shouldFlushBatch(index int, interval int64) bool {
-	if interval <= 0 {
-		return false
-	}
-
-	return int64(index)%interval == 0
-}
-
 func mediaFilePrefix(mediaType string) string {
 	switch mediaType {
 	case common.MEDIA_TYPE_MOVIE:
@@ -760,37 +485,17 @@ func processIDsInBatches(ids []int, interval int64, handleBatch func(batch []int
 
 func processIDsInBatchesWithInterval(ids []int, interval int64, handleBatch func(batch []int)) {
 	var batch []int
-	for i := 0; i < len(ids); i++ {
-		batch = append(batch, ids[i])
-		if shouldFlushBatch(i, interval) {
+	for _, id := range ids {
+		batch = append(batch, id)
+		if interval > 0 && int64(len(batch)) >= interval {
 			handleBatch(batch)
-			batch = []int{}
+			batch = nil
 		}
 	}
 
 	if len(batch) > 0 {
 		handleBatch(batch)
 	}
-}
-
-func rotateAliasAndCleanup(
-	newIndexName string,
-	aliasName string,
-	countIndexName string,
-	existingAliases []string,
-	addAlias func(index, alias string),
-	removeAlias func(index, alias string),
-	deleteIndex func(index string),
-	countIndex func(index string),
-) {
-	addAlias(newIndexName, aliasName)
-
-	if oldIndex, ok := oldIndexToRetire(existingAliases); ok {
-		removeAlias(oldIndex, aliasName)
-		deleteIndex(oldIndex)
-	}
-
-	countIndex(countIndexName)
 }
 
 const (
